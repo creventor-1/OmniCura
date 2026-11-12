@@ -12,8 +12,11 @@ export interface AssessmentResponse {
 
 export interface RedFlagCheckResult {
   isEmergency: boolean;
-  matchedTriggers: string[];
-  guidanceMessage?: string;
+  ruleId?: string;
+  category?: string;
+  description?: string;
+  immediateAction?: string;
+  emergencyNumber?: string;
 }
 
 export interface ChatMessage {
