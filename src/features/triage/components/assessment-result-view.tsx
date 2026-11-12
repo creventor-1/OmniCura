@@ -10,11 +10,15 @@ import {
   Info,
   MapPin,
   RotateCcw,
+  BookmarkPlus,
+  Check,
 } from "lucide-react";
 import { AssessmentResponse } from "@/schemas/triage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/features/authentication/context/auth-context";
+import { AuthModal } from "@/features/authentication/components/auth-modal";
 
 interface AssessmentResultViewProps {
   assessment: AssessmentResponse;
@@ -27,6 +31,9 @@ export function AssessmentResultView({
   onReset,
   onLocateFacilities,
 }: AssessmentResultViewProps) {
+  const { user } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
+
   const { severity } = assessment;
 
   const severityConfig = {
@@ -57,6 +64,40 @@ export function AssessmentResultView({
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6 animate-in fade-in-50 duration-500 pb-12">
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        defaultMode="signup"
+        promptMessage="Create an account to save this assessment, review history, and export PDF reports."
+      />
+
+      {/* Guest Save Banner */}
+      {!user ? (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-xl border border-primary/30 bg-primary/10">
+          <div className="space-y-0.5 text-center sm:text-left">
+            <h4 className="text-sm font-bold text-foreground flex items-center gap-1.5 justify-center sm:justify-start">
+              <BookmarkPlus className="size-4 text-primary" />
+              Save this Assessment
+            </h4>
+            <p className="text-xs text-muted-foreground">
+              Sign up or log in to preserve this triage record in your private assessment history.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => setIsAuthModalOpen(true)}
+            className="shrink-0 text-xs h-9 font-medium"
+          >
+            Save Assessment
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-xs text-emerald-800 dark:text-emerald-300 font-medium">
+          <Check className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <span>Saved to your personal account assessment history.</span>
+        </div>
+      )}
+
       {/* Urgency Summary Banner */}
       <Card className={`border-2 ${severityConfig.borderClass} shadow-md overflow-hidden`}>
         <div className={`p-6 bg-muted/30 border-b ${severityConfig.borderClass}`}>

@@ -25,3 +25,6 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
 }
+
+export * from "./database";
+

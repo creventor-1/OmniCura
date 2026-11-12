@@ -1,7 +1,7 @@
 import { DisclaimerBanner } from "@/components/shared/disclaimer-banner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { EmergencyFloatingButton } from "@/components/emergency/emergency-floating-button";
-import { SymptomChat } from "@/features/triage/components/symptom-chat";
+import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { HeartPulse } from "lucide-react";
 
 export default function Home() {
@@ -28,16 +28,7 @@ export default function Home() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col items-center justify-start p-4 sm:p-6 w-full max-w-5xl mx-auto">
-        <div className="w-full text-center max-w-lg mb-4 sm:mb-6">
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Emergency Triage &amp; First-Aid
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Describe your symptoms to receive an educational urgency assessment and immediate supportive care steps.
-          </p>
-        </div>
-
-        <SymptomChat />
+        <DashboardView />
       </main>
 
       {/* Persistent SOS Emergency Button */}

@@ -11,6 +11,8 @@ import { DisclaimerModal } from "./disclaimer-modal";
 import { AssessmentResultView } from "./assessment-result-view";
 import { TriageMessage, AssessmentResponse, TriageTurnResponse } from "@/schemas/triage";
 import { RedFlagCheckResult } from "@/types";
+import { useAuth } from "@/features/authentication/context/auth-context";
+import { createClient } from "@/services/database/supabase/client";
 
 let messageCounter = 0;
 function createMessageId(prefix: string): string {
@@ -49,6 +51,9 @@ interface SymptomChatProps {
 }
 
 export function SymptomChat({ onLocateFacilities }: SymptomChatProps) {
+  const { user, setGuestAssessment } = useAuth();
+  const supabase = React.useMemo(() => createClient(), []);
+
   const [messages, setMessages] = React.useState<TriageMessage[]>([
     {
       id: "initial-assistant-msg",
@@ -185,11 +190,38 @@ export function SymptomChat({ onLocateFacilities }: SymptomChatProps) {
     setIsLoading(true);
 
     try {
+      // Check if user has consented health profile to attach
+      let healthProfilePayload = undefined;
+      if (user) {
+        try {
+          const { data: profile } = await supabase
+            .from("health_profiles")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (profile && profile.allow_ai_use) {
+            healthProfilePayload = {
+              age: profile.age,
+              sex: profile.sex,
+              allergies: profile.allergies,
+              chronicConditions: profile.chronic_conditions,
+              currentMedications: profile.medications,
+            };
+          }
+        } catch (e) {
+          console.warn("Could not load health profile for triage:", e);
+        }
+      }
+
       // Server-side triage API call (server re-runs red-flag check before any AI call)
       const res = await fetch("/api/ai/triage", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updatedMessages }),
+        body: JSON.stringify({
+          messages: updatedMessages,
+          healthProfile: healthProfilePayload,
+        }),
       });
 
       const data = await res.json();
@@ -217,6 +249,30 @@ export function SymptomChat({ onLocateFacilities }: SymptomChatProps) {
 
       if (turnData.isComplete && turnData.assessment) {
         setAssessment(turnData.assessment);
+
+        // Auto-save if logged in, or queue in guest session
+        const firstSymptom =
+          updatedMessages.find((m) => m.role === "user")?.content || text;
+
+        if (user) {
+          try {
+            await supabase.from("assessments").insert({
+              user_id: user.id,
+              symptoms: firstSymptom,
+              severity: turnData.assessment.severity,
+              assessment_result: turnData.assessment,
+              disclaimer: turnData.assessment.disclaimer,
+            });
+          } catch (e) {
+            console.warn("Failed to auto-save assessment:", e);
+          }
+        } else {
+          setGuestAssessment({
+            symptoms: firstSymptom,
+            assessment: turnData.assessment,
+          });
+        }
+
         setMessages((prev) => [
           ...prev,
           {
