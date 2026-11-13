@@ -10,12 +10,14 @@ import {
   RotateCcw,
   LocateFixed,
   Info,
+  WifiOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FacilityRouteModal } from "./facility-route-modal";
 import { HealthcareFacility } from "@/types/hospital";
 import { DEFAULT_FALLBACK_COORDINATES } from "@/services/hospitals/fallback-data";
 import type {
@@ -34,6 +36,8 @@ export function HospitalMap() {
 
   const [facilities, setFacilities] = React.useState<HealthcareFacility[]>([]);
   const [selectedFacility, setSelectedFacility] = React.useState<HealthcareFacility | null>(null);
+  const [routeFacility, setRouteFacility] = React.useState<HealthcareFacility | null>(null);
+  const [isOfflineMode, setIsOfflineMode] = React.useState(false);
 
   // Single source of truth for active map coordinates: defaults strictly to Enugu, Nigeria
   const [userCoords, setUserCoords] = React.useState<{ lat: number; lon: number }>(
@@ -118,14 +122,41 @@ export function HospitalMap() {
         if (active && data.success && Array.isArray(data.facilities)) {
           lastFetchedCoordsRef.current = { lat: userCoords.lat, lon: userCoords.lon };
           setFacilities(data.facilities);
+          setIsOfflineMode(false);
           if (data.facilities.length > 0) {
             setSelectedFacility(data.facilities[0]);
           } else {
             setSelectedFacility(null);
           }
+
+          // Persist verified facilities and coordinates for emergency offline availability
+          try {
+            if (typeof window !== "undefined") {
+              localStorage.setItem("omnicura_cached_hospitals", JSON.stringify(data.facilities));
+              localStorage.setItem("omnicura_cached_coords", JSON.stringify(userCoords));
+            }
+          } catch {
+            // ignore localStorage quota errors
+          }
         }
       } catch (err) {
-        console.warn("[HOSPITAL_FETCH_ERROR]", err);
+        console.warn("[HOSPITAL_FETCH_ERROR] Loading local device fallback cache:", err);
+        // Fallback to offline cached hospitals if network unavailable
+        try {
+          if (typeof window !== "undefined") {
+            const cached = localStorage.getItem("omnicura_cached_hospitals");
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setFacilities(parsed);
+                setSelectedFacility(parsed[0]);
+                setIsOfflineMode(true);
+              }
+            }
+          }
+        } catch {
+          // ignore parsing error
+        }
       } finally {
         if (active) setIsLoadingFacilities(false);
       }
@@ -322,6 +353,17 @@ export function HospitalMap() {
         </div>
       )}
 
+      {/* Offline Mode Informational Banner */}
+      {isOfflineMode && (
+        <div className="flex items-start gap-2.5 p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs animate-in fade-in-50">
+          <WifiOff className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+          <div className="flex-1">
+            <span className="font-semibold">Emergency Offline Mode: </span>
+            <span>Network disconnected or slow. Loaded nearest healthcare facilities &amp; routing directions from local device emergency cache.</span>
+          </div>
+        </div>
+      )}
+
       {/* Header Controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-xl border border-border bg-card shadow-none">
         <div className="space-y-1">
@@ -486,17 +528,19 @@ export function HospitalMap() {
                             </a>
                           )}
 
-                          <a
-                            href={`https://www.google.com/maps/dir/?api=1&destination=${facility.lat},${facility.lon}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRouteFacility(facility);
+                            }}
                             aria-label={`Directions to ${facility.name}`}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-accent text-accent-foreground text-xs font-medium hover:bg-accent/90 transition-colors"
+                            className="h-7 px-2.5 rounded-lg text-xs font-semibold gap-1"
                           >
                             <Navigation className="size-3" />
                             <span>Directions</span>
-                          </a>
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
@@ -507,6 +551,15 @@ export function HospitalMap() {
           </div>
         </div>
       </div>
+
+      {/* In-App Turn-by-Turn Route Preview Sheet / Modal */}
+      <FacilityRouteModal
+        isOpen={!!routeFacility}
+        onClose={() => setRouteFacility(null)}
+        facility={routeFacility}
+        userCoords={userCoords}
+        userLocationName={locationName}
+      />
     </div>
   );
 }

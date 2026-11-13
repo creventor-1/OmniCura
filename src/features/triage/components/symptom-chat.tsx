@@ -9,6 +9,7 @@ import { EmergencyAlertModal } from "@/features/safety/components/emergency-aler
 import { DisclaimerModal } from "./disclaimer-modal";
 import { AssessmentResultView } from "./assessment-result-view";
 import { DemoScenarios } from "./demo-scenarios";
+import { AudioWaveformVisualizer } from "@/components/audio/audio-waveform-visualizer";
 import { TriageMessage, AssessmentResponse, TriageTurnResponse } from "@/schemas/triage";
 import { RedFlagCheckResult } from "@/types";
 import { useAuth } from "@/features/authentication/context/auth-context";
@@ -496,6 +497,13 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
 
           {/* Input Bar */}
           <div className="p-3 border-t border-border bg-card">
+            {/* Real-time Audio Waveform Visualizer */}
+            <AudioWaveformVisualizer
+              isListening={isListening}
+              onStop={toggleSpeechRecognition}
+              className="mb-2.5"
+            />
+
             <form
               onSubmit={(e) => {
                 e.preventDefault();
