@@ -4,7 +4,8 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { LogIn, UserPlus, Shield, HeartPulse } from "lucide-react";
+import { LogIn, UserPlus, ShieldCheck, Lock } from "lucide-react";
+import { OmnicuraLogo } from "@/components/shared/brand-logo";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "../context/auth-context";
 import { createClient } from "@/services/database/supabase/client";
@@ -128,118 +128,103 @@ export function AuthModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader className="space-y-2 text-center">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <HeartPulse className="size-6" />
-          </div>
-          <DialogTitle className="text-xl font-bold">
-            {mode === "signin" ? "Welcome Back to Omnicura" : "Create Your Omnicura Account"}
+      <DialogContent className="sm:max-w-[420px] gap-6">
+        <DialogHeader className="items-center gap-3 text-center">
+          <OmnicuraLogo size="xl" />
+          <DialogTitle className="text-xl">
+            {mode === "signin" ? "Welcome back" : "Create your account"}
           </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
+          <DialogDescription className="max-w-xs">
             {promptMessage ||
               (mode === "signin"
                 ? "Sign in to access your assessment history and health profile."
-                : "Create an account to securely save and export your medical assessments.")}
+                : "Securely save, sync and export your clinical assessments.")}
           </DialogDescription>
         </DialogHeader>
 
+        {/* Mode switch */}
+        {!signupSuccess && (
+          <div className="grid grid-cols-2 rounded-xl bg-muted p-1" role="tablist" aria-label="Account mode">
+            {(["signin", "signup"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                role="tab"
+                aria-selected={mode === m}
+                onClick={() => {
+                  setMode(m);
+                  setAuthError(null);
+                }}
+                className={
+                  mode === m
+                    ? "h-9 rounded-lg bg-surface text-[13px] font-semibold text-foreground shadow-sm cursor-pointer"
+                    : "h-9 rounded-lg text-[13px] font-medium text-text-secondary hover:text-foreground cursor-pointer"
+                }
+              >
+                {m === "signin" ? "Sign in" : "Create account"}
+              </button>
+            ))}
+          </div>
+        )}
+
         {authError && (
-          <Alert variant="destructive" className="py-2 text-xs">
-            <AlertDescription>{authError}</AlertDescription>
+          <Alert variant="destructive" className="py-3">
+            <AlertDescription className="text-danger mt-0">{authError}</AlertDescription>
           </Alert>
         )}
 
         {signupSuccess ? (
-          <div className="py-6 text-center space-y-2">
-            <div className="flex size-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 mx-auto">
-              <Shield className="size-5" />
-            </div>
-            <h4 className="font-semibold text-sm">Account Created Successfully!</h4>
-            <p className="text-xs text-muted-foreground">
-              You are now signed in. Your assessment data is saved.
+          <div className="flex flex-col items-center gap-3 py-4 text-center animate-rise">
+            <span className="flex size-12 items-center justify-center rounded-2xl border border-success/20 bg-success-muted text-success">
+              <ShieldCheck className="size-6" />
+            </span>
+            <h4 className="text-base font-semibold text-foreground">Account created</h4>
+            <p className="text-sm text-text-secondary">
+              You&apos;re signed in. Your assessment data is saved securely.
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
-            <div className="space-y-1 text-left">
-              <label className="text-xs font-medium text-foreground">Email</label>
-              <Input
-                type="email"
-                placeholder="name@example.com"
-                {...register("email")}
-                disabled={isSubmitting}
-                className="text-sm h-10"
-              />
-              {errors.email && (
-                <span className="text-[11px] text-destructive">{errors.email.message}</span>
-              )}
-            </div>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <Input
+              label="Email address"
+              type="email"
+              autoComplete="email"
+              placeholder="name@example.com"
+              {...register("email")}
+              disabled={isSubmitting}
+              error={errors.email?.message}
+            />
 
-            <div className="space-y-1 text-left">
-              <label className="text-xs font-medium text-foreground">Password</label>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                {...register("password")}
-                disabled={isSubmitting}
-                className="text-sm h-10"
-              />
-              {errors.password && (
-                <span className="text-[11px] text-destructive">{errors.password.message}</span>
-              )}
-            </div>
+            <Input
+              label="Password"
+              type="password"
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              placeholder="At least 6 characters"
+              {...register("password")}
+              disabled={isSubmitting}
+              error={errors.password?.message}
+            />
 
-            <Button type="submit" disabled={isSubmitting} className="w-full gap-2 font-medium">
+            <Button type="submit" size="lg" isLoading={isSubmitting} className="w-full">
               {isSubmitting ? (
-                <>
-                  <Spinner size="sm" />
-                  <span>Processing...</span>
-                </>
+                "Please wait…"
               ) : mode === "signin" ? (
                 <>
-                  <LogIn className="size-4" />
-                  Sign In
+                  <LogIn />
+                  Sign in
                 </>
               ) : (
                 <>
-                  <UserPlus className="size-4" />
-                  Create Account &amp; Save
+                  <UserPlus />
+                  Create account &amp; save
                 </>
               )}
             </Button>
 
-            <div className="text-center pt-2 text-xs text-muted-foreground">
-              {mode === "signin" ? (
-                <span>
-                  Don&apos;t have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode("signup");
-                      setAuthError(null);
-                    }}
-                    className="font-semibold text-primary hover:underline"
-                  >
-                    Sign up
-                  </button>
-                </span>
-              ) : (
-                <span>
-                  Already have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode("signin");
-                      setAuthError(null);
-                    }}
-                    className="font-semibold text-primary hover:underline"
-                  >
-                    Sign in
-                  </button>
-                </span>
-              )}
-            </div>
+            <p className="flex items-center justify-center gap-1.5 text-xs text-text-tertiary">
+              <Lock className="size-3.5" />
+              Encrypted and protected with row-level security
+            </p>
           </form>
         )}
       </DialogContent>

@@ -1,7 +1,7 @@
 import * as React from "react"
-import { CheckCircle2, Clock, AlertTriangle } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { Clock } from "lucide-react"
 import { cn } from "cn"
+import { getAcuity } from "@/lib/acuity"
 
 export type SeverityLevel = "non-urgent" | "urgent" | "emergency"
 
@@ -9,43 +9,31 @@ interface SeverityBadgeProps {
   severity: SeverityLevel | string
   className?: string
   showIcon?: boolean
+  size?: "sm" | "md"
 }
 
 export function SeverityBadge({
   severity,
   className,
   showIcon = true,
+  size = "sm",
 }: SeverityBadgeProps) {
-  const normSeverity = (severity || "").toLowerCase() as SeverityLevel
-
-  const config = {
-    "non-urgent": {
-      variant: "success" as const,
-      label: "Non-Urgent",
-      icon: CheckCircle2,
-    },
-    urgent: {
-      variant: "warning" as const,
-      label: "Urgent Care Advised",
-      icon: Clock,
-    },
-    emergency: {
-      variant: "danger" as const,
-      label: "Emergency Required",
-      icon: AlertTriangle,
-    },
-  }[normSeverity] || {
-    variant: "secondary" as const,
-    label: severity,
-    icon: Clock,
-  }
-
-  const Icon = config.icon
+  const acuity = getAcuity(severity)
+  const Icon = acuity?.icon ?? Clock
 
   return (
-    <Badge variant={config.variant} className={cn("gap-1 font-semibold capitalize", className)}>
-      {showIcon && <Icon className="size-3 shrink-0 stroke-[2]" />}
-      <span>{config.label}</span>
-    </Badge>
+    <span
+      className={cn(
+        "inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full border font-semibold whitespace-nowrap",
+        size === "sm" ? "h-6 px-2.5 text-xs" : "h-7 px-3 text-[13px]",
+        acuity
+          ? [acuity.bg, acuity.text, acuity.border]
+          : "bg-muted text-text-secondary border-border-subtle",
+        className
+      )}
+    >
+      {showIcon && <Icon className={cn("shrink-0 stroke-[2.25]", size === "sm" ? "size-3.5" : "size-4")} aria-hidden="true" />}
+      <span>{acuity?.label ?? severity}</span>
+    </span>
   )
 }

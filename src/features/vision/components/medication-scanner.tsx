@@ -3,19 +3,48 @@
 import * as React from "react";
 import {
   Pill,
-  Upload,
-  AlertTriangle,
+  TriangleAlert,
   RotateCcw,
   Sparkles,
   Info,
   ShieldCheck,
-  X,
-  FileText,
+  Stethoscope,
+  Lock,
+  CircleCheckBig,
+  Activity,
+  FlaskConical,
 } from "lucide-react";
+import { cn } from "cn";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
 import { compressImageFile } from "@/lib/image-utils";
 import { MedicationScanResponse } from "@/schemas/vision";
+import { ImageDropzone } from "@/components/system/image-dropzone";
+
+const CONFIDENCE_LEVELS = {
+  high: { label: "High confidence", bars: 4 },
+  moderate: { label: "Moderate confidence", bars: 3 },
+  low: { label: "Low confidence", bars: 2 },
+  unidentified: { label: "Not identified", bars: 1 },
+} as const;
+
+function ConfidenceSignal({ level }: { level: keyof typeof CONFIDENCE_LEVELS }) {
+  const conf = CONFIDENCE_LEVELS[level] ?? CONFIDENCE_LEVELS.low;
+  return (
+    <div className="flex items-center gap-2.5" aria-label={conf.label}>
+      <div className="flex items-end gap-[3px]" aria-hidden="true">
+        {[0, 1, 2, 3].map((i) => (
+          <span
+            key={i}
+            className={cn("w-1.5 rounded-sm", i < conf.bars ? "bg-brand" : "bg-brand-soft")}
+            style={{ height: 6 + i * 4 }}
+          />
+        ))}
+      </div>
+      <span className="text-[13px] font-semibold text-foreground">{conf.label}</span>
+    </div>
+  );
+}
 
 const MEDICATION_PRESETS = [
   {
@@ -61,9 +90,7 @@ export function MedicationScanner() {
 
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFile = async (file: File) => {
 
     setErrorMessage(null);
     try {
@@ -133,284 +160,263 @@ export function MedicationScanner() {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-6">
-      {/* Header Info */}
-      <div className="text-center space-y-1">
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center justify-center gap-2">
-          <Pill className="size-6 text-primary" />
-          <span>Educational Medication Scanner</span>
-        </h2>
-        <p className="text-xs sm:text-sm text-muted-foreground max-w-lg mx-auto">
-          Upload an image of a medication label, pill bottle, or blister pack to view educational information, precautions, and safety notices.
-        </p>
-      </div>
-
+    <div className="w-full">
       {!scanResult ? (
-        <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-none">
-          {/* Quick Preset Buttons */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-accent">
-              <Sparkles className="size-3.5" />
-              <span>Demo Presets</span>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <section className="space-y-5 rounded-[20px] border border-border-subtle bg-surface p-5 shadow-xs sm:p-6 lg:col-span-7">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="type-heading text-foreground">Scan packaging or label</h2>
+                <p className="mt-0.5 text-[13px] text-text-tertiary">Pill bottles, blister packs or boxes</p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-text-secondary">
+                <Lock className="size-3" aria-hidden="true" />
+                Compressed on-device
+              </span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {MEDICATION_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => handleSelectPreset(preset)}
-                  className="p-2.5 text-left border border-border rounded-lg hover:bg-muted/60 transition-colors bg-background text-xs space-y-1"
-                >
-                  <div className="font-semibold text-foreground">{preset.title}</div>
-                  <div className="text-[11px] text-muted-foreground line-clamp-2">
-                    {preset.description}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* Upload Area */}
-          <div className="space-y-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleFileChange}
-              className="hidden"
+            <ImageDropzone
+              inputRef={fileInputRef}
+              previewUrl={selectedImage?.previewUrl ?? null}
+              onFile={handleFile}
+              onClear={handleReset}
+              isScanning={isLoading}
+              title="Add a photo of the medication label"
+              previewAlt="Medication visual preview"
             />
 
-            {selectedImage ? (
-              <div className="relative rounded-xl border border-border bg-muted/20 p-3 flex flex-col items-center">
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="absolute top-2 right-2 size-7 rounded-full bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground"
-                  title="Remove image"
-                >
-                  <X className="size-4" />
-                </button>
-
-                <div className="w-full max-w-xs h-48 rounded-lg overflow-hidden border border-border bg-background flex items-center justify-center my-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={selectedImage.previewUrl}
-                    alt="Medication visual preview"
-                    className="max-h-full max-w-full object-contain"
-                  />
-                </div>
-                <span className="text-xs text-muted-foreground">Medication photo ready for analysis</span>
-              </div>
-            ) : (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-border hover:border-accent/60 rounded-xl p-6 sm:p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors bg-muted/10 hover:bg-muted/20"
-              >
-                <div className="size-12 rounded-full bg-accent/10 text-accent flex items-center justify-center border border-accent/20">
-                  <Upload className="size-5" />
-                </div>
-                <div className="text-center space-y-1">
-                  <p className="text-sm font-semibold">Click to upload medication photo or label</p>
-                  <p className="text-xs text-muted-foreground">Supports JPEG, PNG, WebP up to 10MB</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Additional Notes Input */}
-          <div className="space-y-1.5">
-            <label
-              htmlFor="medication-scan-notes"
-              className="text-sm font-semibold text-foreground cursor-pointer block"
-            >
-              Additional Details (Optional):
-            </label>
-            <textarea
+            <Textarea
               id="medication-scan-notes"
+              label="Additional details (optional)"
               value={additionalNotes}
               onChange={(e) => setAdditionalNotes(e.target.value)}
-              placeholder="e.g. Any known markings, pill shape, or what you are taking it for..."
-              rows={2}
-              className="w-full text-sm p-3.5 rounded-xl border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder="e.g. Markings on the pill, shape, or what you're taking it for…"
+              rows={3}
             />
-          </div>
 
-          {errorMessage && (
-            <div
-              role="alert"
-              aria-live="polite"
-              className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs sm:text-sm font-medium flex items-center gap-2"
-            >
-              <AlertTriangle className="size-4 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          {/* Action Button */}
-          <Button
-            type="button"
-            disabled={!selectedImage || isLoading}
-            onClick={handleScan}
-            className="w-full h-11 text-sm font-semibold gap-2 rounded-xl"
-          >
-            {isLoading ? (
-              <>
-                <Spinner size="sm" />
-                <span>Identifying Medication &amp; Safety Data...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="size-4" />
-                <span>Scan &amp; Identify Medication</span>
-              </>
+            {errorMessage && (
+              <div
+                role="alert"
+                aria-live="polite"
+                className="flex items-start gap-2.5 rounded-xl border border-danger/20 bg-danger-muted p-3.5 text-[13px] font-medium text-danger"
+              >
+                <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
             )}
-          </Button>
 
-          {/* Educational Disclaimer */}
-          <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/40 text-xs sm:text-sm text-muted-foreground">
-            <Info className="size-4 shrink-0 mt-0.5 text-primary" />
-            <span>
-              <strong>Crucial Safety Warning:</strong> Never ingest unidentified pills or change prescribed dosages based solely on automated image scanning. Always verify with a licensed pharmacist or physician.
-            </span>
-          </div>
+            <Button
+              type="button"
+              size="lg"
+              disabled={!selectedImage}
+              isLoading={isLoading}
+              onClick={handleScan}
+              className="w-full"
+            >
+              {isLoading ? (
+                "Identifying medication…"
+              ) : (
+                <>
+                  <Sparkles />
+                  Identify medication
+                </>
+              )}
+            </Button>
+          </section>
+
+          <aside className="space-y-5 lg:col-span-5">
+            <section className="rounded-[20px] border border-border-subtle bg-surface p-5 shadow-xs">
+              <div className="mb-3.5 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-foreground">Sample labels</h2>
+                <span className="text-xs text-text-tertiary">For demonstration</span>
+              </div>
+              <ul className="space-y-2">
+                {MEDICATION_PRESETS.map((preset) => {
+                  const isSelected = selectedImage?.base64 === preset.base64;
+                  return (
+                    <li key={preset.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectPreset(preset)}
+                        aria-pressed={isSelected}
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition-all cursor-pointer",
+                          isSelected
+                            ? "border-brand/40 bg-brand-muted ring-2 ring-brand/15"
+                            : "border-border-subtle bg-surface hover:border-border-strong hover:shadow-sm"
+                        )}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={"data:" + preset.mimeType + ";base64," + preset.base64}
+                          alt=""
+                          className="size-12 shrink-0 rounded-lg border border-border-subtle object-cover"
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-[13px] font-semibold text-foreground">{preset.title}</span>
+                          <span className="block truncate text-xs text-text-tertiary">{preset.description}</span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+
+            <section className="rounded-[20px] border border-warning/30 bg-warning-muted p-5">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <TriangleAlert className="size-4 text-warning-text" aria-hidden="true" />
+                Safety first
+              </div>
+              <p className="mt-2 text-[13px] leading-relaxed text-text-secondary">
+                Never take unidentified pills or change a prescribed dose based on an automated scan. Always confirm
+                with a licensed pharmacist or physician.
+              </p>
+            </section>
+          </aside>
         </div>
       ) : (
-        /* Results View */
         <div
           role="region"
           aria-live="polite"
           aria-label="Medication Identification Results"
-          className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-none animate-in fade-in-50 duration-200"
+          className="space-y-6 animate-rise"
         >
-          {/* Header Card */}
-          <div className="p-4 sm:p-5 rounded-xl border border-border bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Identified Medication
-              </div>
-              <h3 className="text-xl sm:text-2xl font-semibold text-foreground mt-0.5">
-                {scanResult.identifiedName}
-              </h3>
-              {scanResult.genericName && (
-                <div className="text-xs sm:text-sm text-accent font-medium mt-0.5">
-                  Generic: {scanResult.genericName}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span
-                className={`text-xs font-semibold uppercase px-2.5 py-0.5 rounded-full border ${
-                  scanResult.confidence === "high"
-                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
-                    : scanResult.confidence === "moderate"
-                    ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30"
-                    : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
-                }`}
-              >
-                {scanResult.confidence} Confidence
-              </span>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleReset}
-                className="text-xs h-8 px-3 gap-1.5 rounded-lg bg-background"
-              >
-                <RotateCcw className="size-3.5" />
-                Scan Another
-              </Button>
-            </div>
-          </div>
-
-          {/* Primary Purpose */}
-          <div className="space-y-1.5">
-            <div className="text-xs font-bold text-foreground">Therapeutic Indication / Purpose:</div>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              {scanResult.primaryPurpose}
-            </p>
-          </div>
-
-          {/* Safety Precautions (Always Visible) */}
-          {scanResult.safetyPrecautions.length > 0 && (
-            <div className="space-y-1.5 border-t border-border pt-3">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                <ShieldCheck className="size-3.5 text-accent" />
-                <span>Safety Precautions:</span>
-              </div>
-              <ul className="space-y-1 text-xs text-muted-foreground list-disc list-inside">
-                {scanResult.safetyPrecautions.map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Progressive Disclosure for Secondary Details: Typical Uses & Side Effects */}
-          {(scanResult.typicalUses.length > 0 || scanResult.commonSideEffects.length > 0) && (
-            <details className="border-t border-border pt-3 group text-xs">
-              <summary className="font-semibold text-text-secondary cursor-pointer hover:text-foreground select-none list-none flex items-center justify-between py-1">
-                <span>View uses &amp; common side effects</span>
-                <span className="text-[10px] text-text-tertiary group-open:rotate-180 transition-transform">▼</span>
-              </summary>
-              <div className="pt-2.5 space-y-3">
-                {scanResult.typicalUses.length > 0 && (
-                  <div className="space-y-1.5">
-                    <div className="text-[11px] font-semibold text-text-secondary uppercase">Typical Uses:</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {scanResult.typicalUses.map((use, i) => (
-                        <span
-                          key={i}
-                          className="px-2 py-0.5 rounded-md text-xs font-medium bg-muted text-foreground border border-border"
-                        >
-                          {use}
+          {/* Identity header */}
+          <section className="relative overflow-hidden rounded-[20px] border border-border-subtle bg-surface p-6 shadow-xs sm:p-7">
+            <div className="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-[radial-gradient(closest-side,var(--brand-soft),transparent)]" aria-hidden="true" />
+            <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-4">
+                {selectedImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={selectedImage.previewUrl}
+                    alt="Scanned medication"
+                    className="size-16 shrink-0 rounded-2xl border border-border-subtle bg-subtle object-contain"
+                  />
+                ) : (
+                  <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-brand-muted text-accent">
+                    <Pill className="size-7" aria-hidden="true" />
+                  </span>
+                )}
+                <div className="space-y-1.5">
+                  <p className="type-overline text-text-tertiary">Identified medication</p>
+                  <h2 className="font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">
+                    {scanResult.identifiedName}
+                  </h2>
+                  {scanResult.genericName && (
+                    <p className="text-[13px] text-text-secondary">
+                      Generic: <span className="font-semibold text-foreground">{scanResult.genericName}</span>
+                    </p>
+                  )}
+                  {scanResult.brandNames && scanResult.brandNames.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {scanResult.brandNames.map((b) => (
+                        <span key={b} className="rounded-md border border-border-subtle bg-subtle px-2 py-0.5 text-xs font-medium text-text-secondary">
+                          {b}
                         </span>
                       ))}
                     </div>
-                  </div>
-                )}
-
-                {scanResult.commonSideEffects.length > 0 && (
-                  <div className="space-y-1">
-                    <div className="text-[11px] font-semibold text-text-secondary uppercase">Common Side Effects:</div>
-                    <ul className="space-y-0.5 text-xs text-muted-foreground list-disc list-inside">
-                      {scanResult.commonSideEffects.map((effect, i) => (
-                        <li key={i}>{effect}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </details>
-          )}
-
-          {/* Interactions Warning */}
-          {scanResult.interactionsWarning && (
-            <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-1.5">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300">
-                <AlertTriangle className="size-3.5" />
-                <span>Interactions &amp; Contraindications:</span>
+              <div className="flex flex-col items-start gap-3 sm:items-end">
+                <ConfidenceSignal level={scanResult.confidence} />
+                <Button variant="outline" onClick={handleReset}>
+                  <RotateCcw className="text-text-tertiary" />
+                  Scan another
+                </Button>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {scanResult.interactionsWarning}
+            </div>
+
+            <div className="relative mt-6 rounded-2xl border border-brand/15 bg-brand-muted p-4">
+              <div className="flex items-center gap-2 text-xs font-semibold text-accent-text">
+                <Activity className="size-3.5" aria-hidden="true" />
+                Therapeutic purpose
+              </div>
+              <p className="mt-1.5 text-[15px] leading-relaxed text-foreground">{scanResult.primaryPurpose}</p>
+            </div>
+          </section>
+
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+            <div className="space-y-5 lg:col-span-7">
+              {scanResult.safetyPrecautions.length > 0 && (
+                <section className="rounded-2xl border border-border-subtle bg-surface p-5 shadow-xs">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-brand-muted text-accent">
+                      <ShieldCheck className="size-4" aria-hidden="true" />
+                    </span>
+                    <h3 className="type-heading text-foreground">Safety precautions</h3>
+                  </div>
+                  <ul className="mt-4 space-y-2.5">
+                    {scanResult.safetyPrecautions.map((item, i) => (
+                      <li key={i} className="flex items-start gap-3 text-sm leading-relaxed text-foreground">
+                        <CircleCheckBig className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden="true" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {scanResult.interactionsWarning && (
+                <section className="rounded-2xl border border-warning/30 bg-warning-muted p-5">
+                  <div className="flex items-center gap-2.5 text-sm font-semibold text-foreground">
+                    <TriangleAlert className="size-[18px] text-warning-text" aria-hidden="true" />
+                    Interactions &amp; contraindications
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-foreground/90">{scanResult.interactionsWarning}</p>
+                </section>
+              )}
+              <section className="rounded-2xl border border-info/20 bg-info-muted p-5">
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Stethoscope className="size-4 text-info" aria-hidden="true" />
+                  Verify with a pharmacist
+                </div>
+                <p className="mt-2 text-[13px] leading-relaxed text-text-secondary">
+                  {scanResult.pharmacistNotice ||
+                    "Always confirm correct dosage, potential drug interactions, and expiration dates with a certified pharmacist before taking any medication."}
+                </p>
+              </section>
+
+            </div>
+
+            <div className="space-y-5 lg:col-span-5">
+              {scanResult.typicalUses.length > 0 && (
+                <section className="rounded-2xl border border-border-subtle bg-surface p-5 shadow-xs">
+                  <h3 className="text-sm font-semibold text-foreground">Typical uses</h3>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {scanResult.typicalUses.map((use, i) => (
+                      <span key={i} className="rounded-lg border border-border-subtle bg-subtle px-2.5 py-1 text-[13px] font-medium text-foreground">
+                        {use}
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {scanResult.commonSideEffects.length > 0 && (
+                <section className="rounded-2xl border border-border-subtle bg-surface p-5 shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <FlaskConical className="size-4 text-text-tertiary" aria-hidden="true" />
+                    <h3 className="text-sm font-semibold text-foreground">Common side effects</h3>
+                  </div>
+                  <ul className="mt-3 space-y-2">
+                    {scanResult.commonSideEffects.map((effect, i) => (
+                      <li key={i} className="flex items-start gap-2.5 text-[13px] leading-relaxed text-text-secondary">
+                        <span className="mt-2 size-1.5 shrink-0 rounded-full bg-border-strong" aria-hidden="true" />
+                        {effect}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              <p className="flex items-start gap-2.5 rounded-2xl border border-border-subtle bg-subtle p-4 text-xs leading-relaxed text-text-tertiary">
+                <Info className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden="true" />
+                {scanResult.disclaimer}
               </p>
             </div>
-          )}
-
-          {/* Mandatory Pharmacist Notice */}
-          <div className="p-3.5 rounded-xl border border-warning/30 bg-warning-muted space-y-1.5 text-left">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-warning-text">
-              <FileText className="size-3.5" />
-              <span>Verify with Pharmacist or Licensed Physician:</span>
-            </div>
-            <p className="text-xs text-foreground/90 leading-relaxed font-medium">
-              {scanResult.pharmacistNotice || "Always confirm correct dosage, potential drug interactions, and expiration dates with a certified pharmacist before taking any medication."}
-            </p>
-          </div>
-
-          {/* Disclaimer Footer */}
-          <div className="text-xs text-text-secondary bg-secondary/50 p-3 rounded-xl border border-border-subtle text-center leading-relaxed">
-            {scanResult.disclaimer}
           </div>
         </div>
       )}

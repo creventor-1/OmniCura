@@ -4,10 +4,11 @@ import * as React from "react";
 import {
   RotateCcw,
   BookmarkPlus,
-  Check,
+  CircleCheckBig,
   FileDown,
-  MapPin,
-  CheckCircle2,
+  MapPinned,
+  Check,
+  CloudCheck,
 } from "lucide-react";
 import { AssessmentResponse } from "@/schemas/triage";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { AuthModal } from "@/features/authentication/components/auth-modal";
 import { generateTriagePdfReport } from "@/services/pdf/generate-report";
 import { HospitalMap } from "@/components/map/hospital-map";
 import { AIResultPanel } from "@/components/assessment/ai-result-panel";
+import { SectionHeader } from "@/components/system/page-header";
 
 interface AssessmentResultViewProps {
   assessment: AssessmentResponse;
@@ -26,6 +28,7 @@ interface AssessmentResultViewProps {
 export function AssessmentResultView({
   assessment,
   onReset,
+  onLocateFacilities,
 }: AssessmentResultViewProps) {
   const { user } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
@@ -55,7 +58,7 @@ export function AssessmentResultView({
       role="region"
       aria-live="polite"
       aria-label="Clinical Urgency and Care Assessment Results"
-      className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in-50 duration-200 pb-16"
+      className="w-full space-y-6 animate-rise"
     >
       <AuthModal
         isOpen={isAuthModalOpen}
@@ -64,83 +67,73 @@ export function AssessmentResultView({
         promptMessage="Create an account to save this assessment, review history, and export PDF reports."
       />
 
-      {/* Guest Save / Account Banner */}
+      {/* Record status */}
       {!user ? (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-xl border border-border-subtle bg-surface text-left">
-          <div className="space-y-0.5 text-center sm:text-left">
-            <h4 className="text-sm font-semibold text-foreground flex items-center gap-1.5 justify-center sm:justify-start">
-              <BookmarkPlus className="size-4 text-accent" />
-              <span>Save this Clinical Assessment</span>
-            </h4>
-            <p className="text-xs text-text-secondary">
-              Sign up or log in to preserve this clinical record in your private assessment history.
-            </p>
+        <div className="flex flex-col gap-3 rounded-2xl border border-border-subtle bg-surface p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-muted text-accent">
+              <BookmarkPlus className="size-[18px]" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Saved on this device</p>
+              <p className="text-[13px] text-text-secondary">
+                Create a free account to keep this record in your private history across devices.
+              </p>
+            </div>
           </div>
-          <Button
-            size="sm"
-            onClick={() => setIsAuthModalOpen(true)}
-            className="shrink-0 text-xs h-8 px-3 rounded-lg"
-          >
-            Save to Account
+          <Button size="sm" variant="secondary" onClick={() => setIsAuthModalOpen(true)} className="shrink-0">
+            Save to account
           </Button>
         </div>
       ) : (
-        <div className="flex items-center gap-2 p-3 rounded-xl border border-border-subtle bg-secondary/50 text-xs text-foreground font-medium">
-          <Check className="size-4 text-success shrink-0" />
-          <span>Saved to your personal account assessment history.</span>
+        <div className="flex items-center gap-2.5 rounded-2xl border border-success/20 bg-success-muted px-4 py-3 text-[13px] font-medium text-success">
+          <CloudCheck className="size-4 shrink-0" aria-hidden="true" />
+          Saved to your assessment history
+          <Check className="size-3.5 ml-auto" aria-hidden="true" />
         </div>
       )}
 
-      {/* Primary AI Structured Results Panel (Solid Surface, Structured Sections) */}
-      <AIResultPanel assessment={assessment} />
+      <AIResultPanel
+        assessment={assessment}
+        actions={
+          <>
+            <Button variant="outline" onClick={handleDownloadPdf} isLoading={isExportingPdf}>
+              {exportSuccess ? (
+                <>
+                  <CircleCheckBig className="text-success" />
+                  Downloaded
+                </>
+              ) : (
+                <>
+                  <FileDown className="text-text-tertiary" />
+                  PDF report
+                </>
+              )}
+            </Button>
+            <Button onClick={onReset}>
+              <RotateCcw />
+              New assessment
+            </Button>
+          </>
+        }
+      />
 
-      {/* Primary Action Controls (Export PDF, Reset Consultation) */}
-      <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-        <Button
-          onClick={handleDownloadPdf}
-          isLoading={isExportingPdf}
-          variant="outline"
-          className="w-full sm:flex-1 h-11 text-xs sm:text-sm font-medium gap-2 rounded-lg"
-        >
-          {exportSuccess ? (
-            <>
-              <CheckCircle2 className="size-4 text-success" />
-              <span>Report Downloaded</span>
-            </>
-          ) : (
-            <>
-              <FileDown className="size-4 text-accent" />
-              <span>Download PDF Clinical Report</span>
-            </>
-          )}
-        </Button>
-
-        <Button
-          onClick={onReset}
-          className="w-full sm:flex-1 h-11 text-xs sm:text-sm font-semibold gap-2 rounded-lg"
-        >
-          <RotateCcw className="size-4" />
-          <span>Start New Consultation</span>
-        </Button>
-      </div>
-
-      {/* Embedded Nearby Facility Discovery Section */}
-      <div className="space-y-3 pt-4 border-t border-border-subtle text-left">
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-2 text-foreground font-semibold text-sm sm:text-base">
-            <MapPin className="size-4 text-accent" />
-            <span>Nearby Healthcare Facilities</span>
-          </div>
-          <p className="text-xs sm:text-sm text-text-secondary">
-            Coordinate-driven facility locator with verified emergency departments and turn-by-turn routing.
-          </p>
-        </div>
-
-        {/* Embedded Live Leaflet Map */}
-        <div className="rounded-xl overflow-hidden border border-border-subtle">
-          <HospitalMap />
-        </div>
-      </div>
+      {/* Nearby care */}
+      <section className="space-y-4 pt-2">
+        <SectionHeader
+          title="Nearby care"
+          description="Verified facilities around you, with routing and direct dial"
+          action={
+            onLocateFacilities && (
+              <Button variant="ghost" size="sm" onClick={onLocateFacilities}>
+                <MapPinned />
+                Open full map
+              </Button>
+            )
+          }
+        />
+        <HospitalMap compact />
+      </section>
     </div>
   );
 }

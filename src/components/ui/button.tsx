@@ -5,31 +5,43 @@ import { cn } from "cn"
 import { Loader2 } from "lucide-react"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all duration-120 outline-none select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/30 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 cursor-pointer",
+  [
+    "group/button relative inline-flex shrink-0 items-center justify-center whitespace-nowrap select-none cursor-pointer",
+    "rounded-[10px] border border-transparent bg-clip-padding text-sm font-semibold tracking-[-0.005em]",
+    "transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out",
+    "outline-none focus-visible:ring-[3px] focus-visible:ring-ring/35 focus-visible:outline-none",
+    "active:not-aria-[haspopup]:scale-[0.98]",
+    "disabled:pointer-events-none disabled:opacity-45",
+    "aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/30",
+    "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  ].join(" "),
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground hover:bg-brand-hover shadow-xs active:opacity-95",
+          "bg-primary text-primary-foreground shadow-[inset_0_1px_0_rgb(255_255_255/0.14),var(--elev-xs)] hover:bg-brand-hover hover:shadow-brand",
         outline:
-          "border-border-subtle bg-surface text-foreground hover:bg-muted hover:border-border-strong hover:text-foreground",
+          "border-border-subtle bg-surface text-foreground shadow-xs hover:bg-subtle hover:border-border-strong",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-muted active:opacity-95",
+          "bg-brand-muted text-accent-text hover:bg-brand-soft",
         ghost:
-          "text-muted-foreground hover:bg-muted hover:text-foreground",
+          "text-text-secondary hover:bg-muted hover:text-foreground",
         destructive:
-          "bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 focus-visible:ring-destructive",
+          "bg-danger-muted text-danger border-danger/20 hover:bg-danger/15 focus-visible:ring-danger/35",
         danger:
-          "bg-danger text-white hover:opacity-90 focus-visible:ring-danger shadow-xs",
-        link: "text-accent underline-offset-4 hover:underline",
+          "bg-danger text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.16),var(--elev-xs)] hover:bg-danger-strong focus-visible:ring-danger/40 dark:text-[#2a0605]",
+        inverse:
+          "bg-inverse text-app hover:opacity-90",
+        link: "text-accent-text underline-offset-4 hover:underline px-0 h-auto",
       },
       size: {
-        default: "h-9 min-h-[36px] gap-2 px-3.5 text-sm", // 36px default
-        sm: "h-8 min-h-[32px] gap-1.5 px-3 text-xs",      // 32px sm
-        lg: "h-11 min-h-[44px] gap-2 px-5 text-sm font-medium", // 44px lg (mobile touch target minimum)
-        icon: "size-9 min-size-[36px] rounded-lg",
-        "icon-sm": "size-8 min-size-[32px] rounded-lg",
-        "icon-lg": "size-11 min-size-[44px] rounded-lg",
+        default: "h-10 gap-2 px-4",
+        sm: "h-8 gap-1.5 px-3 text-[13px] rounded-lg",
+        lg: "h-11 gap-2 px-5 text-[15px]",
+        xl: "h-12 gap-2.5 px-6 text-[15px] rounded-xl",
+        icon: "size-10",
+        "icon-sm": "size-8 rounded-lg",
+        "icon-lg": "size-11",
       },
     },
     defaultVariants: {

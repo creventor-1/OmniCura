@@ -9,25 +9,19 @@ const DynamicHospitalMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full max-w-5xl mx-auto space-y-4 animate-in fade-in-50 duration-180">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-xl border border-border-subtle bg-surface">
-          <div className="space-y-2">
-            <Skeleton className="h-6 w-48 rounded-lg" />
-            <Skeleton className="h-4 w-72 rounded-md" />
-          </div>
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-8 w-28 rounded-lg" />
-            <Skeleton className="h-8 w-28 rounded-lg" />
-          </div>
+      <div className="w-full space-y-5">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-[104px] rounded-[18px]" />
+          ))}
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <Skeleton className="lg:col-span-2 rounded-xl min-h-[420px] lg:min-h-[520px]" />
-          <div className="space-y-3">
-            <Skeleton className="h-4 w-32 rounded-md" />
-            <Skeleton className="h-28 w-full rounded-xl" />
-            <Skeleton className="h-28 w-full rounded-xl" />
-            <Skeleton className="h-28 w-full rounded-xl" />
+        <Skeleton className="h-14 w-full rounded-2xl" />
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+          <Skeleton className="h-[420px] rounded-[20px] lg:col-span-8 lg:h-[620px]" />
+          <div className="space-y-2.5 lg:col-span-4">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-32 w-full rounded-2xl" />
+            ))}
           </div>
         </div>
       </div>

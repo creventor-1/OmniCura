@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ShieldCheck, AlertCircle } from "lucide-react";
+import { ShieldCheck, Stethoscope, Siren, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,28 +19,50 @@ interface DisclaimerModalProps {
 }
 
 export function DisclaimerModal({ isOpen, onAcknowledge }: DisclaimerModalProps) {
+  const points = [
+    {
+      icon: Stethoscope,
+      title: "Guidance, not a diagnosis",
+      body: "Recommendations support — never replace — evaluation by a licensed clinician.",
+    },
+    {
+      icon: Siren,
+      title: "Emergencies come first",
+      body: `If you are in immediate danger, call ${DEFAULT_EMERGENCY_NUMBER} now instead of using this tool.`,
+    },
+    {
+      icon: Lock,
+      title: "Private by design",
+      body: "Red-flag screening runs on your device before anything is sent for analysis.",
+    },
+  ];
+
   return (
     <Dialog open={isOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader className="space-y-2 text-center sm:text-left">
-          <div className="mx-auto sm:mx-0 flex size-10 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <AlertCircle className="size-5" />
-          </div>
-          <DialogTitle className="text-xl font-bold">Important Notice</DialogTitle>
-          <DialogDescription className="text-sm leading-relaxed text-foreground/80">
-            {DISCLAIMER_TEXT}
-          </DialogDescription>
+      <DialogContent className="sm:max-w-[460px]" showCloseButton={false}>
+        <DialogHeader className="gap-3">
+          <span className="flex size-12 items-center justify-center rounded-2xl border border-brand/15 bg-brand-muted text-accent">
+            <ShieldCheck className="size-6" aria-hidden="true" />
+          </span>
+          <DialogTitle className="text-xl">Before you begin</DialogTitle>
+          <DialogDescription>{DISCLAIMER_TEXT}</DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-md border border-border bg-muted/50 p-3 text-xs text-muted-foreground space-y-1">
-          <p>• Not a substitute for clinical diagnosis or emergency medicine.</p>
-          <p>• If in immediate danger, dial <strong>{DEFAULT_EMERGENCY_NUMBER}</strong> directly.</p>
-        </div>
+        <ul className="space-y-3">
+          {points.map(({ icon: Icon, title, body }) => (
+            <li key={title} className="flex gap-3 rounded-2xl border border-border-subtle bg-subtle p-3.5">
+              <Icon className="mt-0.5 size-[18px] shrink-0 text-text-secondary" aria-hidden="true" />
+              <div>
+                <div className="text-[13px] font-semibold text-foreground">{title}</div>
+                <div className="mt-0.5 text-[13px] leading-relaxed text-text-secondary">{body}</div>
+              </div>
+            </li>
+          ))}
+        </ul>
 
-        <DialogFooter className="pt-2">
-          <Button onClick={onAcknowledge} className="w-full gap-2 font-medium">
-            <ShieldCheck className="size-4" />
-            I Understand &amp; Agree
+        <DialogFooter>
+          <Button onClick={onAcknowledge} size="lg" className="w-full">
+            I understand, continue
           </Button>
         </DialogFooter>
       </DialogContent>

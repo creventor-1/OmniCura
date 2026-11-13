@@ -2,27 +2,47 @@
 
 import * as React from "react";
 import {
-  Activity,
-  Camera,
-  Pill,
-  MapPin,
-  History,
-  UserCheck,
-  PhoneCall,
-  LayoutDashboard,
   Menu,
-  ChevronLeft,
-  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
   LogOut,
   LogIn,
-  User as UserIcon,
+  PhoneCall,
+  Plus,
+  Search,
+  X,
+  ChevronsUpDown,
+  ShieldCheck,
+  UserRound,
+  LayoutGrid,
+  Activity,
+  MapPinned,
+  History,
+  Ellipsis,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { cn } from "cn";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { OmnicuraLogo } from "@/components/shared/brand-logo";
 import { useAuth } from "@/features/authentication/context/auth-context";
 import { AuthModal } from "@/features/authentication/components/auth-modal";
-import { NavSection } from "@/components/shared/navbar";
+import type { NavSection } from "@/components/shared/navbar";
+import {
+  NAV_GROUPS,
+  NAV_ITEMS,
+  SECTION_GROUP_LABEL,
+  OPEN_AUTH_EVENT,
+  NAVIGATE_EVENT,
+} from "./nav-config";
+import { CommandPalette } from "./command-palette";
+import { Kbd } from "@/components/system/icon-tile";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface AppShellProps {
   activeSection: NavSection;
@@ -30,67 +50,32 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-interface NavItem {
-  id: NavSection;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
-
-const navGroups: { group: string; items: NavItem[] }[] = [
-  {
-    group: "WORKSPACE",
-    items: [
-      { id: "home", label: "Overview", icon: LayoutDashboard },
-    ],
-  },
-  {
-    group: "CLINICAL ASSESSMENT",
-    items: [
-      { id: "triage", label: "Symptom Assessment", icon: Activity },
-      { id: "vision", label: "Symptom Vision", icon: Camera },
-      { id: "medication", label: "Medication Scan", icon: Pill },
-    ],
-  },
-  {
-    group: "CARE & RECORDS",
-    items: [
-      { id: "hospitals", label: "Hospital Locator", icon: MapPin },
-      { id: "history", label: "Assessment History", icon: History },
-      { id: "profile", label: "Health Profile", icon: UserCheck },
-      { id: "contacts", label: "Emergency Contacts", icon: PhoneCall },
-    ],
-  },
-];
-
-const sectionBreadcrumbs: Record<NavSection, { section: string; title: string }> = {
-  home: { section: "Workspace", title: "Overview" },
-  triage: { section: "Clinical", title: "Symptom Assessment" },
-  vision: { section: "Clinical", title: "Symptom Vision" },
-  medication: { section: "Clinical", title: "Medication Scan" },
-  hospitals: { section: "Facilities", title: "Hospitals" },
-  history: { section: "Records", title: "History" },
-  profile: { section: "Records", title: "Profile" },
-  contacts: { section: "Safety", title: "Contacts" },
-};
-
 const emptySubscribe = () => () => {};
+
+function getInitials(email?: string | null) {
+  if (!email) return "G";
+  const name = email.split("@")[0] ?? "";
+  const parts = name.split(/[._-]+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || name.slice(0, 2).toUpperCase();
+}
 
 export function AppShell({ activeSection, onNavigate, children }: AppShellProps) {
   const { user, signOut } = useAuth();
-  const [internalCollapsed, setInternalCollapsed] = React.useState<boolean | null>(null);
   const isClient = React.useSyncExternalStore(emptySubscribe, () => true, () => false);
+
+  const [internalCollapsed, setInternalCollapsed] = React.useState<boolean | null>(null);
   const isCollapsed =
     internalCollapsed !== null
       ? internalCollapsed
-      : isClient &&
-        typeof window !== "undefined" &&
-        localStorage.getItem("omnicura_sidebar_collapsed") === "true";
+      : isClient && localStorage.getItem("omnicura_sidebar_collapsed") === "true";
 
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = React.useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
+  const [authMode, setAuthMode] = React.useState<"signin" | "signup">("signin");
+  const [isPaletteOpen, setIsPaletteOpen] = React.useState(false);
+  const [isMac, setIsMac] = React.useState(false);
 
-  const emergencyNumber =
-    process.env.NEXT_PUBLIC_DEFAULT_EMERGENCY_NUMBER || "112";
+  const emergencyNumber = process.env.NEXT_PUBLIC_DEFAULT_EMERGENCY_NUMBER || "112";
 
   const toggleCollapsed = () => {
     const next = !isCollapsed;
@@ -102,405 +87,480 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
     }
   };
 
-  const handleNavClick = (section: NavSection) => {
-    onNavigate(section);
-    setIsMobileDrawerOpen(false);
-  };
+  const handleNavClick = React.useCallback(
+    (section: NavSection) => {
+      onNavigate(section);
+      setIsMobileDrawerOpen(false);
+    },
+    [onNavigate]
+  );
 
-  // Keyboard navigation for mobile drawer
+  const openAuth = React.useCallback((mode: "signin" | "signup" = "signin") => {
+    setAuthMode(mode);
+    setIsAuthModalOpen(true);
+  }, []);
+
+  // Global keyboard shortcuts + cross-component events
   React.useEffect(() => {
-    if (!isMobileDrawerOpen) return;
+    const t = setTimeout(() => setIsMac(/Mac|iPhone|iPad/.test(navigator.platform)), 0);
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setIsMobileDrawerOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsPaletteOpen((o) => !o);
       }
+      if (e.key === "Escape") setIsMobileDrawerOpen(false);
+    };
+    const onAuth = (e: Event) => {
+      const mode = (e as CustomEvent<{ mode?: "signin" | "signup" }>).detail?.mode ?? "signin";
+      openAuth(mode);
+    };
+    const onNav = (e: Event) => {
+      const section = (e as CustomEvent<{ section?: NavSection }>).detail?.section;
+      if (section) handleNavClick(section);
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener(OPEN_AUTH_EVENT, onAuth);
+    window.addEventListener(NAVIGATE_EVENT, onNav);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(OPEN_AUTH_EVENT, onAuth);
+      window.removeEventListener(NAVIGATE_EVENT, onNav);
+    };
+  }, [openAuth, handleNavClick]);
+
+  // Lock body scroll while mobile drawer is open
+  React.useEffect(() => {
+    if (!isMobileDrawerOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, [isMobileDrawerOpen]);
 
-  const currentCrumb = sectionBreadcrumbs[activeSection] || sectionBreadcrumbs.home;
+  const activeItem = NAV_ITEMS[activeSection] ?? NAV_ITEMS.home;
+  const initials = getInitials(user?.email);
+
+  /* Labels are shown on xl+ when expanded; md–lg always shows the icon rail. */
+  const labelVis = isCollapsed ? "hidden" : "hidden xl:inline";
+  const blockVis = isCollapsed ? "hidden" : "hidden xl:block";
+  const flexVis = isCollapsed ? "hidden" : "hidden xl:flex";
+
+  const mobileTabs: { id: NavSection | "more"; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: "home", label: "Home", icon: LayoutGrid },
+    { id: "triage", label: "Assess", icon: Activity },
+    { id: "hospitals", label: "Care", icon: MapPinned },
+    { id: "history", label: "History", icon: History },
+    { id: "more", label: "More", icon: Ellipsis },
+  ];
 
   return (
-    <div className="flex min-h-screen bg-app text-foreground selection:bg-accent/15 selection:text-accent font-sans antialiased">
+    <div className="flex min-h-dvh bg-app text-foreground antialiased">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:shadow-overlay"
+      >
+        Skip to content
+      </a>
+
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
+        defaultMode={authMode}
       />
 
-      {/* 1. Desktop & Tablet Left Sidebar */}
+      <CommandPalette
+        open={isPaletteOpen}
+        onOpenChange={setIsPaletteOpen}
+        onNavigate={handleNavClick}
+        onSignIn={() => openAuth("signin")}
+        isSignedIn={!!user}
+        emergencyNumber={emergencyNumber}
+      />
+
+      {/* ============ Desktop / tablet sidebar ============ */}
       <aside
-        className={`hidden md:flex flex-col border-r border-border-subtle glass-chrome shrink-0 transition-all duration-180 ease-out z-30 select-none ${
-          isCollapsed ? "w-16" : "w-60"
-        }`}
+        aria-label="Primary"
+        className={cn(
+          "hidden md:flex sticky top-0 h-dvh flex-col shrink-0 border-r border-sidebar-border bg-sidebar z-30 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+          isCollapsed ? "w-[76px]" : "w-[76px] xl:w-[268px]"
+        )}
       >
-        {/* Brand Header */}
-        <div className="h-14 border-b border-border-subtle flex items-center justify-between px-3.5">
+        {/* Brand */}
+        <div className="flex h-16 items-center justify-between gap-2 px-4">
           <button
             type="button"
             onClick={() => handleNavClick("home")}
-            className="flex items-center gap-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg overflow-hidden cursor-pointer"
-            title="Omnicura Home"
+            className="flex items-center gap-2.5 rounded-xl p-1 -m-1 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 cursor-pointer"
+            aria-label="Omnicura overview"
           >
-            <OmnicuraLogo size="sm" showWordmark={!isCollapsed} />
+            <OmnicuraLogo size="md" />
+            <span className={cn("flex-col text-left leading-none", flexVis)}>
+              <span className="font-heading text-[16px] font-bold tracking-[-0.02em] text-foreground">Omnicura</span>
+              <span className="mt-1 text-[11px] font-medium text-text-tertiary">Clinical decision support</span>
+            </span>
           </button>
-
-          {!isCollapsed && (
-            <button
-              type="button"
-              onClick={toggleCollapsed}
-              className="size-7 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-              title="Collapse sidebar rail"
-              aria-label="Collapse sidebar rail"
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-          )}
         </div>
 
-        {/* Grouped Navigation Links */}
-        <div className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
-          {navGroups.map((group, gIdx) => (
-            <div key={gIdx} className="space-y-1">
-              {!isCollapsed && (
-                <div className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
-                  {group.group}
-                </div>
-              )}
-              <div className="space-y-0.5">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeSection === item.id;
-
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => handleNavClick(item.id)}
-                      title={item.label}
-                      className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-120 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring relative cursor-pointer ${
-                        isActive
-                          ? "bg-accent/10 text-foreground font-semibold"
-                          : "text-text-secondary hover:text-foreground hover:bg-muted/60"
-                      } ${isCollapsed ? "justify-center px-0" : ""}`}
-                    >
-                      {isActive && (
-                        <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-accent" />
-                      )}
-                      <Icon
-                        className={`size-4 shrink-0 stroke-[1.75] ${
-                          isActive ? "text-accent" : "text-text-secondary"
-                        }`}
-                      />
-                      {!isCollapsed && <span className="truncate">{item.label}</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Sidebar Footer Controls */}
-        <div className="p-2 border-t border-border-subtle space-y-1.5">
-          {/* Emergency Hotline Button */}
-          <a
-            href={`tel:${emergencyNumber}`}
-            className={`w-full flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-danger border border-danger/25 bg-danger-muted hover:opacity-90 transition-opacity ${
-              isCollapsed ? "justify-center px-0" : ""
-            }`}
-            title={`Direct Emergency Dial ${emergencyNumber}`}
-          >
-            <PhoneCall className="size-3.5 shrink-0 stroke-[2]" />
-            {!isCollapsed && <span>SOS {emergencyNumber}</span>}
-          </a>
-
-          {/* User Account Bar */}
-          {user ? (
-            <div
-              className={`flex items-center gap-2 p-1.5 rounded-lg border border-border-subtle bg-surface ${
-                isCollapsed ? "justify-center" : "justify-between"
-              }`}
-            >
-              {!isCollapsed && (
-                <div className="flex items-center gap-2 min-w-0 pr-1">
-                  <div className="size-6 rounded-md bg-secondary text-text-secondary flex items-center justify-center shrink-0 text-xs font-medium border border-border-subtle">
-                    <UserIcon className="size-3.5" />
-                  </div>
-                  <span className="text-xs text-text-secondary truncate max-w-[110px]">
-                    {user.email}
-                  </span>
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => signOut()}
-                className="size-7 rounded-md text-text-secondary hover:text-foreground hover:bg-muted flex items-center justify-center shrink-0 cursor-pointer"
-                title="Sign out of account"
-              >
-                <LogOut className="size-3.5" />
-              </button>
-            </div>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsAuthModalOpen(true)}
-              className={`w-full text-xs h-8 ${isCollapsed ? "px-0 justify-center" : "gap-1.5"}`}
-              title="Sign in or create account"
-            >
-              <LogIn className="size-3.5" />
-              {!isCollapsed && <span>Sign In</span>}
-            </Button>
-          )}
-
-          {/* Theme & Collapse Controls */}
-          <div className={`flex items-center gap-1.5 ${isCollapsed ? "justify-center flex-col" : "justify-between"}`}>
-            <ThemeToggle />
-
-            {isCollapsed && (
-              <button
-                type="button"
-                onClick={toggleCollapsed}
-                className="size-9 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted flex items-center justify-center transition-colors border border-border-subtle cursor-pointer"
-                title="Expand sidebar"
-                aria-label="Expand sidebar"
-              >
-                <ChevronRight className="size-4" />
-              </button>
-            )}
-          </div>
-        </div>
-      </aside>
-
-      {/* 2. Main Viewport & Layout */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-        {/* Top Application Bar */}
-        <header className="sticky top-0 z-20 h-14 border-b border-border-subtle glass-chrome px-4 sm:px-6 flex items-center justify-between gap-3">
-          {/* Breadcrumbs & Mobile Trigger */}
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              type="button"
-              onClick={() => setIsMobileDrawerOpen(true)}
-              className="md:hidden size-9 rounded-lg border border-border-subtle flex items-center justify-center text-text-secondary hover:text-foreground cursor-pointer"
-              aria-label="Open navigation drawer"
-            >
-              <Menu className="size-4" />
-            </button>
-
-            <div className="flex items-center gap-1.5 text-xs sm:text-sm text-text-secondary min-w-0">
-              <span className="font-semibold text-foreground hidden sm:inline">
-                Omnicura
-              </span>
-              <span className="hidden sm:inline text-text-tertiary">/</span>
-              <span className="text-text-secondary truncate">
-                {currentCrumb.section}
-              </span>
-              <span className="text-text-tertiary">/</span>
-              <span className="font-medium text-foreground truncate">
-                {currentCrumb.title}
-              </span>
-            </div>
-          </div>
-
-          {/* Top Actions: Medical Disclaimer, SOS Dial, Theme, User */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            {/* Restrained Clinical Disclaimer Chip */}
-            <div className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border-subtle bg-surface text-[11px] text-text-secondary">
-              <span className="size-1.5 rounded-full bg-success" />
-              <span>Clinical Decision Support • Non-Diagnostic</span>
-            </div>
-
-            {/* Discrete SOS Dial (Reachable in one tap) */}
-            <a
-              href={`tel:${emergencyNumber}`}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-danger/30 bg-danger-muted text-danger text-xs font-semibold hover:opacity-90 transition-opacity"
-              title={`Call Emergency Hotline ${emergencyNumber}`}
-            >
-              <PhoneCall className="size-3" />
-              <span>SOS {emergencyNumber}</span>
-            </a>
-
-            <div className="md:hidden">
-              <ThemeToggle />
-            </div>
-
-            {!user && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setIsAuthModalOpen(true)}
-                className="h-8 text-xs font-medium px-3 md:hidden"
-              >
-                Sign In
-              </Button>
-            )}
-          </div>
-        </header>
-
-        {/* Page Content Body with faint radial teal glow behind header */}
-        <main className="flex-1 relative p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto pb-20 md:pb-8">
-          <div
-            className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 bg-radial from-accent/5 to-transparent blur-2xl -z-10"
-            aria-hidden="true"
-          />
-          {children}
-        </main>
-
-        {/* 3. Mobile Bottom Tab Bar (< md) - Max 5 Items */}
-        <nav
-          aria-label="Mobile quick tabs"
-          className="md:hidden fixed bottom-0 left-0 right-0 z-30 h-14 glass-chrome border-t border-border-subtle grid grid-cols-5 items-center px-1 text-[11px] pb-safe"
-        >
-          <button
-            type="button"
-            onClick={() => handleNavClick("home")}
-            className={`flex flex-col items-center justify-center gap-0.5 py-1 cursor-pointer ${
-              activeSection === "home" ? "text-accent font-semibold" : "text-text-secondary"
-            }`}
-          >
-            <LayoutDashboard className="size-4" />
-            <span>Home</span>
-          </button>
-
+        {/* Primary CTA */}
+        <div className="px-3 pt-1 pb-3">
           <button
             type="button"
             onClick={() => handleNavClick("triage")}
-            className={`flex flex-col items-center justify-center gap-0.5 py-1 cursor-pointer ${
-              activeSection === "triage" ? "text-accent font-semibold" : "text-text-secondary"
-            }`}
+            className={cn(
+              "group flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold shadow-[inset_0_1px_0_rgb(255_255_255/0.14),var(--elev-xs)] transition-all hover:bg-brand-hover hover:shadow-brand active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/35 cursor-pointer",
+              !isCollapsed && "xl:justify-start xl:px-3.5"
+            )}
+            title="New assessment"
           >
-            <Activity className="size-4" />
-            <span>Assess</span>
+            <Plus className="size-4 stroke-[2.5] transition-transform group-hover:rotate-90" />
+            <span className={labelVis}>New assessment</span>
           </button>
+        </div>
 
-          <button
-            type="button"
-            onClick={() => handleNavClick("vision")}
-            className={`flex flex-col items-center justify-center gap-0.5 py-1 cursor-pointer ${
-              activeSection === "vision" ? "text-accent font-semibold" : "text-text-secondary"
-            }`}
-          >
-            <Camera className="size-4" />
-            <span>Vision</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleNavClick("hospitals")}
-            className={`flex flex-col items-center justify-center gap-0.5 py-1 cursor-pointer ${
-              activeSection === "hospitals" ? "text-accent font-semibold" : "text-text-secondary"
-            }`}
-          >
-            <MapPin className="size-4" />
-            <span>Hospitals</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleNavClick("history")}
-            className={`flex flex-col items-center justify-center gap-0.5 py-1 cursor-pointer ${
-              activeSection === "history" ? "text-accent font-semibold" : "text-text-secondary"
-            }`}
-          >
-            <History className="size-4" />
-            <span>History</span>
-          </button>
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-5" aria-label="Main navigation">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.id} className="space-y-1">
+              {group.label && (
+                <div className={cn("px-3 pb-1 type-overline text-text-tertiary/90", blockVis)}>
+                  {group.label}
+                </div>
+              )}
+              {group.label && (
+                <div className={cn("mx-auto my-2 h-px w-6 bg-border-subtle", isCollapsed ? "block" : "block xl:hidden")} />
+              )}
+              <ul className="space-y-0.5">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeSection === item.id;
+                  return (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleNavClick(item.id)}
+                        title={item.label}
+                        aria-current={isActive ? "page" : undefined}
+                        className={cn(
+                          "group relative flex h-10 w-full items-center gap-3 rounded-xl px-3 text-sm transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
+                          "justify-center",
+                          !isCollapsed && "xl:justify-start",
+                          isActive
+                            ? "bg-brand-muted text-foreground font-semibold"
+                            : "text-text-secondary font-medium hover:bg-muted hover:text-foreground"
+                        )}
+                      >
+                        {isActive && (
+                          <span className="absolute -left-3 top-2 bottom-2 w-[3px] rounded-r-full bg-brand" aria-hidden="true" />
+                        )}
+                        <Icon
+                          className={cn(
+                            "size-[18px] shrink-0 stroke-[1.85] transition-colors",
+                            isActive ? "text-accent" : "text-text-tertiary group-hover:text-text-secondary"
+                          )}
+                        />
+                        <span className={cn("truncate", labelVis)}>{item.label}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
+
+        {/* Footer */}
+        <div className="space-y-2 border-t border-sidebar-border p-3">
+          {/* Emergency card */}
+          <a
+            href={`tel:${emergencyNumber}`}
+            className={cn(
+              "group flex items-center gap-3 rounded-xl border border-danger/20 bg-danger-muted p-2.5 transition-colors hover:border-danger/40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-danger/30",
+              "justify-center",
+              !isCollapsed && "xl:justify-start"
+            )}
+            title={`Call emergency services ${emergencyNumber}`}
+          >
+            <span className="relative flex size-8 shrink-0 items-center justify-center rounded-lg bg-danger text-white dark:text-[#2a0605]">
+              <PhoneCall className="size-4" />
+            </span>
+            <span className={cn("min-w-0 flex-col leading-tight", flexVis)}>
+              <span className="text-[13px] font-semibold text-danger">Emergency? Call {emergencyNumber}</span>
+              <span className="text-[11px] text-text-secondary">Life-threatening symptoms</span>
+            </span>
+          </a>
+
+          {/* Account */}
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={cn(
+                  "flex w-full items-center gap-2.5 rounded-xl p-2 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 cursor-pointer",
+                  "justify-center",
+                  !isCollapsed && "xl:justify-start"
+                )}
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[12px] font-bold text-accent-text">
+                  {initials}
+                </span>
+                <span className={cn("min-w-0 flex-1 flex-col leading-tight", flexVis)}>
+                  <span className="truncate text-[13px] font-semibold text-foreground">{user.email?.split("@")[0]}</span>
+                  <span className="truncate text-[11px] text-text-tertiary">{user.email}</span>
+                </span>
+                <ChevronsUpDown className={cn("size-4 text-text-tertiary shrink-0", labelVis)} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" sideOffset={8} className="w-60">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="text-[13px] font-semibold text-foreground truncate">{user.email}</div>
+                  <div className="text-[11px] text-text-tertiary">Signed in · records synced</div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleNavClick("profile")}>
+                  <UserRound className="size-4 text-text-tertiary" /> Health profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleNavClick("history")}>
+                  <History className="size-4 text-text-tertiary" /> Assessment history
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut()}>
+                  <LogOut className="size-4 text-text-tertiary" /> Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <button
+              type="button"
+              onClick={() => openAuth("signin")}
+              className={cn(
+                "flex w-full items-center gap-2.5 rounded-xl border border-border-subtle bg-surface p-2 text-left shadow-xs transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 cursor-pointer",
+                "justify-center",
+                !isCollapsed && "xl:justify-start"
+              )}
+              title="Sign in to sync your records"
+            >
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-text-secondary">
+                <LogIn className="size-4" />
+              </span>
+              <span className={cn("min-w-0 flex-col leading-tight", flexVis)}>
+                <span className="text-[13px] font-semibold text-foreground">Sign in</span>
+                <span className="text-[11px] text-text-tertiary">Sync records across devices</span>
+              </span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            className="hidden xl:flex h-8 w-full items-center justify-center gap-2 rounded-lg text-xs font-medium text-text-tertiary transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 cursor-pointer"
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+            <span className={labelVis}>Collapse</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* ============ Main column ============ */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border-subtle glass-chrome px-4 sm:px-6 lg:px-8">
+          <button
+            type="button"
+            onClick={() => setIsMobileDrawerOpen(true)}
+            className="md:hidden flex size-10 items-center justify-center rounded-xl text-text-secondary hover:bg-muted hover:text-foreground cursor-pointer"
+            aria-label="Open navigation menu"
+          >
+            <Menu className="size-5" />
+          </button>
+
+          <div className="md:hidden">
+            <OmnicuraLogo size="sm" showWordmark />
+          </div>
+
+          {/* Breadcrumb */}
+          <nav aria-label="Breadcrumb" className="hidden md:flex min-w-0 items-center gap-2 text-sm">
+            <span className="text-text-tertiary">{SECTION_GROUP_LABEL[activeSection]}</span>
+            <span className="text-border-strong" aria-hidden="true">/</span>
+            <span className="truncate font-semibold text-foreground" aria-current="page">
+              {activeItem.label}
+            </span>
+          </nav>
+
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+            {/* Search / command */}
+            <button
+              type="button"
+              onClick={() => setIsPaletteOpen(true)}
+              className="hidden lg:flex h-9 w-60 xl:w-64 items-center gap-2.5 rounded-[10px] border border-border-subtle bg-surface px-3 text-[13px] text-text-tertiary shadow-xs transition-colors hover:border-border-strong hover:text-text-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 cursor-pointer"
+              aria-label="Search and jump to (Command K)"
+            >
+              <Search className="size-4 shrink-0" />
+              <span className="flex-1 text-left">Search or jump to…</span>
+              <span className="flex items-center gap-0.5">
+                <Kbd>{isMac ? "⌘" : "Ctrl"}</Kbd>
+                <Kbd>K</Kbd>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsPaletteOpen(true)}
+              className="lg:hidden flex size-10 items-center justify-center rounded-xl text-text-secondary hover:bg-muted cursor-pointer"
+              aria-label="Search"
+            >
+              <Search className="size-[18px]" />
+            </button>
+
+            <div className="hidden xl:flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface px-3 h-9 text-xs font-medium text-text-secondary">
+              <ShieldCheck className="size-3.5 text-accent" />
+              <span>Non-diagnostic guidance</span>
+            </div>
+
+            <ThemeToggle />
+
+            <a
+              href={`tel:${emergencyNumber}`}
+              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-danger px-3 text-[13px] font-semibold text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.16),var(--elev-xs)] transition-colors hover:bg-danger-strong focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-danger/35 dark:text-[#2a0605]"
+              title={`Call emergency services ${emergencyNumber}`}
+            >
+              <PhoneCall className="size-3.5" />
+              <span>SOS<span className="hidden sm:inline"> {emergencyNumber}</span></span>
+            </a>
+          </div>
+        </header>
+
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="relative flex-1 w-full mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10 pt-6 sm:pt-8 pb-28 md:pb-12 outline-none"
+        >
+          {children}
+        </main>
       </div>
 
-      {/* 4. Mobile Drawer Overlay */}
+      {/* ============ Mobile bottom tab bar ============ */}
+      <nav
+        aria-label="Quick navigation"
+        className="md:hidden fixed inset-x-0 bottom-0 z-30 border-t border-border-subtle glass-chrome pb-[env(safe-area-inset-bottom)]"
+      >
+        <div className="grid h-16 grid-cols-5">
+          {mobileTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = tab.id === activeSection || (tab.id === "more" && isMobileDrawerOpen);
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => (tab.id === "more" ? setIsMobileDrawerOpen(true) : handleNavClick(tab.id))}
+                aria-current={tab.id === activeSection ? "page" : undefined}
+                className={cn(
+                  "relative flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors cursor-pointer",
+                  isActive ? "text-accent" : "text-text-tertiary"
+                )}
+              >
+                {isActive && tab.id !== "more" && (
+                  <span className="absolute top-0 h-[3px] w-8 rounded-b-full bg-brand" aria-hidden="true" />
+                )}
+                <Icon className={cn("size-5", isActive ? "stroke-[2.25]" : "stroke-[1.85]")} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* ============ Mobile drawer ============ */}
       {isMobileDrawerOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Navigation Menu"
-          className="md:hidden fixed inset-0 z-50 flex"
-        >
+        <div role="dialog" aria-modal="true" aria-label="Navigation menu" className="md:hidden fixed inset-0 z-50 flex">
           <div
-            className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-180"
+            className="fixed inset-0 bg-[#0b1422]/45 dark:bg-black/65 backdrop-blur-[3px] animate-in fade-in-0 duration-200"
             onClick={() => setIsMobileDrawerOpen(false)}
           />
-
-          <div
-            className="relative flex flex-col w-4/5 max-w-xs h-full bg-surface border-r border-border-subtle p-4 space-y-4 shadow-overlay z-10 animate-in slide-in-from-left duration-240"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-              <OmnicuraLogo size="sm" showWordmark />
+          <div className="relative z-10 flex h-full w-[86%] max-w-sm flex-col bg-sidebar shadow-overlay animate-in slide-in-from-left duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]">
+            <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
+              <OmnicuraLogo size="md" showWordmark showTagline />
               <button
                 type="button"
                 onClick={() => setIsMobileDrawerOpen(false)}
-                className="size-8 rounded-lg text-text-secondary hover:text-foreground flex items-center justify-center cursor-pointer"
+                className="flex size-10 items-center justify-center rounded-xl text-text-secondary hover:bg-muted cursor-pointer"
                 aria-label="Close menu"
               >
-                <ChevronLeft className="size-5" />
+                <X className="size-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-4">
-              {navGroups.map((group, idx) => (
-                <div key={idx} className="space-y-1">
-                  <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
-                    {group.group}
-                  </div>
-                  <div className="space-y-0.5">
-                    {group.items.map((item) => {
-                      const Icon = item.icon;
-                      const isActive = activeSection === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => handleNavClick(item.id)}
-                          className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-left transition-colors cursor-pointer ${
-                            isActive
-                              ? "bg-accent/10 text-foreground font-semibold"
-                              : "text-text-secondary hover:bg-muted"
-                          }`}
-                        >
-                          <Icon className={`size-4.5 ${isActive ? "text-accent" : "text-text-secondary"}`} />
-                          <span>{item.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+            <div className="p-4 pb-2">
+              <button
+                type="button"
+                onClick={() => handleNavClick("triage")}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground text-[15px] font-semibold shadow-brand cursor-pointer"
+              >
+                <Plus className="size-4 stroke-[2.5]" />
+                New assessment
+              </button>
             </div>
 
-            <div className="pt-3 border-t border-border-subtle space-y-2">
+            <nav className="flex-1 overflow-y-auto px-4 py-2 space-y-5" aria-label="Main navigation">
+              {NAV_GROUPS.map((group) => (
+                <div key={group.id} className="space-y-1">
+                  {group.label && <div className="px-3 pb-1 type-overline text-text-tertiary">{group.label}</div>}
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeSection === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleNavClick(item.id)}
+                        aria-current={isActive ? "page" : undefined}
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] transition-colors cursor-pointer",
+                          isActive ? "bg-brand-muted font-semibold text-foreground" : "font-medium text-text-secondary hover:bg-muted"
+                        )}
+                      >
+                        <Icon className={cn("size-5", isActive ? "text-accent" : "text-text-tertiary")} />
+                        <span className="flex-1">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </nav>
+
+            <div className="space-y-2 border-t border-sidebar-border p-4">
               <a
                 href={`tel:${emergencyNumber}`}
-                className="w-full flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-semibold text-danger border border-danger/30 bg-danger-muted"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-danger text-[15px] font-semibold text-white dark:text-[#2a0605]"
               >
                 <PhoneCall className="size-4" />
-                <span>Call Emergency ({emergencyNumber})</span>
+                Call emergency ({emergencyNumber})
               </a>
-
-              {!user ? (
-                <Button
-                  className="w-full text-xs h-9"
-                  onClick={() => {
-                    setIsMobileDrawerOpen(false);
-                    setIsAuthModalOpen(true);
-                  }}
-                >
-                  Sign In / Register
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="w-full text-xs h-9 gap-1.5"
+              {user ? (
+                <button
+                  type="button"
                   onClick={() => {
                     signOut();
                     setIsMobileDrawerOpen(false);
                   }}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border-subtle bg-surface text-sm font-medium text-foreground cursor-pointer"
                 >
-                  <LogOut className="size-3.5" />
-                  <span>Sign Out ({user.email})</span>
-                </Button>
+                  <LogOut className="size-4" />
+                  <span className="truncate">Sign out · {user.email}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    openAuth("signin");
+                  }}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border-subtle bg-surface text-sm font-semibold text-foreground cursor-pointer"
+                >
+                  <LogIn className="size-4" />
+                  Sign in / Create account
+                </button>
               )}
             </div>
           </div>

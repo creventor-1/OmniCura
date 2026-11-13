@@ -2,19 +2,22 @@
 
 import * as React from "react";
 import {
-  Upload,
-  AlertTriangle,
-  CheckCircle2,
-  Download,
-  MapPin,
+  TriangleAlert,
+  FileDown,
+  MapPinned,
   RotateCcw,
   Sparkles,
-  ShieldAlert,
+  Eye,
+  Lightbulb,
+  Sun,
+  Focus,
+  Ruler,
+  Lock,
   Info,
-  X,
 } from "lucide-react";
+import { cn } from "cn";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
 import { compressImageFile } from "@/lib/image-utils";
 import { ImageAnalysisResponse } from "@/schemas/vision";
 import { checkRedFlags } from "@/lib/red-flags";
@@ -23,6 +26,8 @@ import { RedFlagCheckResult } from "@/types";
 import { useAuth } from "@/features/authentication/context/auth-context";
 import { createClient } from "@/services/database/supabase/client";
 import { generateTriagePdfReport } from "@/services/pdf/generate-report";
+import { ImageDropzone } from "@/components/system/image-dropzone";
+import { AcuityHero, FirstAidSteps, WarningSigns } from "@/components/assessment/ai-result-panel";
 
 // Preset sample images (base64 SVG data) for instant testing
 const SAMPLE_PRESETS = [
@@ -64,7 +69,7 @@ interface ImageSymptomAnalyzerProps {
 
 export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyzerProps) {
   const { user } = useAuth();
-  const supabase = createClient();
+  const supabase = React.useMemo(() => createClient(), []);
 
   const [selectedImage, setSelectedImage] = React.useState<{
     base64: string;
@@ -83,9 +88,7 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
 
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFile = async (file: File) => {
 
     setErrorMessage(null);
     try {
@@ -213,9 +216,14 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
     });
   };
 
+  const tips = [
+    { icon: Sun, text: "Use bright, even, natural light" },
+    { icon: Focus, text: "Keep the affected area in sharp focus" },
+    { icon: Ruler, text: "Include a coin or ruler for scale" },
+  ];
+
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-6">
-      {/* Emergency Alert Modal (Safety Critical) */}
+    <div className="w-full">
       <EmergencyAlertModal
         isOpen={isEmergencyModalOpen}
         onClose={() => setIsEmergencyModalOpen(false)}
@@ -224,264 +232,230 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
       />
 
       {!analysisResult ? (
-        <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-none">
-          {/* Preset Buttons for Quick Testing */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-accent">
-              <Sparkles className="size-3.5" />
-              <span>Demo Samples</span>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          {/* Capture */}
+          <section className="space-y-5 rounded-[20px] border border-border-subtle bg-surface p-5 shadow-xs sm:p-6 lg:col-span-7">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="type-heading text-foreground">Upload a photo</h2>
+                <p className="mt-0.5 text-[13px] text-text-tertiary">Rashes, burns, cuts, bites or swelling</p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-text-secondary">
+                <Lock className="size-3" aria-hidden="true" />
+                Compressed on-device
+              </span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {SAMPLE_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => handleSelectPreset(preset)}
-                  className="p-2.5 text-left border border-border rounded-lg hover:bg-muted/60 transition-colors bg-background text-xs space-y-1"
-                >
-                  <div className="font-semibold text-foreground text-xs sm:text-sm">{preset.title}</div>
-                  <div className="text-xs text-muted-foreground line-clamp-2">
-                    {preset.description}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* Upload Box or Image Preview */}
-          <div className="space-y-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleFileChange}
-              className="hidden"
+            <ImageDropzone
+              inputRef={fileInputRef}
+              previewUrl={selectedImage?.previewUrl ?? null}
+              onFile={handleFile}
+              onClear={handleReset}
+              isScanning={isLoading}
+              title="Add a photo of the affected area"
+              previewAlt="Symptom visual preview"
             />
 
-            {selectedImage ? (
-              <div className="relative rounded-xl border border-border bg-muted/20 p-3 flex flex-col items-center">
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="absolute top-2 right-2 size-7 rounded-full bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground"
-                  title="Remove image"
-                >
-                  <X className="size-4" />
-                </button>
-
-                <div className="w-full max-w-xs h-48 rounded-lg overflow-hidden border border-border bg-background flex items-center justify-center my-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={selectedImage.previewUrl}
-                    alt="Symptom visual preview"
-                    className="max-h-full max-w-full object-contain"
-                  />
-                </div>
-                <span className="text-xs text-muted-foreground">Image ready for analysis</span>
-              </div>
-            ) : (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-border hover:border-accent/60 rounded-xl p-6 sm:p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors bg-muted/10 hover:bg-muted/20"
-              >
-                <div className="size-12 rounded-full bg-accent/10 text-accent flex items-center justify-center border border-accent/20">
-                  <Upload className="size-5" />
-                </div>
-                <div className="text-center space-y-1">
-                  <p className="text-sm font-semibold">Click to upload photo or take picture</p>
-                  <p className="text-xs text-muted-foreground">Supports JPEG, PNG, WebP up to 10MB</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Additional Notes Input */}
-          <div className="space-y-1.5">
-            <label
-              htmlFor="symptom-vision-notes"
-              className="text-sm font-semibold text-foreground cursor-pointer block"
-            >
-              Additional Context / Symptoms (Optional):
-            </label>
-            <textarea
+            <Textarea
               id="symptom-vision-notes"
+              label="Additional context (optional)"
               value={additionalNotes}
               onChange={(e) => setAdditionalNotes(e.target.value)}
-              placeholder="e.g. Started 2 days ago, mild burning sensation, no fever..."
-              rows={2}
-              className="w-full text-sm p-3.5 rounded-xl border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder="e.g. Started 2 days ago, mild burning sensation, no fever…"
+              rows={3}
+              helperText="Notes are screened for emergency red flags before analysis."
             />
-          </div>
 
-          {errorMessage && (
-            <div
-              role="alert"
-              aria-live="polite"
-              className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs sm:text-sm font-medium flex items-center gap-2"
-            >
-              <AlertTriangle className="size-4 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          {/* Action Button */}
-          <Button
-            type="button"
-            disabled={!selectedImage || isLoading}
-            onClick={handleAnalyze}
-            className="w-full h-11 text-sm font-semibold gap-2 rounded-xl"
-          >
-            {isLoading ? (
-              <>
-                <Spinner size="sm" />
-                <span>Running Multimodal Clinical Analysis...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="size-4" />
-                <span>Analyze Visible Symptoms</span>
-              </>
+            {errorMessage && (
+              <div
+                role="alert"
+                aria-live="polite"
+                className="flex items-start gap-2.5 rounded-xl border border-danger/20 bg-danger-muted p-3.5 text-[13px] font-medium text-danger"
+              >
+                <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
             )}
-          </Button>
 
-          {/* Educational Disclaimer */}
-          <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/40 text-xs sm:text-sm text-muted-foreground">
-            <Info className="size-4 shrink-0 mt-0.5 text-primary" />
-            <span>
-              <strong>Educational Notice:</strong> Visual analysis cannot replace an in-person physical clinical examination. Images are compressed client-side before processing.
-            </span>
-          </div>
+            <Button
+              type="button"
+              size="lg"
+              disabled={!selectedImage}
+              isLoading={isLoading}
+              onClick={handleAnalyze}
+              className="w-full"
+            >
+              {isLoading ? (
+                "Analyzing visible symptoms…"
+              ) : (
+                <>
+                  <Sparkles />
+                  Analyze photo
+                </>
+              )}
+            </Button>
+          </section>
+
+          {/* Guidance rail */}
+          <aside className="space-y-5 lg:col-span-5">
+            <section className="rounded-[20px] border border-border-subtle bg-surface p-5 shadow-xs">
+              <div className="mb-3.5 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-foreground">Sample cases</h2>
+                <span className="text-xs text-text-tertiary">For demonstration</span>
+              </div>
+              <ul className="space-y-2">
+                {SAMPLE_PRESETS.map((preset) => {
+                  const isSelected = selectedImage?.base64 === preset.base64;
+                  return (
+                    <li key={preset.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectPreset(preset)}
+                        aria-pressed={isSelected}
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition-all cursor-pointer",
+                          isSelected
+                            ? "border-brand/40 bg-brand-muted ring-2 ring-brand/15"
+                            : "border-border-subtle bg-surface hover:border-border-strong hover:shadow-sm"
+                        )}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={"data:" + preset.mimeType + ";base64," + preset.base64}
+                          alt=""
+                          className="size-12 shrink-0 rounded-lg border border-border-subtle object-cover"
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-[13px] font-semibold text-foreground">{preset.title}</span>
+                          <span className="block truncate text-xs text-text-tertiary">{preset.description}</span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+
+            <section className="rounded-[20px] border border-border-subtle bg-surface p-5 shadow-xs">
+              <div className="mb-3.5 flex items-center gap-2">
+                <Lightbulb className="size-4 text-accent" aria-hidden="true" />
+                <h2 className="text-sm font-semibold text-foreground">For the best result</h2>
+              </div>
+              <ul className="space-y-2.5">
+                {tips.map(({ icon: Icon, text }) => (
+                  <li key={text} className="flex items-center gap-3 text-[13px] text-text-secondary">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted text-text-secondary">
+                      <Icon className="size-3.5" aria-hidden="true" />
+                    </span>
+                    {text}
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <p className="flex items-start gap-2.5 rounded-2xl border border-border-subtle bg-subtle p-4 text-xs leading-relaxed text-text-tertiary">
+              <Info className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden="true" />
+              Visual analysis can&apos;t replace an in-person examination. Seek care if symptoms spread, worsen or are accompanied by fever.
+            </p>
+          </aside>
         </div>
       ) : (
-        /* Results View */
         <div
           role="region"
           aria-live="polite"
           aria-label="Visual Symptom Assessment Results"
-          className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-none animate-in fade-in-50 duration-200"
+          className="space-y-6 animate-rise"
         >
-          {/* Severity Banner */}
-          <div
-            className={`p-4 rounded-xl border flex items-center justify-between ${
-              analysisResult.severity === "emergency"
-                ? "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300"
-                : analysisResult.severity === "urgent"
-                ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300"
-                : "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              {analysisResult.severity === "emergency" ? (
-                <ShieldAlert className="size-5 text-destructive" />
-              ) : (
-                <CheckCircle2 className="size-5" />
-              )}
-              <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider">
-                  Vision Urgency Classification
+          <AcuityHero
+            severity={analysisResult.severity}
+            recommendedAction={analysisResult.recommendedAction}
+            actions={
+              <>
+                <Button variant="outline" onClick={handleExportPdf}>
+                  <FileDown className="text-text-tertiary" />
+                  PDF report
+                </Button>
+                <Button variant="outline" onClick={handleReset}>
+                  <RotateCcw className="text-text-tertiary" />
+                  Analyze another
+                </Button>
+              </>
+            }
+          />
+
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+            <div className="space-y-5 lg:col-span-7">
+              <section className="rounded-2xl border border-border-subtle bg-surface p-5 shadow-xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-brand-muted text-accent">
+                    <Eye className="size-4" aria-hidden="true" />
+                  </span>
+                  <h3 className="type-heading text-foreground">Visual observations</h3>
                 </div>
-                <div className="text-base sm:text-lg font-semibold capitalize">
-                  {analysisResult.severity}
+                <div className="mt-4 flex flex-col gap-4 sm:flex-row">
+                  {selectedImage && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={selectedImage.previewUrl}
+                      alt="Analyzed symptom"
+                      className="h-32 w-full shrink-0 rounded-xl border border-border-subtle bg-subtle object-contain sm:w-32"
+                    />
+                  )}
+                  <p className="text-sm leading-relaxed text-text-secondary">{analysisResult.visualObservations}</p>
                 </div>
-              </div>
+              </section>
+              <FirstAidSteps steps={analysisResult.firstAidSteps} />
+              <WarningSigns signs={analysisResult.warningSigns} />
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
-              className="text-xs h-8 px-3 gap-1.5 rounded-lg bg-background"
-            >
-              <RotateCcw className="size-3.5" />
-              Analyze Another
-            </Button>
-          </div>
-
-          {/* Visual Observations */}
-          <div className="p-3.5 rounded-xl border bg-muted/20 space-y-1">
-            <div className="text-xs sm:text-sm font-bold text-foreground">Visual Observations:</div>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              {analysisResult.visualObservations}
-            </p>
-          </div>
-
-          {/* Possible Conditions */}
-          <div className="space-y-2">
-            <div className="text-xs sm:text-sm font-bold text-foreground">Possible Explanations (Educational):</div>
-            <div className="flex flex-wrap gap-1.5">
-              {analysisResult.possibleConditions.map((cond, i) => (
-                <span
-                  key={i}
-                  className="px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20"
-                >
-                  {cond}
-                </span>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {analysisResult.severityReasoning}
-            </p>
-          </div>
-
-          {/* First-Aid Care Checklist */}
-          {analysisResult.firstAidSteps.length > 0 && (
-            <div className="space-y-2 border-t pt-4">
-              <div className="text-xs sm:text-sm font-bold text-foreground">Recommended First-Aid Guidance:</div>
-              <ul className="space-y-1.5 text-xs sm:text-sm text-muted-foreground">
-                {analysisResult.firstAidSteps.map((step, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="size-5 shrink-0 rounded-full bg-primary/20 text-primary text-xs font-bold flex items-center justify-center mt-0.5">
-                      {i + 1}
+            <div className="space-y-5 lg:col-span-5">
+              <section className="rounded-2xl border border-border-subtle bg-surface p-5 shadow-xs">
+                <h3 className="type-heading text-foreground">Possible explanations</h3>
+                <p className="mt-0.5 text-[13px] text-text-tertiary">Educational, non-diagnostic</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {analysisResult.possibleConditions.map((cond, i) => (
+                    <span
+                      key={i}
+                      className="rounded-lg border border-brand/15 bg-brand-muted px-3 py-1.5 text-[13px] font-medium text-accent-text"
+                    >
+                      {cond}
                     </span>
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ul>
+                  ))}
+                </div>
+                {analysisResult.severityReasoning && (
+                  <p className="mt-4 border-t border-border-subtle pt-4 text-[13px] leading-relaxed text-text-secondary">
+                    {analysisResult.severityReasoning}
+                  </p>
+                )}
+              </section>
+
+              {analysisResult.uncertaintyNotes && (
+                <section className="rounded-2xl border border-info/20 bg-info-muted p-5">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <Info className="size-4 text-info" aria-hidden="true" />
+                    Limits of this analysis
+                  </div>
+                  <p className="mt-2 text-[13px] leading-relaxed text-text-secondary">{analysisResult.uncertaintyNotes}</p>
+                </section>
+              )}
+
+              {onLocateFacilities && (
+                <section className="rounded-2xl border border-border-subtle bg-surface p-5 shadow-xs">
+                  <h3 className="text-sm font-semibold text-foreground">Need to be seen?</h3>
+                  <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">
+                    Find verified clinics and emergency departments near you.
+                  </p>
+                  <Button className="mt-4 w-full" onClick={onLocateFacilities}>
+                    <MapPinned />
+                    Find nearby care
+                  </Button>
+                </section>
+              )}
+
+              <p className="rounded-2xl border border-border-subtle bg-subtle p-4 text-xs leading-relaxed text-text-tertiary">
+                {analysisResult.disclaimer}
+              </p>
             </div>
-          )}
-
-          {/* Escalation Warning Signs */}
-          {analysisResult.warningSigns.length > 0 && (
-            <div className="p-3.5 rounded-xl border border-destructive/20 bg-destructive/5 space-y-2">
-              <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-destructive">
-                <AlertTriangle className="size-3.5" />
-                <span>Warning Signs Requiring Escalation:</span>
-              </div>
-              <ul className="list-disc list-inside text-xs sm:text-sm text-muted-foreground space-y-1">
-                {analysisResult.warningSigns.map((sign, i) => (
-                  <li key={i}>{sign}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Action Bar */}
-          <div className="flex flex-col sm:flex-row gap-2.5 border-t pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleExportPdf}
-              className="flex-1 h-11 text-xs sm:text-sm font-semibold gap-2 rounded-xl"
-            >
-              <Download className="size-4" />
-              Download PDF Report
-            </Button>
-
-            {onLocateFacilities && (
-              <Button
-                type="button"
-                onClick={onLocateFacilities}
-                className="flex-1 h-11 text-xs sm:text-sm font-semibold gap-2 rounded-xl"
-              >
-                <MapPin className="size-4" />
-                Find Nearby Hospitals
-              </Button>
-            )}
-          </div>
-
-          {/* Disclaimer Footer */}
-          <div className="text-xs sm:text-sm text-muted-foreground bg-muted/30 p-3 rounded-xl border text-center leading-relaxed">
-            {analysisResult.disclaimer}
           </div>
         </div>
       )}

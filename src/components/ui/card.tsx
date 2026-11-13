@@ -2,7 +2,7 @@ import * as React from "react"
 import { cn } from "cn"
 
 export interface CardProps extends React.ComponentProps<"div"> {
-  size?: "default" | "sm"
+  size?: "default" | "sm" | "none"
   isInteractive?: boolean
 }
 
@@ -17,8 +17,11 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col overflow-hidden rounded-xl bg-surface border border-border-subtle text-sm text-foreground p-5 data-[size=sm]:p-4 transition-all duration-180",
-        isInteractive && "cursor-pointer hover:border-border-strong hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px",
+        "group/card relative flex flex-col rounded-2xl bg-surface border border-border-subtle text-sm text-foreground shadow-xs",
+        "p-6 data-[size=sm]:p-4 data-[size=none]:p-0",
+        "transition-[border-color,box-shadow,transform] duration-200 ease-out",
+        isInteractive &&
+          "cursor-pointer hover:border-border-strong hover:shadow-card-hover hover:-translate-y-px focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
         className
       )}
       {...props}
@@ -30,10 +33,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-header"
-      className={cn(
-        "flex flex-col gap-1 pb-4",
-        className
-      )}
+      className={cn("flex flex-col gap-1 pb-4", className)}
       {...props}
     />
   )
@@ -44,7 +44,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-title"
       className={cn(
-        "text-base font-semibold text-foreground leading-tight tracking-tight",
+        "font-heading text-[15px] font-semibold text-foreground leading-snug tracking-[-0.01em]",
         className
       )}
       {...props}
@@ -56,7 +56,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-xs text-text-secondary leading-relaxed", className)}
+      className={cn("text-[13px] text-text-secondary leading-relaxed", className)}
       {...props}
     />
   )
