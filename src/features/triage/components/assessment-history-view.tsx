@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Clock, ShieldAlert, Trash2, ChevronDown, ChevronUp, FileText } from "lucide-react";
+import { Clock, ShieldAlert, Trash2, ChevronDown, ChevronUp, FileText, FileDown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { useAuth } from "@/features/authentication/context/auth-context";
 import { createClient } from "@/services/database/supabase/client";
 import { StoredAssessment } from "@/types/database";
 import { AssessmentResponse } from "@/schemas/triage";
+import { generateTriagePdfReport } from "@/services/pdf/generate-report";
 
 export function AssessmentHistoryView() {
   const { user } = useAuth();
@@ -145,7 +146,24 @@ export function AssessmentHistoryView() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      generateTriagePdfReport({
+                        assessment: result,
+                        symptoms: item.symptoms,
+                        date: item.created_at,
+                        userEmail: user?.email,
+                      });
+                    }}
+                    className="size-8 text-muted-foreground hover:text-primary"
+                    title="Export PDF Report"
+                  >
+                    <FileDown className="size-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"

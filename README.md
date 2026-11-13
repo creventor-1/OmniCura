@@ -121,6 +121,7 @@ Refer to `.env.example` for the complete list:
 - [x] **Phase 1: Project Foundation** — Next.js, TypeScript strict mode, Tailwind CSS v4, shadcn/ui components, light/dark mode theme system, architecture scaffolding, `.env.example`, and Git repository setup.
 - [x] **Phase 2: Core AI Triage Experience** — Deterministic red-flag emergency screening (client & server), one-time disclaimer system, persistent emergency SOS button (112), adaptive symptom questioning with interactive quick options, Gemini Flash structured assessment pipeline (Zod-validated), and comprehensive result display.
 - [x] **Phase 3: User Accounts & Health Data** — Optional guest flow with seamless conversion, Supabase Auth integration, health profiles with AI consent toggle, assessment history viewer, and emergency contacts manager with Row Level Security.
-- [ ] **Phase 4: Healthcare Utilities** — Facility locator (Leaflet/OSM) & client-side PDF export.
+- [x] **Phase 4: Healthcare Utilities** — Interactive Healthcare Facility Locator (Leaflet & OpenStreetMap with automatic geolocation and curated Lagos fallback) and client-side Medical Report PDF Export.
+- [ ] **Phase 5: Product Polish** — UI enhancements, animations, mobile responsiveness, and hackathon demo flows.
 - [ ] **Phase 5: Product Polish** — UI enhancements, mobile responsiveness, and branding.
 - [ ] **Phase 6: Extended Features** — Voice input, multimodal image analysis, and medication scanner.

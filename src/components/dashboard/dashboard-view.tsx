@@ -9,6 +9,7 @@ import {
   LogIn,
   LogOut,
   User,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/authentication/context/auth-context";
@@ -17,8 +18,9 @@ import { SymptomChat } from "@/features/triage/components/symptom-chat";
 import { AssessmentHistoryView } from "@/features/triage/components/assessment-history-view";
 import { HealthProfileForm } from "@/features/health-profile/components/health-profile-form";
 import { EmergencyContactsManager } from "@/features/safety/components/emergency-contacts-manager";
+import { HospitalMap } from "@/components/map/hospital-map";
 
-type ActiveTab = "triage" | "history" | "profile" | "contacts";
+type ActiveTab = "triage" | "hospitals" | "history" | "profile" | "contacts";
 
 export function DashboardView() {
   const { user, signOut } = useAuth();
@@ -44,6 +46,16 @@ export function DashboardView() {
           >
             <Activity className="size-3.5" />
             Triage Chat
+          </Button>
+
+          <Button
+            size="sm"
+            variant={activeTab === "hospitals" ? "default" : "ghost"}
+            onClick={() => setActiveTab("hospitals")}
+            className="h-8 gap-1.5 rounded-lg text-xs"
+          >
+            <MapPin className="size-3.5" />
+            Hospitals &amp; Clinics
           </Button>
 
           <Button
@@ -122,10 +134,11 @@ export function DashboardView() {
                 Describe symptoms to receive an educational urgency assessment and supportive care steps.
               </p>
             </div>
-            <SymptomChat />
+            <SymptomChat onLocateFacilities={() => setActiveTab("hospitals")} />
           </div>
         )}
 
+        {activeTab === "hospitals" && <HospitalMap />}
         {activeTab === "history" && <AssessmentHistoryView />}
         {activeTab === "profile" && <HealthProfileForm />}
         {activeTab === "contacts" && <EmergencyContactsManager />}

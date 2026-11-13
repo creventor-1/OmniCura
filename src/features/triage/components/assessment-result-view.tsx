@@ -12,6 +12,7 @@ import {
   RotateCcw,
   BookmarkPlus,
   Check,
+  FileDown,
 } from "lucide-react";
 import { AssessmentResponse } from "@/schemas/triage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/features/authentication/context/auth-context";
 import { AuthModal } from "@/features/authentication/components/auth-modal";
+import { generateTriagePdfReport } from "@/services/pdf/generate-report";
 
 interface AssessmentResultViewProps {
   assessment: AssessmentResponse;
@@ -210,15 +212,30 @@ export function AssessmentResultView({
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
+        <Button
+          onClick={() =>
+            generateTriagePdfReport({
+              assessment,
+              symptoms: "Reported patient symptom context",
+              userEmail: user?.email,
+            })
+          }
+          variant="outline"
+          className="gap-2 py-5 text-xs font-semibold border-primary/30 hover:bg-primary/5"
+        >
+          <FileDown className="size-4 text-primary" />
+          Export Medical PDF Report
+        </Button>
+
         {onLocateFacilities && (
-          <Button onClick={onLocateFacilities} className="flex-1 gap-2 py-6 text-sm">
+          <Button onClick={onLocateFacilities} className="flex-1 gap-2 py-5 text-xs font-semibold">
             <MapPin className="size-4" />
-            Find Nearby Healthcare Facilities
+            Find Nearby Facilities
           </Button>
         )}
-        <Button onClick={onReset} variant="outline" className="flex-1 gap-2 py-6 text-sm">
+        <Button onClick={onReset} variant="outline" className="gap-2 py-5 text-xs font-semibold">
           <RotateCcw className="size-4" />
-          Start New Triage Assessment
+          New Triage
         </Button>
       </div>
 

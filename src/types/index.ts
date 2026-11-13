@@ -27,4 +27,5 @@ export interface ChatMessage {
 }
 
 export * from "./database";
+export * from "./hospital";
 
