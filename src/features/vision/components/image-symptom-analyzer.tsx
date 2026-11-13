@@ -236,10 +236,10 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
       </div>
 
       {!analysisResult ? (
-        <div className="space-y-5 rounded-2xl border bg-card p-4 sm:p-6 shadow-sm">
+        <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-none">
           {/* Preset Buttons for Quick Testing */}
           <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-accent">
               <Sparkles className="size-3.5" />
               <span>One-Click Demo Test Cases:</span>
             </div>
@@ -249,7 +249,7 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
                   key={preset.id}
                   type="button"
                   onClick={() => handleSelectPreset(preset)}
-                  className="p-2.5 text-left border rounded-xl hover:bg-muted/60 transition-colors bg-background text-xs space-y-1"
+                  className="p-2.5 text-left border border-border rounded-lg hover:bg-muted/60 transition-colors bg-background text-xs space-y-1"
                 >
                   <div className="font-semibold text-foreground text-xs sm:text-sm">{preset.title}</div>
                   <div className="text-xs text-muted-foreground line-clamp-2">
@@ -271,17 +271,17 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
             />
 
             {selectedImage ? (
-              <div className="relative rounded-xl border bg-muted/30 p-3 flex flex-col items-center">
+              <div className="relative rounded-xl border border-border bg-muted/20 p-3 flex flex-col items-center">
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="absolute top-2 right-2 size-7 rounded-full bg-background border flex items-center justify-center text-muted-foreground hover:text-foreground shadow-sm"
+                  className="absolute top-2 right-2 size-7 rounded-full bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground"
                   title="Remove image"
                 >
                   <X className="size-4" />
                 </button>
 
-                <div className="w-full max-w-xs h-48 rounded-lg overflow-hidden border bg-background flex items-center justify-center my-2">
+                <div className="w-full max-w-xs h-48 rounded-lg overflow-hidden border border-border bg-background flex items-center justify-center my-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={selectedImage.previewUrl}
@@ -294,10 +294,10 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
             ) : (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-border/80 hover:border-primary/60 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors bg-muted/10 hover:bg-muted/20"
+                className="border-2 border-dashed border-border hover:border-accent/60 rounded-xl p-6 sm:p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors bg-muted/10 hover:bg-muted/20"
               >
-                <div className="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                  <Upload className="size-6" />
+                <div className="size-12 rounded-full bg-accent/10 text-accent flex items-center justify-center border border-accent/20">
+                  <Upload className="size-5" />
                 </div>
                 <div className="text-center space-y-1">
                   <p className="text-sm font-semibold">Click to upload photo or take picture</p>
@@ -370,7 +370,7 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
           role="region"
           aria-live="polite"
           aria-label="Vision Triage Assessment Results"
-          className="space-y-5 rounded-2xl border bg-card p-4 sm:p-6 shadow-sm animate-in fade-in-50 duration-200"
+          className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-none animate-in fade-in-50 duration-200"
         >
           {/* Severity Banner */}
           <div
@@ -384,15 +384,15 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
           >
             <div className="flex items-center gap-2.5">
               {analysisResult.severity === "emergency" ? (
-                <ShieldAlert className="size-6 text-red-600" />
+                <ShieldAlert className="size-5 text-destructive" />
               ) : (
-                <CheckCircle2 className="size-6" />
+                <CheckCircle2 className="size-5" />
               )}
               <div>
-                <div className="text-xs font-bold uppercase tracking-wider">
+                <div className="text-[11px] font-semibold uppercase tracking-wider">
                   Vision Urgency Classification
                 </div>
-                <div className="text-base sm:text-lg font-extrabold capitalize">
+                <div className="text-base sm:text-lg font-semibold capitalize">
                   {analysisResult.severity}
                 </div>
               </div>
@@ -402,7 +402,7 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
               variant="outline"
               size="sm"
               onClick={handleReset}
-              className="text-xs sm:text-sm h-9 gap-1.5 rounded-xl bg-background"
+              className="text-xs h-8 px-3 gap-1.5 rounded-lg bg-background"
             >
               <RotateCcw className="size-3.5" />
               Analyze Another

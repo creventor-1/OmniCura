@@ -146,10 +146,10 @@ export function MedicationScanner() {
       </div>
 
       {!scanResult ? (
-        <div className="space-y-5 rounded-2xl border bg-card p-4 sm:p-6 shadow-sm">
+        <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-none">
           {/* Quick Preset Buttons */}
           <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-accent">
               <Sparkles className="size-3.5" />
               <span>One-Click Test Presets:</span>
             </div>
@@ -159,7 +159,7 @@ export function MedicationScanner() {
                   key={preset.id}
                   type="button"
                   onClick={() => handleSelectPreset(preset)}
-                  className="p-2.5 text-left border rounded-xl hover:bg-muted/60 transition-colors bg-background text-xs space-y-1"
+                  className="p-2.5 text-left border border-border rounded-lg hover:bg-muted/60 transition-colors bg-background text-xs space-y-1"
                 >
                   <div className="font-semibold text-foreground">{preset.title}</div>
                   <div className="text-[11px] text-muted-foreground line-clamp-2">
@@ -181,17 +181,17 @@ export function MedicationScanner() {
             />
 
             {selectedImage ? (
-              <div className="relative rounded-xl border bg-muted/30 p-3 flex flex-col items-center">
+              <div className="relative rounded-xl border border-border bg-muted/20 p-3 flex flex-col items-center">
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="absolute top-2 right-2 size-7 rounded-full bg-background border flex items-center justify-center text-muted-foreground hover:text-foreground shadow-sm"
+                  className="absolute top-2 right-2 size-7 rounded-full bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground"
                   title="Remove image"
                 >
                   <X className="size-4" />
                 </button>
 
-                <div className="w-full max-w-xs h-48 rounded-lg overflow-hidden border bg-background flex items-center justify-center my-2">
+                <div className="w-full max-w-xs h-48 rounded-lg overflow-hidden border border-border bg-background flex items-center justify-center my-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={selectedImage.previewUrl}
@@ -204,10 +204,10 @@ export function MedicationScanner() {
             ) : (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-border/80 hover:border-primary/60 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors bg-muted/10 hover:bg-muted/20"
+                className="border-2 border-dashed border-border hover:border-accent/60 rounded-xl p-6 sm:p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors bg-muted/10 hover:bg-muted/20"
               >
-                <div className="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                  <Upload className="size-6" />
+                <div className="size-12 rounded-full bg-accent/10 text-accent flex items-center justify-center border border-accent/20">
+                  <Upload className="size-5" />
                 </div>
                 <div className="text-center space-y-1">
                   <p className="text-sm font-semibold">Click to upload medication photo or label</p>
@@ -280,19 +280,19 @@ export function MedicationScanner() {
           role="region"
           aria-live="polite"
           aria-label="Medication Identification Results"
-          className="space-y-5 rounded-2xl border bg-card p-4 sm:p-6 shadow-sm animate-in fade-in-50 duration-200"
+          className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-none animate-in fade-in-50 duration-200"
         >
           {/* Header Card */}
-          <div className="p-4 sm:p-5 rounded-xl border bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="p-4 sm:p-5 rounded-xl border border-border bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Identified Medication
               </div>
-              <h3 className="text-xl sm:text-2xl font-extrabold text-foreground mt-0.5">
+              <h3 className="text-xl sm:text-2xl font-semibold text-foreground mt-0.5">
                 {scanResult.identifiedName}
               </h3>
               {scanResult.genericName && (
-                <div className="text-xs sm:text-sm text-primary font-semibold mt-0.5">
+                <div className="text-xs sm:text-sm text-accent font-medium mt-0.5">
                   Generic: {scanResult.genericName}
                 </div>
               )}
@@ -300,7 +300,7 @@ export function MedicationScanner() {
 
             <div className="flex items-center gap-2">
               <span
-                className={`text-xs font-bold uppercase px-3 py-1 rounded-full border ${
+                className={`text-xs font-semibold uppercase px-2.5 py-0.5 rounded-full border ${
                   scanResult.confidence === "high"
                     ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
                     : scanResult.confidence === "moderate"
@@ -315,7 +315,7 @@ export function MedicationScanner() {
                 variant="outline"
                 size="sm"
                 onClick={handleReset}
-                className="text-xs sm:text-sm h-9 gap-1.5 rounded-xl bg-background"
+                className="text-xs h-8 px-3 gap-1.5 rounded-lg bg-background"
               >
                 <RotateCcw className="size-3.5" />
                 Scan Another

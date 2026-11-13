@@ -8,12 +8,9 @@ import {
   MapPin,
   Lock,
   AlertOctagon,
-  Sparkles,
   HeartPulse,
   FileText,
   CheckCircle2,
-  Bot,
-  User,
   Compass,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,38 +26,31 @@ export function HeroSection({
   onExploreFeatures,
 }: HeroSectionProps) {
   return (
-    <div className="w-full space-y-16 py-6 sm:py-10">
-      {/* 1. Main Hero Block */}
-      <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-card via-card/90 to-muted/20 p-6 sm:p-10 lg:p-12 shadow-sm">
-        {/* Soft Background Radial Light */}
-        <div className="pointer-events-none absolute -top-24 -left-24 size-96 rounded-full bg-sky-500/10 blur-3xl dark:bg-sky-500/5" />
-        <div className="pointer-events-none absolute -bottom-24 -right-24 size-96 rounded-full bg-teal-500/10 blur-3xl dark:bg-teal-500/5" />
-
-        <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+    <div className="w-full space-y-10">
+      {/* 1. Main Hero Block: Restrained, Linear/Stripe-Calm Clinical Presentation */}
+      <section className="relative overflow-hidden rounded-xl border border-border bg-card p-6 sm:p-8 lg:p-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Left Column: Headlines & Call to Actions */}
-          <div className="lg:col-span-7 space-y-6 text-left">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/20 bg-primary/10 text-primary text-xs sm:text-sm font-semibold animate-in fade-in-50">
-              <Sparkles className="size-4" />
-              <span>Next-Gen Clinical Healthcare Intelligence</span>
+          <div className="lg:col-span-7 space-y-5 text-left">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-accent/30 bg-accent/5 text-accent text-xs font-medium">
+              <span className="size-1.5 rounded-full bg-accent" />
+              <span>Clinical Decision Support System</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground leading-[1.15]">
-              Intelligent Emergency Triage &amp;{" "}
-              <span className="bg-gradient-to-r from-sky-600 via-teal-600 to-emerald-600 dark:from-sky-400 dark:via-teal-400 dark:to-emerald-400 bg-clip-text text-transparent">
-                First-Aid Guidance
-              </span>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-foreground leading-snug">
+              AI-Assisted Emergency Triage &amp; Supportive First-Aid Guidance
             </h1>
 
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-xl">
-              Describe symptoms naturally or upload photos of visible injuries. Receive instant deterministic safety screening, adaptive clinical follow-ups, and evidence-based supportive first-aid before reaching professional care.
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
+              Describe symptoms naturally or upload photos of visible injuries. Receive deterministic safety screening, adaptive clinical follow-ups, and evidence-based supportive first-aid before reaching professional care.
             </p>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
               <Button
                 size="lg"
                 onClick={onStartAssessment}
-                className="h-12 px-6 rounded-xl font-bold text-sm sm:text-base gap-2 shadow-md hover:shadow-lg transition-all duration-200"
+                className="gap-2"
               >
                 <span>Start Symptom Assessment</span>
                 <ArrowRight className="size-4" />
@@ -70,245 +60,200 @@ export function HeroSection({
                 variant="outline"
                 size="lg"
                 onClick={onExploreFeatures}
-                className="h-12 px-6 rounded-xl text-sm sm:text-base font-semibold border-border/80 hover:bg-muted/60 transition-colors"
               >
-                <span>How It Works</span>
+                <span>Clinical Protocol</span>
               </Button>
             </div>
 
             {/* Micro Trust Points */}
-            <div className="pt-4 border-t border-border/40 grid grid-cols-3 gap-3 text-xs sm:text-sm text-muted-foreground font-medium">
+            <div className="pt-4 border-t border-border grid grid-cols-3 gap-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span className="truncate">Deterministic Safety</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-                <span className="truncate">GPS Hospital Map</span>
+                <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="truncate">GPS Facility Locator</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span className="truncate">PDF Medical Export</span>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Realistic Floating Application Previews */}
-          <div className="lg:col-span-5 relative space-y-3.5">
-            {/* Mockup Card 1: AI Chat Bubble */}
-            <div className="rounded-2xl border border-border/80 bg-background/95 p-4 shadow-md backdrop-blur-sm space-y-2.5 motion-safe:sm:hover:-translate-y-1 transition-transform duration-200">
-              <div className="flex items-center justify-between border-b pb-2">
+          {/* Right Column: Realistic Interface Previews */}
+          <div className="lg:col-span-5 space-y-3">
+            {/* Mockup Card 1: Clinical AI Assessment Output */}
+            <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-2.5">
+              <div className="flex items-center justify-between border-b border-border/60 pb-2">
                 <div className="flex items-center gap-2">
-                  <div className="size-7 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                    <Bot className="size-4" />
+                  <div className="size-6 rounded-md bg-muted text-accent flex items-center justify-center border border-border/80">
+                    <Activity className="size-3.5" />
                   </div>
-                  <span className="text-xs sm:text-sm font-bold text-foreground">
-                    TriageAI Assistant
+                  <span className="text-xs font-semibold text-foreground">
+                    Triage Assessment
                   </span>
                 </div>
-                <Badge
-                  variant="outline"
-                  className="text-xs text-emerald-700 dark:text-emerald-300 border-emerald-500/30 bg-emerald-500/10 font-bold px-2 py-0.5 rounded-full"
-                >
-                  Adaptive AI
-                </Badge>
+                <Badge variant="success">Non-Urgent</Badge>
               </div>
 
-              <div className="space-y-2 text-xs sm:text-sm leading-relaxed">
-                <div className="flex items-start gap-2 justify-end">
-                  <div className="bg-primary text-primary-foreground px-3.5 py-2 rounded-2xl rounded-tr-xs text-xs sm:text-sm font-medium">
-                    Mild persistent cough and slight fever for 2 days.
-                  </div>
-                  <div className="size-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center shrink-0">
-                    <User className="size-3.5" />
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2 justify-start">
-                  <div className="size-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0">
-                    <Bot className="size-3.5" />
-                  </div>
-                  <div className="bg-muted px-3.5 py-2 rounded-2xl rounded-tl-xs text-xs sm:text-sm text-foreground">
-                    Are you experiencing any shortness of breath or pain when inhaling?
-                  </div>
-                </div>
+              <div className="space-y-1.5 text-xs">
+                <div className="text-muted-foreground font-medium">Recommended Action:</div>
+                <p className="text-foreground leading-relaxed bg-card p-2.5 rounded-lg border border-border/70 text-xs font-normal">
+                  Monitor symptoms with supportive hydration and oral rest. Seek evaluation if fever persists beyond 72 hours.
+                </p>
               </div>
             </div>
 
-            {/* Mockup Card 2: Urgency Classification Result */}
-            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 shadow-sm space-y-1.5 motion-safe:sm:hover:-translate-y-1 transition-transform duration-200">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-                  <HeartPulse className="size-3.5 text-emerald-600" />
-                  Urgency Assessment
+            {/* Mockup Card 2: Nearby Hospital Coordinate Result */}
+            <div className="rounded-xl border border-border bg-card p-3.5 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-foreground flex items-center gap-1.5 truncate">
+                  <MapPin className="size-3.5 text-accent shrink-0" />
+                  <span className="truncate">ESUT Teaching Hospital Parklane</span>
                 </span>
-                <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                  NON-URGENT
+                <span className="text-xs font-medium tabular-nums text-muted-foreground shrink-0">
+                  5.0 km
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Mild symptoms localized to upper airways. Supportive hydration &amp; rest recommended.
-              </p>
-            </div>
-
-            {/* Mockup Card 3: Nearby Hospital Preview */}
-            <div className="rounded-2xl border border-border/80 bg-background/95 p-4 shadow-sm space-y-1.5 motion-safe:sm:hover:-translate-y-1 transition-transform duration-200">
-              <div className="flex items-center justify-between text-xs sm:text-sm">
-                <span className="font-bold text-foreground flex items-center gap-1.5">
-                  <MapPin className="size-4 text-primary shrink-0" />
-                  <span className="truncate">Enugu State University Teaching Hospital</span>
+              <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5">
+                <span>Enugu, Nigeria</span>
+                <span className="text-emerald-700 dark:text-emerald-400 font-medium text-[11px]">
+                  Emergency 24/7
                 </span>
-                <span className="text-xs sm:text-sm font-bold text-primary shrink-0">5.0 km</span>
-              </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-                <span>Parklane, GRA, Enugu</span>
-                <span className="text-emerald-600 font-semibold">Open 24/7</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 2. Trust Section (Responsive Grid without Squeezing) */}
-      <section className="space-y-6">
-        <div className="text-center max-w-xl mx-auto space-y-1.5">
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-            Built on Safety, Transparency &amp; Medical Responsibility
+      {/* 2. Trust Section (Confidence & Clinical Safety) */}
+      <section className="space-y-4">
+        <div className="text-left space-y-1">
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">
+            Clinical Safety &amp; Responsibility Safeguards
           </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Clinical-grade safeguards engineered to provide helpful educational guidance without false promises.
+          <p className="text-xs text-muted-foreground max-w-xl">
+            Engineered with deterministic red-flag screens, zero-knowledge privacy principles, and physician-oriented summaries.
           </p>
         </div>
 
-        {/* Improved Responsive Grid: 1-col on mobile, 2-col on small, 3-col on tablets/laptops, 5-col on wide screens */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
           {/* Trust Card 1 */}
-          <div className="rounded-2xl border border-border/60 bg-card p-5 space-y-2.5 hover:border-primary/40 transition-colors shadow-xs flex flex-col justify-between">
-            <div className="space-y-2.5">
-              <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <Activity className="size-4.5" />
-              </div>
-              <h3 className="text-sm sm:text-base font-bold text-foreground">
-                Educational Guidance
-              </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Provides educational supportive care and clinical urgency screening without offering definitive medical diagnoses.
-              </p>
+          <div className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-border-strong transition-colors">
+            <div className="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border/60">
+              <Activity className="size-4 text-accent" />
             </div>
+            <h3 className="text-sm font-semibold text-foreground">
+              Educational Guidance
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Provides structured supportive guidance and urgency screening without formulating definitive medical diagnoses.
+            </p>
           </div>
 
           {/* Trust Card 2 */}
-          <div className="rounded-2xl border border-border/60 bg-card p-5 space-y-2.5 hover:border-primary/40 transition-colors shadow-xs flex flex-col justify-between">
-            <div className="space-y-2.5">
-              <div className="size-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                <Lock className="size-4.5" />
-              </div>
-              <h3 className="text-sm sm:text-base font-bold text-foreground">
-                Privacy Architecture
-              </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Guest triage is processed in memory. Account profiles are encrypted and shared with AI strictly with explicit user consent.
-              </p>
+          <div className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-border-strong transition-colors">
+            <div className="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border/60">
+              <Lock className="size-4 text-accent" />
             </div>
+            <h3 className="text-sm font-semibold text-foreground">
+              Privacy Architecture
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Guest sessions operate in transient memory. Patient profiles are protected under RLS and shared with AI only with explicit consent.
+            </p>
           </div>
 
           {/* Trust Card 3 */}
-          <div className="rounded-2xl border border-border/60 bg-card p-5 space-y-2.5 hover:border-primary/40 transition-colors shadow-xs flex flex-col justify-between">
-            <div className="space-y-2.5">
-              <div className="size-9 rounded-xl bg-red-500/10 text-red-600 flex items-center justify-center">
-                <AlertOctagon className="size-4.5" />
-              </div>
-              <h3 className="text-sm sm:text-base font-bold text-foreground">
-                Deterministic Red-Flags
-              </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Critical symptoms immediately trigger the emergency hotline modal before any AI API call can execute.
-              </p>
+          <div className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-border-strong transition-colors">
+            <div className="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border/60">
+              <AlertOctagon className="size-4 text-destructive" />
             </div>
+            <h3 className="text-sm font-semibold text-foreground">
+              Deterministic Red-Flags
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Critical conditions trigger emergency escalation protocols client-side before any AI API call can execute.
+            </p>
           </div>
 
           {/* Trust Card 4 */}
-          <div className="rounded-2xl border border-border/60 bg-card p-5 space-y-2.5 hover:border-primary/40 transition-colors shadow-xs flex flex-col justify-between">
-            <div className="space-y-2.5">
-              <div className="size-9 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center">
-                <Compass className="size-4.5" />
-              </div>
-              <h3 className="text-sm sm:text-base font-bold text-foreground">
-                Hospital Locator
-              </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Auto-detects GPS coordinates to surface verified nearby medical clinics, emergency rooms, and driving directions.
-              </p>
+          <div className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-border-strong transition-colors">
+            <div className="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border/60">
+              <Compass className="size-4 text-accent" />
             </div>
+            <h3 className="text-sm font-semibold text-foreground">
+              Facility Discovery
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              GPS coordinate-based radius lookup surfaces verified clinics, emergency departments, and driving directions.
+            </p>
           </div>
 
           {/* Trust Card 5 */}
-          <div className="rounded-2xl border border-border/60 bg-card p-5 space-y-2.5 hover:border-primary/40 transition-colors shadow-xs flex flex-col justify-between">
-            <div className="space-y-2.5">
-              <div className="size-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
-                <FileText className="size-4.5" />
-              </div>
-              <h3 className="text-sm sm:text-base font-bold text-foreground">
-                Verifiable Reports
-              </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Export comprehensive first-aid and symptom summaries for physician review with clear medical disclaimer notices.
-              </p>
+          <div className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-border-strong transition-colors">
+            <div className="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border/60">
+              <FileText className="size-4 text-accent" />
             </div>
+            <h3 className="text-sm font-semibold text-foreground">
+              Verified PDF Reports
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Export comprehensive clinical encounter records with clear disclaimer stamps for physician review.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* 3. How It Works Timeline */}
-      <section id="how-it-works" className="space-y-6 pt-4 border-t border-border/50">
-        <div className="text-center max-w-xl mx-auto space-y-1.5">
-          <span className="text-xs font-bold uppercase tracking-wider text-primary">
-            Step-by-Step Experience
-          </span>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-            How TriageAI Guides Your Care
+      {/* 3. Clinical Protocol Steps */}
+      <section id="how-it-works" className="space-y-4 pt-4 border-t border-border">
+        <div className="text-left space-y-1">
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Workflow Structure
+          </div>
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">
+            Six-Stage Clinical Guidance Protocol
           </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            From the first symptom description to hospital directions in six seamless steps.
-          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {[
             {
               step: "01",
-              title: "Describe Symptoms",
-              desc: "Type naturally, speak via voice input, or upload photos of visible rashes, cuts, or burns.",
+              title: "Symptom Intake",
+              desc: "Patient describes symptoms naturally or uploads visible injury/burn photographs.",
               icon: Activity,
             },
             {
               step: "02",
-              title: "Deterministic Safety Screening",
-              desc: "Rule-based screening checks for chest pain, anaphylaxis, or stroke red flags before calling AI.",
+              title: "Deterministic Rule Screening",
+              desc: "Instant client-side screen evaluates chest pain, anaphylaxis, and stroke indicators.",
               icon: ShieldCheck,
             },
             {
               step: "03",
               title: "Adaptive Clinical Follow-Ups",
-              desc: "AI asks targeted, concise questions with one-click choice chips to clarify duration and severity.",
-              icon: Bot,
+              desc: "Targeted follow-up queries clarify duration, onset, and specific risk factors.",
+              icon: Activity,
             },
             {
               step: "04",
               title: "Urgency Classification",
-              desc: "Categorizes urgency into Non-Urgent, Urgent, or Emergency with clinical reasoning.",
+              desc: "Categorizes clinical priority into Non-Urgent, Urgent, or Emergency tiers.",
               icon: HeartPulse,
             },
             {
               step: "05",
-              title: "Supportive First-Aid Checklist",
-              desc: "Clear step-by-step actions you can take right now, plus warning signs that require urgent escalation.",
+              title: "Supportive First-Aid Actions",
+              desc: "Safe supportive measures to execute immediately while monitoring symptoms.",
               icon: CheckCircle2,
             },
             {
               step: "06",
-              title: "Nearby Healthcare Locator",
-              desc: "OpenStreetMap map surfaces verified hospitals with distance calculations and instant directions.",
+              title: "Local Care Directions",
+              desc: "Verified nearest medical clinics with phone contact and turn-by-turn routing.",
               icon: MapPin,
             },
           ].map((item, idx) => {
@@ -316,20 +261,20 @@ export function HeroSection({
             return (
               <div
                 key={idx}
-                className="relative rounded-2xl border border-border/60 bg-card p-5 space-y-2 hover:border-primary/50 transition-all shadow-xs group"
+                className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-border-strong transition-colors"
               >
                 <div className="flex items-center justify-between">
-                  <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <Icon className="size-4.5" />
+                  <div className="size-7 rounded-md bg-muted text-accent flex items-center justify-center border border-border/60">
+                    <Icon className="size-3.5" />
                   </div>
-                  <span className="text-xs sm:text-sm font-black text-muted-foreground/60 tracking-wider">
-                    {item.step}
+                  <span className="text-xs font-medium tabular-nums text-muted-foreground">
+                    Stage {item.step}
                   </span>
                 </div>
-                <h3 className="text-sm sm:text-base font-bold text-foreground pt-1">
+                <h3 className="text-sm font-semibold text-foreground pt-1">
                   {item.title}
                 </h3>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   {item.desc}
                 </p>
               </div>
@@ -337,14 +282,14 @@ export function HeroSection({
           })}
         </div>
 
-        <div className="text-center pt-2">
+        <div className="pt-2">
           <Button
-            size="lg"
+            size="default"
             onClick={onStartAssessment}
-            className="h-12 px-7 rounded-xl font-bold text-sm sm:text-base gap-2 shadow-xs"
+            className="gap-2"
           >
-            <span>Begin Your Assessment Now</span>
-            <ArrowRight className="size-4" />
+            <span>Proceed to Triage Assessment</span>
+            <ArrowRight className="size-3.5" />
           </Button>
         </div>
       </section>

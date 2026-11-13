@@ -1,13 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { DisclaimerBanner } from "@/components/shared/disclaimer-banner";
-import { Navbar, NavSection } from "@/components/shared/navbar";
+import { AppShell } from "@/components/shell/app-shell";
+import { NavSection } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
-import { EmergencyFloatingButton } from "@/components/emergency/emergency-floating-button";
 import { DashboardView, ActiveTab } from "@/components/dashboard/dashboard-view";
 import { HeroSection } from "@/components/landing/hero-section";
 import { DashboardSummaryCards } from "@/components/dashboard/dashboard-summary-cards";
+import { Activity, Camera, Pill, MapPin } from "lucide-react";
 
 const VALID_SECTIONS: NavSection[] = [
   "home",
@@ -30,9 +30,7 @@ export default function Home() {
   const [activeSection, setActiveSection] = React.useState<NavSection>(() =>
     getSectionFromHash()
   );
-  const triageContainerRef = React.useRef<HTMLDivElement>(null);
 
-  // URL Hash Routing & Browser History (Back / Forward button support)
   React.useEffect(() => {
     const handleHistoryChange = () => {
       const section = getSectionFromHash();
@@ -66,78 +64,121 @@ export default function Home() {
 
     if (section === "home") {
       window.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
-      setTimeout(() => {
-        triageContainerRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 50);
     }
   };
 
-  const handleStartAssessment = () => {
-    handleNavSelect("triage");
-  };
-
-  const handleExploreFeatures = () => {
-    const el = document.getElementById("how-it-works");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
-  // Map NavSection to ActiveTab in DashboardView
   const currentTab: ActiveTab =
     activeSection === "home" ? "triage" : (activeSection as ActiveTab);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary">
-      {/* 1. Persistent Medical Disclaimer Banner */}
-      <DisclaimerBanner />
+    <AppShell activeSection={activeSection} onNavigate={handleNavSelect}>
+      {activeSection === "home" ? (
+        <div className="w-full space-y-12 animate-in fade-in-50 duration-180">
+          <HeroSection
+            onStartAssessment={() => handleNavSelect("triage")}
+            onExploreFeatures={() => {
+              const el = document.getElementById("metrics-summary");
+              el?.scrollIntoView({ behavior: "smooth" });
+            }}
+          />
 
-      {/* 2. Redesigned Sticky SaaS Navigation Bar (Unified 8-Item Nav) */}
-      <Navbar activeSection={activeSection} onNavigate={handleNavSelect} />
-
-      {/* 3. Main Content Container */}
-      <main className="flex-1 flex flex-col items-center justify-start p-4 sm:p-6 w-full max-w-6xl mx-auto space-y-10">
-        {/* Landing Page Experience (Hero, Trust Section & How It Works) */}
-        {activeSection === "home" && (
-          <div className="w-full space-y-10 animate-in fade-in-50 duration-200">
-            <HeroSection
-              onStartAssessment={handleStartAssessment}
-              onExploreFeatures={handleExploreFeatures}
-            />
-
-            {/* Live Metrics Overview Section on Landing Page */}
-            <section className="w-full space-y-3 pt-4 border-t border-border/50">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
-                    Live Session &amp; Health Records Summary
-                  </h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Real-time clinical metrics, previous assessments, and emergency responder status.
-                  </p>
-                </div>
+          <section id="metrics-summary" className="w-full space-y-4 pt-6 border-t border-border">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight text-foreground">
+                  Clinical Workspace Overview
+                </h2>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Real-time session status, red-flag triage dispatch, and nearby healthcare facilities.
+                </p>
               </div>
-              <DashboardSummaryCards onSelectTab={(tab) => handleNavSelect(tab as NavSection)} />
-            </section>
-          </div>
-        )}
+            </div>
 
-        {/* Core Product Experience (Triage Chat, Vision, Hospitals, History, Profile, Contacts) */}
-        <div ref={triageContainerRef} className="w-full pt-2">
+            <DashboardSummaryCards onSelectTab={(tab) => handleNavSelect(tab as NavSection)} />
+          </section>
+
+          {/* Rapid Clinical Workflows */}
+          <section className="w-full space-y-4 pt-4">
+            <div>
+              <h3 className="text-base font-semibold tracking-tight text-foreground">
+                Rapid Clinical Workflows
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Direct access to specialized assessment tools and healthcare records.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <button
+                type="button"
+                onClick={() => handleNavSelect("triage")}
+                className="p-4 rounded-xl border border-border bg-card text-left transition-colors hover:border-accent/40 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group cursor-pointer"
+              >
+                <div className="size-9 rounded-lg bg-accent/10 text-accent flex items-center justify-center border border-accent/20 mb-3 group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
+                  <Activity className="size-4.5 stroke-[1.75]" />
+                </div>
+                <h4 className="text-sm font-semibold text-foreground">Triage Chat</h4>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                  Interactive symptom assessment with red-flag rules and clinical guidance.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleNavSelect("vision")}
+                className="p-4 rounded-xl border border-border bg-card text-left transition-colors hover:border-accent/40 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group cursor-pointer"
+              >
+                <div className="size-9 rounded-lg bg-accent/10 text-accent flex items-center justify-center border border-accent/20 mb-3 group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
+                  <Camera className="size-4.5 stroke-[1.75]" />
+                </div>
+                <h4 className="text-sm font-semibold text-foreground">Symptom Vision</h4>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                  Multimodal visual analysis for visible rashes, cuts, burns, or injuries.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleNavSelect("medication")}
+                className="p-4 rounded-xl border border-border bg-card text-left transition-colors hover:border-accent/40 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group cursor-pointer"
+              >
+                <div className="size-9 rounded-lg bg-accent/10 text-accent flex items-center justify-center border border-accent/20 mb-3 group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
+                  <Pill className="size-4.5 stroke-[1.75]" />
+                </div>
+                <h4 className="text-sm font-semibold text-foreground">Medication Scan</h4>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                  Extract ingredients, safety warnings, and standard dosage indications.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleNavSelect("hospitals")}
+                className="p-4 rounded-xl border border-border bg-card text-left transition-colors hover:border-accent/40 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group cursor-pointer"
+              >
+                <div className="size-9 rounded-lg bg-accent/10 text-accent flex items-center justify-center border border-accent/20 mb-3 group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
+                  <MapPin className="size-4.5 stroke-[1.75]" />
+                </div>
+                <h4 className="text-sm font-semibold text-foreground">Hospital Locator</h4>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                  Live coordinates-based map with verified emergency care and directions.
+                </p>
+              </button>
+            </div>
+          </section>
+
+          <Footer onNavigate={handleNavSelect} />
+        </div>
+      ) : (
+        <div className="w-full space-y-8 animate-in fade-in-50 duration-180">
           <DashboardView
             activeTab={currentTab}
             onTabChange={(tab) => handleNavSelect(tab as NavSection)}
-            showTabsHeader={activeSection !== "home"}
+            showTabsHeader={false}
           />
+          <Footer onNavigate={handleNavSelect} />
         </div>
-      </main>
-
-      {/* 4. Rich Healthcare SaaS Footer */}
-      <Footer onNavigate={handleNavSelect} />
-
-      {/* 5. Persistent SOS Floating Button */}
-      <EmergencyFloatingButton />
-    </div>
+      )}
+    </AppShell>
   );
 }

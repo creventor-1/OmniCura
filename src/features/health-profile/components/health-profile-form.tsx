@@ -170,9 +170,9 @@ export function HealthProfileForm() {
   if (isLoading) {
     return (
       <div className="max-w-3xl mx-auto space-y-4">
-        <Skeleton className="h-28 w-full rounded-2xl" />
-        <Skeleton className="h-48 w-full rounded-2xl" />
-        <Skeleton className="h-40 w-full rounded-2xl" />
+        <Skeleton className="h-28 w-full rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-xl" />
+        <Skeleton className="h-40 w-full rounded-xl" />
       </div>
     );
   }
@@ -180,9 +180,9 @@ export function HealthProfileForm() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Page Header */}
-      <div className="border-b border-border/50 pb-3">
-        <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <HeartPulse className="size-5 text-primary" />
+      <div className="border-b border-border pb-3">
+        <h2 className="text-lg font-semibold tracking-tight text-foreground flex items-center gap-2">
+          <HeartPulse className="size-4.5 text-accent" />
           <span>Patient Health Profile</span>
         </h2>
         <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
@@ -197,7 +197,7 @@ export function HealthProfileForm() {
           variant="destructive"
           role="alert"
           aria-live="polite"
-          className="rounded-2xl"
+          className="rounded-xl"
         >
           <AlertCircle className="size-4" />
           <AlertDescription className="text-xs sm:text-sm font-medium">
@@ -210,7 +210,7 @@ export function HealthProfileForm() {
         <Alert
           role="status"
           aria-live="polite"
-          className="rounded-2xl border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
+          className="rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
         >
           <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
           <AlertTitle className="text-sm font-semibold">
@@ -224,13 +224,13 @@ export function HealthProfileForm() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Section Card 1: Personal & Biometric Information */}
-        <Card className="rounded-2xl border border-border/80 shadow-xs">
+        <Card className="rounded-xl border border-border bg-card shadow-none">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-foreground">
-              <User className="size-4 text-primary" />
+            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
+              <User className="size-4 text-accent" />
               <span>Personal &amp; Biometric Details</span>
             </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
+            <CardDescription className="text-xs">
               Baseline physiological measurements used to evaluate pediatric or geriatric risk factors.
             </CardDescription>
           </CardHeader>
@@ -239,7 +239,7 @@ export function HealthProfileForm() {
               <div className="space-y-1.5">
                 <label
                   htmlFor="profile-age"
-                  className="text-sm font-semibold text-foreground cursor-pointer block"
+                  className="text-xs font-medium text-foreground cursor-pointer block"
                 >
                   Age
                 </label>
@@ -247,7 +247,7 @@ export function HealthProfileForm() {
                   id="profile-age"
                   type="number"
                   placeholder="e.g. 28"
-                  className="rounded-xl h-10 text-sm"
+                  className="rounded-lg h-9 text-sm tabular-nums"
                   {...register("age")}
                 />
               </div>
@@ -255,14 +255,14 @@ export function HealthProfileForm() {
               <div className="space-y-1.5">
                 <label
                   htmlFor="profile-sex"
-                  className="text-sm font-semibold text-foreground cursor-pointer block"
+                  className="text-xs font-medium text-foreground cursor-pointer block"
                 >
                   Biological Sex
                 </label>
                 <Input
                   id="profile-sex"
                   placeholder="Female / Male / Other"
-                  className="rounded-xl h-10 text-sm"
+                  className="rounded-lg h-9 text-sm"
                   {...register("sex")}
                 />
               </div>
@@ -270,14 +270,14 @@ export function HealthProfileForm() {
               <div className="space-y-1.5">
                 <label
                   htmlFor="profile-blood-group"
-                  className="text-sm font-semibold text-foreground cursor-pointer block"
+                  className="text-xs font-medium text-foreground cursor-pointer block"
                 >
                   Blood Group
                 </label>
                 <Input
                   id="profile-blood-group"
                   placeholder="e.g. O+, A-, B+"
-                  className="rounded-xl h-10 text-sm"
+                  className="rounded-lg h-9 text-sm"
                   {...register("blood_group")}
                 />
               </div>
@@ -287,7 +287,7 @@ export function HealthProfileForm() {
               <div className="space-y-1.5">
                 <label
                   htmlFor="profile-height"
-                  className="text-sm font-semibold text-foreground cursor-pointer block"
+                  className="text-xs font-medium text-foreground cursor-pointer block"
                 >
                   Height (cm)
                 </label>
@@ -295,7 +295,7 @@ export function HealthProfileForm() {
                   id="profile-height"
                   type="number"
                   placeholder="e.g. 175"
-                  className="rounded-xl h-10 text-sm"
+                  className="rounded-lg h-9 text-sm tabular-nums"
                   {...register("height")}
                 />
               </div>
@@ -303,7 +303,7 @@ export function HealthProfileForm() {
               <div className="space-y-1.5">
                 <label
                   htmlFor="profile-weight"
-                  className="text-sm font-semibold text-foreground cursor-pointer block"
+                  className="text-xs font-medium text-foreground cursor-pointer block"
                 >
                   Weight (kg)
                 </label>
@@ -311,7 +311,7 @@ export function HealthProfileForm() {
                   id="profile-weight"
                   type="number"
                   placeholder="e.g. 70"
-                  className="rounded-xl h-10 text-sm"
+                  className="rounded-lg h-9 text-sm tabular-nums"
                   {...register("weight")}
                 />
               </div>
@@ -320,13 +320,13 @@ export function HealthProfileForm() {
         </Card>
 
         {/* Section Card 2: Clinical Context & Medical History */}
-        <Card className="rounded-2xl border border-border/80 shadow-xs">
+        <Card className="rounded-xl border border-border bg-card shadow-none">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-foreground">
-              <Activity className="size-4 text-primary" />
+            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
+              <Activity className="size-4 text-accent" />
               <span>Clinical History &amp; Medications</span>
             </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
+            <CardDescription className="text-xs">
               Pre-existing conditions that influence symptom severity and potential drug interactions.
             </CardDescription>
           </CardHeader>
@@ -334,14 +334,14 @@ export function HealthProfileForm() {
             <div className="space-y-1.5">
               <label
                 htmlFor="profile-allergies"
-                className="text-sm font-semibold text-foreground cursor-pointer block"
+                className="text-xs font-medium text-foreground cursor-pointer block"
               >
                 Known Allergies (comma separated)
               </label>
               <Input
                 id="profile-allergies"
                 placeholder="Penicillin, Peanuts, Latex"
-                className="rounded-xl h-10 text-sm"
+                className="rounded-lg h-9 text-sm"
                 {...register("allergies")}
               />
             </div>
@@ -349,14 +349,14 @@ export function HealthProfileForm() {
             <div className="space-y-1.5">
               <label
                 htmlFor="profile-chronic-conditions"
-                className="text-sm font-semibold text-foreground cursor-pointer block"
+                className="text-xs font-medium text-foreground cursor-pointer block"
               >
                 Chronic Conditions (comma separated)
               </label>
               <Input
                 id="profile-chronic-conditions"
                 placeholder="Asthma, Type 2 Diabetes, Hypertension"
-                className="rounded-xl h-10 text-sm"
+                className="rounded-lg h-9 text-sm"
                 {...register("chronic_conditions")}
               />
             </div>
@@ -364,14 +364,14 @@ export function HealthProfileForm() {
             <div className="space-y-1.5">
               <label
                 htmlFor="profile-medications"
-                className="text-sm font-semibold text-foreground cursor-pointer block"
+                className="text-xs font-medium text-foreground cursor-pointer block"
               >
                 Current Medications (comma separated)
               </label>
               <Input
                 id="profile-medications"
                 placeholder="Metformin, Albuterol inhaler, Lisinopril"
-                className="rounded-xl h-10 text-sm"
+                className="rounded-lg h-9 text-sm"
                 {...register("medications")}
               />
             </div>
@@ -379,30 +379,30 @@ export function HealthProfileForm() {
         </Card>
 
         {/* Section Card 3: AI Personalization & Consent Preference */}
-        <Card className="rounded-2xl border border-primary/25 bg-gradient-to-b from-primary/5 to-transparent shadow-xs">
+        <Card className="rounded-xl border border-border bg-card shadow-none">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-primary">
-              <Lock className="size-4" />
+            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
+              <Lock className="size-4 text-accent" />
               <span>AI Personalization Consent &amp; Privacy</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-card border border-border/60">
+            <div className="flex items-start gap-3 p-3.5 rounded-lg bg-muted/20 border border-border">
               <input
                 type="checkbox"
                 id="allow_ai_use"
                 checked={allowAiUse}
                 onChange={(e) => setAllowAiUse(e.target.checked)}
-                className="mt-1 size-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                className="mt-1 size-4 rounded border-border text-accent focus:ring-accent cursor-pointer"
               />
               <div className="space-y-1">
                 <label
                   htmlFor="allow_ai_use"
-                  className="text-sm font-bold text-foreground cursor-pointer block"
+                  className="text-sm font-medium text-foreground cursor-pointer block"
                 >
                   Allow TriageAI to personalize triage assessments using this profile
                 </label>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   When enabled, reported age, allergies, and chronic conditions are sent in the prompt to the AI triage model to tailor questions and first-aid instructions. When disabled, triage operates with standard baseline logic.
                 </p>
               </div>
@@ -421,9 +421,9 @@ export function HealthProfileForm() {
           <Button
             type="submit"
             disabled={isSaving}
-            className="w-full sm:w-auto px-8 h-11 rounded-xl font-bold text-sm gap-2 shadow-xs"
+            className="w-full sm:w-auto px-6 h-9 rounded-lg font-semibold text-xs gap-2"
           >
-            <Save className="size-4" />
+            <Save className="size-3.5" />
             <span>{isSaving ? "Saving Profile..." : "Save Health Profile"}</span>
           </Button>
         </div>

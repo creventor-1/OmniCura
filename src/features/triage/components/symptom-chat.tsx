@@ -362,17 +362,17 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
           onLocateFacilities={onLocateFacilities}
         />
       ) : (
-        <div className="flex flex-col flex-1 border rounded-xl bg-card shadow-sm overflow-hidden min-h-[580px]">
-          {/* Chat Header */}
-          <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/30">
-            <div className="flex items-center gap-2">
-              <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Bot className="size-4" />
+        <div className="flex flex-col flex-1 border border-border rounded-xl bg-card shadow-none overflow-hidden min-h-[580px]">
+          {/* Clinical Chat Header */}
+          <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/20">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-accent/10 text-accent border border-accent/20">
+                <Bot className="size-4 stroke-[1.75]" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold leading-none">TriageAI Assistant</h3>
+                <h3 className="text-sm font-semibold text-foreground leading-none">TriageAI Assistant</h3>
                 <span className="text-[11px] text-muted-foreground">
-                  Adaptive Emergency &amp; Symptom Triage
+                  Adaptive Clinical Screening &amp; Guidance
                 </span>
               </div>
             </div>
@@ -380,7 +380,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
               variant="ghost"
               size="sm"
               onClick={handleReset}
-              className="text-xs text-muted-foreground gap-1 h-8"
+              className="text-xs text-muted-foreground gap-1.5 h-8 px-2.5 rounded-lg hover:text-foreground"
               title="Reset conversation"
             >
               <RefreshCw className="size-3" />
@@ -401,65 +401,66 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
               return (
                 <div
                   key={message.id}
-                  className={`flex items-start gap-3 ${isAssistant ? "justify-start" : "justify-end"} animate-in fade-in-50 duration-200`}
+                  className={`flex ${isAssistant ? "justify-start" : "justify-end"} animate-in fade-in-50 duration-180`}
                 >
-                  {isAssistant && (
-                    <div className="flex size-8 shrink-0 select-none items-center justify-center rounded-xl bg-gradient-to-tr from-sky-600 to-teal-600 text-white shadow-xs text-xs font-bold mt-0.5">
-                      <Bot className="size-4" />
-                    </div>
-                  )}
-
                   <div
-                    className={`max-w-[85%] sm:max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-xs ${
+                    className={`max-w-[88%] sm:max-w-[80%] rounded-xl p-4 text-sm leading-relaxed border ${
                       isAssistant
-                        ? "bg-card text-foreground rounded-tl-xs border border-border/70"
-                        : "bg-primary text-primary-foreground rounded-tr-xs"
+                        ? "bg-card text-foreground border-border border-l-2 border-l-accent shadow-none"
+                        : "bg-muted/60 text-foreground border-border/80"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">{message.content}</p>
-                    {message.timestamp && (
-                      <div
-                        className={`flex items-center justify-end gap-1 mt-1.5 text-xs ${
-                          isAssistant ? "text-muted-foreground/80" : "text-primary-foreground/85"
-                        }`}
-                      >
-                        <span>{message.timestamp}</span>
+                    <div className="flex items-center justify-between gap-2 mb-2 pb-1 border-b border-border/50 text-[11px]">
+                      <div className="flex items-center gap-1.5 font-semibold">
+                        {isAssistant ? (
+                          <>
+                            <span className="size-1.5 rounded-full bg-accent" />
+                            <span className="text-accent uppercase tracking-wider">AI-Assisted Triage</span>
+                          </>
+                        ) : (
+                          <>
+                            <User className="size-3 text-muted-foreground" />
+                            <span className="text-muted-foreground uppercase tracking-wider">Patient Note</span>
+                          </>
+                        )}
                       </div>
-                    )}
-                  </div>
-
-                  {!isAssistant && (
-                    <div className="flex size-8 shrink-0 select-none items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs text-xs font-bold mt-0.5">
-                      <User className="size-4" />
+                      {message.timestamp && (
+                        <span className="text-muted-foreground tabular-nums text-[10px]">
+                          {message.timestamp}
+                        </span>
+                      )}
                     </div>
-                  )}
+                    <p className="whitespace-pre-wrap text-foreground/90 font-normal">{message.content}</p>
+                  </div>
                 </div>
               );
             })}
 
-            {/* Pulsing 3-Dot Shimmer Loading Indicator */}
+            {/* Staged Clinical Evaluation Progress State */}
             {isLoading && (
               <div
                 role="status"
                 aria-live="polite"
-                className="flex items-start gap-3 animate-in fade-in-50 duration-200"
+                className="max-w-[88%] sm:max-w-[80%] rounded-xl border border-border border-l-2 border-l-accent bg-card p-4 space-y-2.5 animate-in fade-in-50 duration-180"
               >
-                <div className="flex size-8 shrink-0 select-none items-center justify-center rounded-xl bg-gradient-to-tr from-sky-600 to-teal-600 text-white shadow-xs text-xs font-bold mt-0.5">
-                  <Bot className="size-4" />
-                </div>
-                <div className="rounded-2xl rounded-tl-xs bg-card border border-border/70 px-4 py-3 shadow-xs space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="size-2 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
-                    <span className="size-2 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
-                    <span className="size-2 rounded-full bg-primary animate-bounce" />
-                    <span className="text-xs font-semibold text-foreground ml-2">
-                      TriageAI is analyzing symptoms...
-                    </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-accent">
+                    <span className="size-2 rounded-full bg-accent animate-pulse" />
+                    <span>Analyzing clinical presentation...</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Screening duration, clinical urgency factors &amp; safety red-flags.
-                  </p>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                    Screening
+                  </span>
                 </div>
+
+                <div className="space-y-1.5 py-1">
+                  <div className="h-2.5 w-5/6 rounded bg-muted animate-pulse" />
+                  <div className="h-2.5 w-3/5 rounded bg-muted animate-pulse" />
+                </div>
+
+                <p className="text-[11px] text-muted-foreground border-t border-border/50 pt-2">
+                  Evaluating red-flag indicators, symptom duration, and supportive care protocols.
+                </p>
               </div>
             )}
 
@@ -468,9 +469,9 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
 
           {/* Quick Option Choice Chips */}
           {currentQuickOptions.length > 0 && !isLoading && (
-            <div className="px-4 py-3 bg-muted/30 border-t flex flex-wrap items-center gap-2 animate-in fade-in-50">
-              <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1 w-full sm:w-auto mr-1">
-                <Sparkles className="size-3 text-primary" />
+            <div className="px-4 py-3 bg-muted/20 border-t border-border flex flex-wrap items-center gap-2 animate-in fade-in-50">
+              <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 w-full sm:w-auto mr-1">
+                <Sparkles className="size-3 text-accent" />
                 Suggested responses:
               </span>
               {currentQuickOptions.map((option, idx) => (
@@ -480,7 +481,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
                   size="sm"
                   variant="outline"
                   onClick={() => handleSendMessage(option)}
-                  className="text-xs h-8 px-3.5 rounded-full bg-background hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all font-medium border-border/80 shadow-2xs active:scale-95"
+                  className="text-xs h-7 px-3 rounded-full bg-background hover:bg-muted hover:text-foreground transition-colors font-medium border-border"
                 >
                   {option}
                 </Button>
@@ -489,12 +490,12 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
           )}
 
           {/* Hackathon Demo Presets */}
-          <div className="px-4 py-2 bg-muted/10 border-t">
+          <div className="px-4 py-2.5 bg-muted/10 border-t border-border">
             <DemoScenarios onSelectScenario={(text) => handleSendMessage(text)} />
           </div>
 
           {/* Input Bar */}
-          <div className="p-3 border-t bg-background">
+          <div className="p-3 border-t border-border bg-card">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -507,7 +508,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
                 variant="outline"
                 size="icon"
                 onClick={toggleSpeechRecognition}
-                className={`size-10 shrink-0 ${isListening ? "bg-red-500/10 text-red-600 border-red-500/40 animate-pulse" : ""}`}
+                className={`size-9 rounded-lg shrink-0 ${isListening ? "bg-destructive/10 text-destructive border-destructive/40" : ""}`}
                 title={isListening ? "Listening... click to stop" : "Speak your symptoms"}
               >
                 {isListening ? <MicOff className="size-4" /> : <Mic className="size-4" />}
@@ -520,7 +521,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
                   variant="outline"
                   size="icon"
                   onClick={onOpenVision}
-                  className="size-10 shrink-0 text-muted-foreground hover:text-primary transition-colors"
+                  className="size-9 rounded-lg shrink-0 text-muted-foreground hover:text-foreground transition-colors"
                   title="Upload visible symptom photo (rash, cut, burn)"
                 >
                   <Camera className="size-4" />
@@ -533,15 +534,16 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder={isListening ? "Listening... speak now" : "Describe symptoms or answer question..."}
                 disabled={isLoading}
-                className="flex-1 text-sm h-10"
+                className="flex-1 text-sm h-9 rounded-lg"
               />
 
               <Button
                 type="submit"
                 disabled={isLoading || !inputValue.trim()}
-                className="size-10 shrink-0 p-0"
+                className="h-9 px-3 rounded-lg shrink-0 gap-1.5"
               >
-                <Send className="size-4" />
+                <Send className="size-3.5" />
+                <span className="text-xs font-semibold hidden sm:inline">Send</span>
                 <span className="sr-only">Send message</span>
               </Button>
             </form>

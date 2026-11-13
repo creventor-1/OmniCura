@@ -101,13 +101,13 @@ export function DashboardSummaryCards({
   const urgencyPillStyles =
     {
       "non-urgent":
-        "text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/30",
+        "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
       urgent:
-        "text-amber-700 dark:text-amber-300 bg-amber-500/10 border-amber-500/30",
+        "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
       emergency:
-        "text-red-700 dark:text-red-300 bg-red-500/10 border-red-500/30",
+        "border-destructive/30 bg-destructive/10 text-destructive",
     }[latestUrgency?.toLowerCase() || ""] ||
-    "text-muted-foreground bg-muted border-border/50";
+    "border-border bg-muted text-muted-foreground";
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 w-full">
@@ -115,23 +115,23 @@ export function DashboardSummaryCards({
       <button
         type="button"
         onClick={() => onSelectTab("history")}
-        className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 text-left hover:border-primary/50 hover:shadow-xs transition-all group flex flex-col justify-between"
+        className="rounded-xl border border-border bg-card p-4 text-left hover:border-border-strong transition-colors group flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <div className="flex items-center justify-between w-full">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          <span className="text-xs font-medium text-muted-foreground">
             Assessments
           </span>
-          <div className="size-8 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
-            <Activity className="size-4" />
+          <div className="size-7 rounded-md bg-muted text-muted-foreground flex items-center justify-center border border-border/60">
+            <Activity className="size-3.5" />
           </div>
         </div>
-        <div className="pt-2">
-          <div className="text-2xl sm:text-3xl font-black text-foreground">
+        <div className="pt-3">
+          <div className="text-2xl font-semibold tabular-nums text-foreground tracking-tight">
             {isLoading ? "—" : (assessmentCount ?? 0)}
           </div>
-          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors mt-1 font-medium">
-            <span>Review past triage</span>
-            <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-foreground transition-colors mt-1">
+            <span>Historical log</span>
+            <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
           </div>
         </div>
       </button>
@@ -140,31 +140,31 @@ export function DashboardSummaryCards({
       <button
         type="button"
         onClick={() => onSelectTab("history")}
-        className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 text-left hover:border-primary/50 hover:shadow-xs transition-all group flex flex-col justify-between"
+        className="rounded-xl border border-border bg-card p-4 text-left hover:border-border-strong transition-colors group flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <div className="flex items-center justify-between w-full">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            Latest Result
+          <span className="text-xs font-medium text-muted-foreground">
+            Latest Urgency
           </span>
-          <div className="size-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-            <Clock className="size-4" />
+          <div className="size-7 rounded-md bg-muted text-muted-foreground flex items-center justify-center border border-border/60">
+            <Clock className="size-3.5" />
           </div>
         </div>
-        <div className="pt-2">
-          <div className="text-sm font-extrabold truncate">
+        <div className="pt-3">
+          <div className="text-sm font-medium truncate">
             {isLoading ? (
               "—"
             ) : (
               <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full border text-xs font-bold uppercase ${urgencyPillStyles}`}
+                className={`inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-medium capitalize ${urgencyPillStyles}`}
               >
                 {latestUrgency || "None"}
               </span>
             )}
           </div>
-          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors mt-1 font-medium">
-            <span>Urgency status</span>
-            <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-foreground transition-colors mt-1.5">
+            <span>Clinical status</span>
+            <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
           </div>
         </div>
       </button>
@@ -173,35 +173,35 @@ export function DashboardSummaryCards({
       <button
         type="button"
         onClick={() => onSelectTab("profile")}
-        className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 text-left hover:border-primary/50 hover:shadow-xs transition-all group flex flex-col justify-between"
+        className="rounded-xl border border-border bg-card p-4 text-left hover:border-border-strong transition-colors group flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <div className="flex items-center justify-between w-full">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            Health Profile
+          <span className="text-xs font-medium text-muted-foreground">
+            Patient Bio
           </span>
-          <div className="size-8 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
-            <HeartPulse className="size-4" />
+          <div className="size-7 rounded-md bg-muted text-muted-foreground flex items-center justify-center border border-border/60">
+            <HeartPulse className="size-3.5" />
           </div>
         </div>
-        <div className="pt-2">
-          <div className="text-sm sm:text-base font-bold text-foreground flex items-center gap-1.5">
+        <div className="pt-3">
+          <div className="text-sm font-medium text-foreground flex items-center gap-1.5">
             {isLoading ? (
               "—"
             ) : hasProfile ? (
-              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 text-xs sm:text-sm font-bold">
-                <ShieldCheck className="size-4 shrink-0" />
+              <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1 text-xs font-medium">
+                <ShieldCheck className="size-3.5 shrink-0" />
                 Configured
               </span>
             ) : (
-              <span className="text-muted-foreground flex items-center gap-1 text-xs sm:text-sm font-medium">
-                <AlertTriangle className="size-3.5 text-amber-500 shrink-0" />
-                Setup Profile
+              <span className="text-muted-foreground flex items-center gap-1 text-xs">
+                <AlertTriangle className="size-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                Setup Needed
               </span>
             )}
           </div>
-          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors mt-1 font-medium">
-            <span>Manage medical bio</span>
-            <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-foreground transition-colors mt-1.5">
+            <span>Medical context</span>
+            <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
           </div>
         </div>
       </button>
@@ -210,23 +210,23 @@ export function DashboardSummaryCards({
       <button
         type="button"
         onClick={() => onSelectTab("contacts")}
-        className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 text-left hover:border-primary/50 hover:shadow-xs transition-all group flex flex-col justify-between"
+        className="rounded-xl border border-border bg-card p-4 text-left hover:border-border-strong transition-colors group flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <div className="flex items-center justify-between w-full">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          <span className="text-xs font-medium text-muted-foreground">
             Emergency Contacts
           </span>
-          <div className="size-8 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center">
-            <PhoneCall className="size-4" />
+          <div className="size-7 rounded-md bg-muted text-muted-foreground flex items-center justify-center border border-border/60">
+            <PhoneCall className="size-3.5" />
           </div>
         </div>
-        <div className="pt-2">
-          <div className="text-2xl sm:text-3xl font-black text-foreground">
+        <div className="pt-3">
+          <div className="text-2xl font-semibold tabular-nums text-foreground tracking-tight">
             {isLoading ? "—" : (contactCount ?? 0)}
           </div>
-          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors mt-1 font-medium">
+          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-foreground transition-colors mt-1">
             <span>Quick-call responders</span>
-            <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+            <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
           </div>
         </div>
       </button>

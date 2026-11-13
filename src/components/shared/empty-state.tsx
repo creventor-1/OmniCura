@@ -24,32 +24,27 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className={`rounded-2xl border border-dashed border-border/80 bg-card/60 p-8 sm:p-12 text-center flex flex-col items-center justify-center max-w-lg mx-auto space-y-4 animate-in fade-in-50 duration-200 ${className}`}
+      className={`rounded-xl border border-dashed border-border bg-card p-8 sm:p-10 text-center flex flex-col items-center justify-center max-w-md mx-auto space-y-3 ${className}`}
     >
-      <div className="relative">
-        {/* Soft background pulse halo */}
-        <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-xs">
-          <Icon className="size-8 stroke-[1.75]" />
-        </div>
-        <div className="absolute -top-1 -right-1 size-3 rounded-full bg-primary/40 motion-safe:animate-ping motion-reduce:hidden" />
+      <div className="size-12 rounded-lg bg-muted flex items-center justify-center text-muted-foreground border border-border/60">
+        <Icon className="size-6 stroke-[1.5]" />
       </div>
 
-      <div className="space-y-1.5 max-w-sm">
-        <h3 className="text-base sm:text-lg font-bold text-foreground tracking-tight">
+      <div className="space-y-1 max-w-sm">
+        <h3 className="text-sm font-semibold text-foreground tracking-tight">
           {title}
         </h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-xs text-muted-foreground leading-relaxed">
           {description}
         </p>
       </div>
 
       {(actionLabel || secondaryActionLabel) && (
-        <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
           {actionLabel && onAction && (
             <Button
               size="sm"
               onClick={onAction}
-              className="rounded-xl px-5 font-bold text-sm h-10 shadow-xs"
             >
               {actionLabel}
             </Button>
@@ -60,7 +55,6 @@ export function EmptyState({
               variant="outline"
               size="sm"
               onClick={onSecondaryAction}
-              className="rounded-xl px-5 text-sm h-10"
             >
               {secondaryActionLabel}
             </Button>

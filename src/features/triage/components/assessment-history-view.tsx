@@ -127,7 +127,7 @@ export function AssessmentHistoryView({
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="rounded-2xl border border-border/70 p-4 space-y-3 bg-card"
+              className="rounded-xl border border-border p-4 space-y-3 bg-card"
             >
               <div className="flex items-center justify-between">
                 <Skeleton className="h-5 w-24 rounded-full" />
@@ -211,9 +211,9 @@ export function AssessmentHistoryView({
               <div className="absolute left-2.5 sm:left-3 top-6 bottom-0 w-0.5 bg-border/70 group-last:hidden" />
 
               {/* Timeline Node Dot */}
-              <div className="absolute left-1 sm:left-1.5 top-4 size-3.5 rounded-full border-2 border-background bg-primary shadow-xs" />
+              <div className="absolute left-1 sm:left-1.5 top-4 size-3.5 rounded-full border-2 border-background bg-accent" />
 
-              <Card className="rounded-2xl border border-border/80 shadow-xs hover:border-primary/40 transition-all overflow-hidden bg-card">
+              <Card className="rounded-xl border border-border shadow-none hover:border-accent/40 transition-colors overflow-hidden bg-card">
                 <div
                   className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none"
                   onClick={() => setExpandedId(isExpanded ? null : item.id)}
