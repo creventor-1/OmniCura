@@ -101,7 +101,7 @@ export async function processTriageConversation(
       success: false,
       isEmergency: false,
       error:
-        "The triage service is experiencing temporary high demand. If symptoms are severe or concerning, please consult a healthcare facility immediately.",
+        "The clinical assessment service is experiencing temporary high demand. If symptoms are severe or concerning, please consult a healthcare facility immediately.",
     };
   }
 }

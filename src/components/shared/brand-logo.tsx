@@ -91,7 +91,7 @@ export function OmnicuraLogo({
           </span>
         </div>
         <span className={`font-medium tracking-wider uppercase text-muted-foreground ${currentSize.sub} mt-0.5`}>
-          Autonomous Triage System
+          Clinical Decision Support
         </span>
       </div>
     </div>

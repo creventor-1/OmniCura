@@ -162,7 +162,7 @@ export function HealthProfileForm() {
       <EmptyState
         icon={HeartPulse}
         title="Sign In to Manage Your Health Profile"
-        description="Securely store your medical context, allergies, and daily medications to enable tailored AI triage evaluations."
+        description="Securely store your medical context, allergies, and daily medications to enable tailored clinical evaluations."
       />
     );
   }
@@ -400,10 +400,10 @@ export function HealthProfileForm() {
                   htmlFor="allow_ai_use"
                   className="text-sm font-medium text-foreground cursor-pointer block"
                 >
-                  Allow Omnicura to personalize triage assessments using this profile
+                  Allow Omnicura to personalize clinical assessments using this profile
                 </label>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  When enabled, reported age, allergies, and chronic conditions are sent in the prompt to the AI triage model to tailor questions and first-aid instructions. When disabled, triage operates with standard baseline logic.
+                  When enabled, reported age, allergies, and chronic conditions are sent to tailor follow-up questions and supportive care instructions. When disabled, assessments operate with standard baseline protocols.
                 </p>
               </div>
             </div>

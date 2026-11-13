@@ -72,7 +72,7 @@ export function AssessmentResultView({
     <div
       role="region"
       aria-live="polite"
-      aria-label="Clinical Triage Assessment Results"
+      aria-label="Clinical Urgency and Care Assessment Results"
       className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in-50 duration-500 pb-16"
     >
       <AuthModal
@@ -91,7 +91,7 @@ export function AssessmentResultView({
               <span>Save this Clinical Assessment</span>
             </h4>
             <p className="text-xs text-muted-foreground">
-              Sign up or log in to preserve this triage record in your private assessment history.
+              Sign up or log in to preserve this clinical record in your private assessment history.
             </p>
           </div>
           <Button
@@ -142,7 +142,7 @@ export function AssessmentResultView({
           <div className="pt-3 border-t border-border/60 text-xs sm:text-sm space-y-1">
             <span className="font-semibold text-foreground flex items-center gap-1.5">
               <Info className="size-3.5 text-accent" />
-              <span>Clinical Triage Reasoning:</span>
+              <span>Clinical Evaluation Reasoning:</span>
             </span>
             <p className="text-muted-foreground leading-relaxed">
               {assessment.severityReasoning}

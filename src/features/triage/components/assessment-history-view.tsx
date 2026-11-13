@@ -109,7 +109,7 @@ export function AssessmentHistoryView({
       <EmptyState
         icon={Activity}
         title="Sign In to View Assessment History"
-        description="Registered users can securely review their past symptom assessments, view clinical reasoning, and download verified PDF triage reports."
+        description="Registered users can securely review their past symptom assessments, view clinical reasoning, and download verified clinical PDF reports."
         actionLabel="Start New Assessment"
         onAction={onStartAssessment}
       />
@@ -147,8 +147,8 @@ export function AssessmentHistoryView({
       <EmptyState
         icon={Clock}
         title="No Past Assessments Found"
-        description="Your historical triage assessments, clinical severity evaluations, and generated PDF reports will appear here."
-        actionLabel="Start Triage Assessment"
+        description="Your historical symptom assessments, clinical acuity evaluations, and generated health reports will appear here."
+        actionLabel="Start Symptom Assessment"
         onAction={onStartAssessment}
       />
     );
@@ -255,7 +255,7 @@ export function AssessmentHistoryView({
                         generateTriagePdfReport({
                           assessment: result ?? {
                             severity: item.severity,
-                            severityReasoning: "Historical triage record",
+                            severityReasoning: "Historical clinical assessment record",
                             recommendedAction: "Consult physician.",
                             possibleConditions: [],
                             firstAidSteps: [],
@@ -322,7 +322,7 @@ export function AssessmentHistoryView({
                       <div className="p-3 rounded-xl bg-card border border-border/60 space-y-1">
                         <h5 className="font-bold text-foreground flex items-center gap-1.5 text-xs sm:text-sm">
                           <HeartPulse className="size-4 text-primary" />
-                          <span>Triage Rationale</span>
+                          <span>Clinical Rationale</span>
                         </h5>
                         <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
                           {result.severityReasoning}
@@ -351,7 +351,7 @@ export function AssessmentHistoryView({
                       <ShieldAlert className="size-4 shrink-0 text-amber-500" />
                       <span>
                         {item.disclaimer ||
-                          "Educational triage summary. Consult a certified medical doctor for diagnosis."}
+                          "Educational clinical summary. Consult a certified medical doctor for diagnosis."}
                       </span>
                     </div>
                   </CardContent>

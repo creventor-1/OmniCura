@@ -45,9 +45,9 @@ const navGroups: { group: string; items: NavItem[] }[] = [
     ],
   },
   {
-    group: "CLINICAL TRIAGE",
+    group: "CLINICAL ASSESSMENT",
     items: [
-      { id: "triage", label: "Triage Chat", icon: Activity },
+      { id: "triage", label: "Symptom Assessment", icon: Activity },
       { id: "vision", label: "Symptom Vision", icon: Camera },
       { id: "medication", label: "Medication Scan", icon: Pill },
     ],
@@ -65,9 +65,9 @@ const navGroups: { group: string; items: NavItem[] }[] = [
 
 const sectionBreadcrumbs: Record<NavSection, { section: string; title: string }> = {
   home: { section: "Workspace", title: "Overview" },
-  triage: { section: "Clinical Triage", title: "Interactive Triage Chat" },
-  vision: { section: "Clinical Triage", title: "Symptom Vision Analysis" },
-  medication: { section: "Clinical Triage", title: "Medication Scanner" },
+  triage: { section: "Clinical Assessment", title: "Symptom Consultation" },
+  vision: { section: "Clinical Assessment", title: "Symptom Vision Analysis" },
+  medication: { section: "Clinical Assessment", title: "Medication Scanner" },
   hospitals: { section: "Care & Records", title: "Hospital Locator" },
   history: { section: "Care & Records", title: "Assessment Timeline" },
   profile: { section: "Care & Records", title: "Health Profile" },
@@ -371,7 +371,7 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
             }`}
           >
             <Activity className="size-4" />
-            <span>Triage</span>
+            <span>Assess</span>
           </button>
 
           <button

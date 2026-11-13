@@ -58,7 +58,7 @@ export function Navbar({ activeSection, onNavigate }: NavbarProps) {
     icon: React.ComponentType<{ className?: string }>;
   }[] = [
     { id: "home", label: "Overview", icon: Sparkles },
-    { id: "triage", label: "Triage Chat", icon: Activity },
+    { id: "triage", label: "Symptom Assessment", icon: Activity },
     { id: "vision", label: "Symptom Vision", icon: Camera },
     { id: "medication", label: "Medication Scan", icon: Pill },
     { id: "hospitals", label: "Hospitals", icon: MapPin },

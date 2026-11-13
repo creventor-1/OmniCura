@@ -24,18 +24,19 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Omnicura • Autonomous Clinical Triage & Emergency Intelligence",
+  title: "Omnicura • Clinical Decision Support & Emergency Care Intelligence",
   description:
-    "Clinical-grade autonomous triage platform featuring deterministic red-flag emergency screening, multimodal symptom vision, medication analysis, and verified hospital routing.",
+    "Clinical-grade autonomous health assessment platform featuring deterministic red-flag emergency screening, multimodal symptom vision, medication analysis, and verified hospital routing.",
   keywords: [
     "Omnicura",
-    "clinical triage",
+    "clinical assessment",
     "emergency medicine",
-    "symptom triage",
+    "symptom consultation",
+    "clinical decision support",
     "hospital locator",
     "first aid guidance",
     "healthcare AI",
-    "medical decision support",
+    "medical guidance",
   ],
   authors: [{ name: "Omnicura Clinical Intelligence Team" }],
   icons: {
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
     apple: "/icon.svg",
   },
   openGraph: {
-    title: "Omnicura • Autonomous Clinical Triage & Emergency Intelligence",
+    title: "Omnicura • Clinical Decision Support & Emergency Care Intelligence",
     description:
       "Deterministic emergency screening, adaptive clinical follow-ups, and verified hospital locator with real-time routing.",
     url: "https://omnicura-health.vercel.app",
@@ -54,9 +55,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Omnicura • Autonomous Clinical Triage & Emergency Intelligence",
+    title: "Omnicura • Clinical Decision Support & Emergency Care Intelligence",
     description:
-      "Clinical-grade autonomous triage platform with deterministic safety screening and hospital discovery.",
+      "Clinical-grade autonomous health assessment platform with deterministic safety screening and hospital discovery.",
   },
 };
 

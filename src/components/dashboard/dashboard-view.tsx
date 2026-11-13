@@ -32,14 +32,14 @@ const tabMeta: Record<
   }
 > = {
   triage: {
-    title: "Clinical Emergency Triage",
+    title: "Clinical Symptom Assessment",
     subtitle:
-      "Interactive assessment with deterministic red-flag screening and supportive care guidance.",
+      "Interactive symptom consultation with deterministic safety screening and supportive care guidance.",
   },
   vision: {
     title: "Symptom Vision Analysis",
     subtitle:
-      "Inspect visible injuries, rashes, cuts, and burns with multimodal vision triage models.",
+      "Inspect visible injuries, rashes, cuts, and burns with multimodal clinical vision models.",
   },
   medication: {
     title: "Medication & Prescription Scan",
@@ -54,7 +54,7 @@ const tabMeta: Record<
   history: {
     title: "Assessment History Timeline",
     subtitle:
-      "Confidential historical triage records with clinical reasoning summaries and PDF exports.",
+      "Confidential historical clinical records with diagnostic reasoning summaries and PDF exports.",
   },
   profile: {
     title: "Patient Health Profile",

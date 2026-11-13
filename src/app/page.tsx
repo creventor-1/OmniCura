@@ -89,7 +89,7 @@ export default function Home() {
                   Clinical Workspace Overview
                 </h2>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  Real-time session status, red-flag triage dispatch, and nearby healthcare facilities.
+                  Real-time session status, red-flag safety screening, and nearby healthcare facilities.
                 </p>
               </div>
             </div>
@@ -117,9 +117,9 @@ export default function Home() {
                 <div className="size-9 rounded-lg bg-accent/10 text-accent flex items-center justify-center border border-accent/20 mb-3 group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
                   <Activity className="size-4.5 stroke-[1.75]" />
                 </div>
-                <h4 className="text-sm font-semibold text-foreground">Triage Chat</h4>
+                <h4 className="text-sm font-semibold text-foreground">Symptom Assessment</h4>
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                  Interactive symptom assessment with red-flag rules and clinical guidance.
+                  Interactive consultation with deterministic safety rules and clinical guidance.
                 </p>
               </button>
 

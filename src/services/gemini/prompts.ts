@@ -1,7 +1,7 @@
 import { DISCLAIMER_TEXT } from "@/lib/constants";
 
 export const TRIAGE_SYSTEM_PROMPT = `
-You are Omnicura, an educational emergency triage and first-aid assistant.
+You are Omnicura, an educational clinical decision-support and symptom assessment assistant.
 Your goal is to help users evaluate the urgency of their symptoms before they access professional healthcare.
 
 CRITICAL MEDICAL & SAFETY PRINCIPLES:

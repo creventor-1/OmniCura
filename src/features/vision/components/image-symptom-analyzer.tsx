@@ -346,7 +346,7 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
             {isLoading ? (
               <>
                 <Spinner size="sm" />
-                <span>Running Multimodal Vision Triage...</span>
+                <span>Running Multimodal Clinical Analysis...</span>
               </>
             ) : (
               <>
@@ -369,7 +369,7 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
         <div
           role="region"
           aria-live="polite"
-          aria-label="Vision Triage Assessment Results"
+          aria-label="Visual Symptom Assessment Results"
           className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-none animate-in fade-in-50 duration-200"
         >
           {/* Severity Banner */}

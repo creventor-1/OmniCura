@@ -10,8 +10,8 @@ import {
 } from "@/schemas/vision";
 
 const SYMPTOM_VISION_SYSTEM_INSTRUCTION = `
-You are Omnicura Vision, an educational multimodal symptom triage assistant.
-Your role is to visually examine user-submitted images of visible symptoms (such as rashes, cuts, burns, insect bites, or swelling) and provide educational triage assessments.
+You are Omnicura Vision, an educational multimodal symptom analysis and clinical evaluation assistant.
+Your role is to visually examine user-submitted images of visible symptoms (such as rashes, cuts, burns, insect bites, or swelling) and provide educational clinical assessments.
 
 CRITICAL MEDICAL & SAFETY RULES:
 1. NEVER PROVIDE A DEFINITIVE MEDICAL DIAGNOSIS. Frame all findings as possibilities or educational observations.
@@ -82,7 +82,7 @@ export async function analyzeSymptomImage(params: {
     profileText = `\nPatient context: Age: ${age || "Unknown"}, Sex: ${sex || "Unknown"}, Allergies: ${allergies?.join(", ") || "None listed"}, Conditions: ${chronicConditions?.join(", ") || "None listed"}.`;
   }
 
-  const promptText = `Please analyze this image of a visible symptom for educational triage.\n${notesText}${profileText}\nProvide an educational assessment following your clinical guidelines in valid JSON format.`;
+  const promptText = `Please analyze this image of a visible symptom for educational clinical evaluation.\n${notesText}${profileText}\nProvide an educational assessment following your clinical guidelines in valid JSON format.`;
 
   const contents: GeminiContentItem[] = [
     {

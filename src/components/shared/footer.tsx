@@ -37,7 +37,7 @@ export function Footer({ onNavigate }: FooterProps) {
               <OmnicuraLogo size="md" showWordmark />
             </button>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-sm">
-              Clinical-grade intelligent emergency triage and supportive first-aid guidance.
+              Clinical-grade intelligent clinical assessment and supportive first-aid guidance.
               Designed for rapid, deterministic symptom screening and immediate healthcare facility discovery.
             </p>
             <div className="flex items-center gap-3 pt-1 text-xs">
@@ -65,7 +65,7 @@ export function Footer({ onNavigate }: FooterProps) {
                   className="hover:text-primary transition-colors flex items-center gap-1.5 text-left"
                 >
                   <Activity className="size-3.5 text-primary" />
-                  <span>Interactive Triage Chat</span>
+                  <span>Symptom Assessment</span>
                 </button>
               </li>
               <li>

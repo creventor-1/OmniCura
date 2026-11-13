@@ -72,7 +72,7 @@ export function generateTriagePdfReport({
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.text(
-    `TRIAGE URGENCY LEVEL: ${assessment.severity.toUpperCase()}`,
+    `CLINICAL URGENCY LEVEL: ${assessment.severity.toUpperCase()}`,
     20,
     cursorY + 7
   );
@@ -121,9 +121,9 @@ export function generateTriagePdfReport({
   // 6. Rationale & Recommended Actions Table
   autoTable(doc, {
     startY: cursorY,
-    head: [["Triage Rationale & Next Steps", "Clinical Guidance"]],
+    head: [["Clinical Evaluation Rationale & Next Steps", "Clinical Guidance"]],
     body: [
-      ["Triage Rationale", assessment.severityReasoning],
+      ["Clinical Rationale", assessment.severityReasoning],
       ["Recommended Action", assessment.recommendedAction],
     ],
     theme: "grid",

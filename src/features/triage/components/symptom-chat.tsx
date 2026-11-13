@@ -238,7 +238,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to process triage assessment.");
+        throw new Error(data.error || "Failed to process clinical assessment.");
       }
 
       // Check if server detected an emergency
@@ -291,7 +291,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
             id: createMessageId("assistant"),
             role: "assistant",
             content:
-              "I have gathered sufficient context and prepared your structured triage assessment below.",
+              "I have gathered sufficient clinical context and prepared your structured assessment below.",
             timestamp: getFormattedTimestamp(),
           },
         ]);
@@ -317,7 +317,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
           id: createMessageId("assistant-err"),
           role: "assistant",
           content:
-            "The triage service is currently busy or experiencing high demand. Please try again in a moment. If you are worried or symptoms are worsening, please contact a healthcare provider or call emergency services directly.",
+            "The assessment service is currently busy or experiencing high demand. Please try again in a moment. If you are worried or symptoms are worsening, please contact a healthcare provider or call emergency services directly.",
           timestamp: getFormattedTimestamp(),
         },
       ]);
@@ -394,7 +394,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
             role="log"
             aria-live="polite"
             aria-atomic="false"
-            aria-label="Triage conversation history"
+            aria-label="Clinical consultation history"
             className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4"
           >
             {messages.map((message) => {
@@ -416,7 +416,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
                         {isAssistant ? (
                           <>
                             <span className="size-1.5 rounded-full bg-accent" />
-                            <span className="text-accent uppercase tracking-wider">AI-Assisted Triage</span>
+                            <span className="text-accent uppercase tracking-wider">Clinical Consultation Note</span>
                           </>
                         ) : (
                           <>

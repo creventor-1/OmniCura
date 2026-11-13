@@ -40,7 +40,7 @@ export function HeroSection({
             </div>
 
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-foreground leading-snug">
-              Deterministic Emergency Triage &amp; Supportive Care Intelligence
+              Deterministic Clinical Assessment &amp; Emergency Care Intelligence
             </h1>
 
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
@@ -54,7 +54,7 @@ export function HeroSection({
                 onClick={onStartAssessment}
                 className="gap-2 text-sm font-semibold h-11 px-5 shadow-none"
               >
-                <span>Launch Triage Intake</span>
+                <span>Start Symptom Assessment</span>
                 <ArrowRight className="size-4" />
               </Button>
 
@@ -317,7 +317,7 @@ export function HeroSection({
             onClick={onStartAssessment}
             className="gap-2"
           >
-            <span>Proceed to Triage Assessment</span>
+            <span>Begin Clinical Assessment</span>
             <ArrowRight className="size-3.5" />
           </Button>
         </div>
