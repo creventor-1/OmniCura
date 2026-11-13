@@ -9,6 +9,7 @@ import { checkRedFlags } from "@/lib/red-flags";
 import { EmergencyAlertModal } from "@/features/safety/components/emergency-alert-modal";
 import { DisclaimerModal } from "./disclaimer-modal";
 import { AssessmentResultView } from "./assessment-result-view";
+import { DemoScenarios } from "./demo-scenarios";
 import { TriageMessage, AssessmentResponse, TriageTurnResponse } from "@/schemas/triage";
 import { RedFlagCheckResult } from "@/types";
 import { useAuth } from "@/features/authentication/context/auth-context";
@@ -444,6 +445,11 @@ export function SymptomChat({ onLocateFacilities }: SymptomChatProps) {
               ))}
             </div>
           )}
+
+          {/* Hackathon Demo Presets */}
+          <div className="px-4 py-2 bg-muted/10 border-t">
+            <DemoScenarios onSelectScenario={(text) => handleSendMessage(text)} />
+          </div>
 
           {/* Input Bar */}
           <div className="p-3 border-t bg-background">
