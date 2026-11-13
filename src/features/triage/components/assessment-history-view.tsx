@@ -172,23 +172,17 @@ export function AssessmentHistoryView({
         confirmLabel="Delete Record"
       />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 pb-3">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Clock className="size-5 text-primary" />
-            <span>Assessment History Timeline</span>
-          </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Private log of your previous clinical assessments and exported physician summaries.
-          </p>
-        </div>
+      {/* Top Action Bar */}
+      <div className="flex items-center justify-between gap-3 pb-1">
+        <span className="text-xs font-medium text-text-secondary">
+          {assessments.length} {assessments.length === 1 ? "record" : "records"} recorded
+        </span>
 
         {onStartAssessment && (
           <Button
             size="sm"
             onClick={onStartAssessment}
-            className="rounded-xl text-xs sm:text-sm font-semibold h-10 px-4 self-start sm:self-auto"
+            className="rounded-lg text-xs font-semibold h-9 px-3.5"
           >
             New Assessment
           </Button>

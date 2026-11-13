@@ -10,45 +10,40 @@ export interface DemoScenario {
   category: "normal" | "emergency" | "urgent";
   prompt: string;
   icon: typeof HeartPulse;
-  description: string;
 }
 
 export const DEMO_SCENARIOS: DemoScenario[] = [
   {
     id: "scenario-normal",
-    title: "Scenario 1: Mild Cold (Normal)",
+    title: "Mild Cold",
     category: "normal",
     prompt:
       "I have had a mild dry cough and slight scratchy throat for two days. No fever, no chest pain, breathing normally.",
     icon: Activity,
-    description: "Demonstrates adaptive AI follow-up questions & non-urgent guidance.",
   },
   {
     id: "scenario-emergency",
-    title: "Scenario 2: Chest Pain (Emergency)",
+    title: "Chest Pain",
     category: "emergency",
     prompt:
       "I have severe crushing chest pain radiating to my left arm and I can't breathe.",
     icon: AlertOctagon,
-    description: "Demonstrates instant deterministic red-flag safety interception.",
   },
   {
     id: "scenario-anaphylaxis",
-    title: "Scenario 3: Anaphylaxis (Safety)",
+    title: "Allergic Reaction",
     category: "emergency",
     prompt:
       "My throat is closing and my tongue is swelling after eating seafood.",
     icon: ShieldAlert,
-    description: "Demonstrates rapid allergic reaction detection and emergency hotline.",
   },
   {
     id: "scenario-urgent",
-    title: "Scenario 4: High Fever & Ear Pain (Urgent)",
+    title: "High Fever",
     category: "urgent",
     prompt:
       "I have had a high fever with severe throbbing ear pain and dizziness since yesterday.",
     icon: HeartPulse,
-    description: "Demonstrates urgent severity classification with clinic referral.",
   },
 ];
 
@@ -60,20 +55,20 @@ export function DemoScenarios({ onSelectScenario }: DemoScenariosProps) {
   const [isOpen, setIsOpen] = React.useState(false);
 
   return (
-    <div className="w-full space-y-2">
-      <div className="flex items-center justify-between px-1">
+    <div className="w-full space-y-1.5">
+      <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline transition-all"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-text-secondary hover:text-foreground transition-colors cursor-pointer"
         >
-          <Sparkles className="size-3.5" />
-          <span>{isOpen ? "Hide Hackathon Demo Presets" : "Show Hackathon Demo Presets (One-Click Testing)"}</span>
+          <Sparkles className="size-3 text-accent" />
+          <span>{isOpen ? "Hide Scenarios" : "Demo Scenarios"}</span>
         </button>
       </div>
 
       {isOpen && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 rounded-xl border border-primary/20 bg-primary/5 animate-in fade-in-50 duration-200">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 animate-in fade-in-50 duration-150">
           {DEMO_SCENARIOS.map((sc) => {
             const Icon = sc.icon;
             const badgeClass = {
@@ -87,21 +82,17 @@ export function DemoScenarios({ onSelectScenario }: DemoScenariosProps) {
                 key={sc.id}
                 type="button"
                 variant="outline"
+                size="sm"
                 onClick={() => onSelectScenario(sc.prompt)}
-                className="h-auto p-2.5 flex flex-col items-start text-left bg-background hover:bg-muted/60 transition-all border-border/80"
+                className="h-8 px-2.5 flex items-center justify-between text-xs font-medium bg-background hover:bg-muted border-border"
               >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <div className="flex items-center gap-1.5 font-bold text-xs text-foreground">
-                    <Icon className="size-3.5 text-primary" />
-                    <span>{sc.title}</span>
-                  </div>
-                  <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.2 rounded border ${badgeClass}`}>
-                    {sc.category}
-                  </span>
+                <div className="flex items-center gap-1.5 truncate">
+                  <Icon className="size-3.5 text-accent shrink-0" />
+                  <span className="truncate">{sc.title}</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground line-clamp-1 leading-snug">
-                  {sc.description}
-                </p>
+                <span className={`text-[9px] font-semibold uppercase px-1 py-0.2 rounded border ml-1 shrink-0 ${badgeClass}`}>
+                  {sc.category === "normal" ? "Low" : sc.category}
+                </span>
               </Button>
             );
           })}

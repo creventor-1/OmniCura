@@ -64,13 +64,13 @@ const navGroups: { group: string; items: NavItem[] }[] = [
 
 const sectionBreadcrumbs: Record<NavSection, { section: string; title: string }> = {
   home: { section: "Workspace", title: "Overview" },
-  triage: { section: "Clinical Assessment", title: "Symptom Consultation" },
-  vision: { section: "Clinical Assessment", title: "Symptom Vision Analysis" },
-  medication: { section: "Clinical Assessment", title: "Medication Scanner" },
-  hospitals: { section: "Care & Records", title: "Hospital Locator" },
-  history: { section: "Care & Records", title: "Assessment Timeline" },
-  profile: { section: "Care & Records", title: "Health Profile" },
-  contacts: { section: "Care & Records", title: "Designated Emergency Contacts" },
+  triage: { section: "Clinical", title: "Symptom Assessment" },
+  vision: { section: "Clinical", title: "Symptom Vision" },
+  medication: { section: "Clinical", title: "Medication Scan" },
+  hospitals: { section: "Facilities", title: "Hospitals" },
+  history: { section: "Records", title: "History" },
+  profile: { section: "Records", title: "Profile" },
+  contacts: { section: "Safety", title: "Contacts" },
 };
 
 const emptySubscribe = () => () => {};

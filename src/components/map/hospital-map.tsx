@@ -5,7 +5,6 @@ import {
   MapPin,
   PhoneCall,
   Navigation,
-  Compass,
   AlertTriangle,
   RotateCcw,
   LocateFixed,
@@ -352,27 +351,21 @@ export function HospitalMap() {
         </div>
       )}
 
-      {/* Header Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-xl border border-border bg-card shadow-none">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold flex items-center gap-2 text-foreground">
-            <Compass className="size-4.5 text-accent" />
-            Nearby Healthcare Facilities
-          </h2>
-          <p
-            role="status"
-            aria-live="polite"
-            className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap"
-          >
-            <MapPin className="size-3.5 text-accent" />
-            <span>Search Center: <strong className="text-foreground">{locationName}</strong></span>
-            {isLocating && (
-              <span className="inline-flex items-center gap-1 text-accent font-medium">
-                <Spinner size="sm" />
-                <span>Detecting GPS location...</span>
-              </span>
-            )}
-          </p>
+      {/* Search & Location Control Strip */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-xl border border-border bg-card shadow-none">
+        <div
+          role="status"
+          aria-live="polite"
+          className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap"
+        >
+          <MapPin className="size-3.5 text-accent" />
+          <span>Center: <strong className="text-foreground">{locationName}</strong></span>
+          {isLocating && (
+            <span className="inline-flex items-center gap-1 text-accent font-medium">
+              <Spinner size="sm" />
+              <span>Detecting GPS...</span>
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -396,7 +389,7 @@ export function HospitalMap() {
             title="Reset map view to default location (Enugu State)"
           >
             <RotateCcw className="size-3.5" />
-            <span>Reset to Enugu</span>
+            <span>Reset</span>
           </Button>
         </div>
       </div>

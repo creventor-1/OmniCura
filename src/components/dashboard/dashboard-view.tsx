@@ -32,39 +32,32 @@ const tabMeta: Record<
   }
 > = {
   triage: {
-    title: "Clinical Symptom Assessment",
-    subtitle:
-      "Interactive symptom consultation with deterministic safety screening and supportive care guidance.",
+    title: "Symptom Assessment",
+    subtitle: "Interactive evaluation with safety screening and care guidance.",
   },
   vision: {
-    title: "Symptom Vision Analysis",
-    subtitle:
-      "Inspect visible injuries, rashes, cuts, and burns with multimodal clinical vision models.",
+    title: "Symptom Vision",
+    subtitle: "Analyze visible rashes, cuts, and burns with clinical vision.",
   },
   medication: {
-    title: "Medication & Prescription Scan",
-    subtitle:
-      "Extract active ingredients, standard dosing guidelines, and safety precautions from medication labels.",
+    title: "Medication Scanner",
+    subtitle: "Extract active ingredients, indications, and safety warnings.",
   },
   hospitals: {
-    title: "Nearby Healthcare Facilities",
-    subtitle:
-      "Coordinate-based hospital locator with verified emergency departments and turn-by-turn routing.",
+    title: "Nearby Hospitals",
+    subtitle: "Verified emergency facilities, direct phone lines, and routes.",
   },
   history: {
-    title: "Assessment History Timeline",
-    subtitle:
-      "Confidential historical clinical records with diagnostic reasoning summaries and PDF exports.",
+    title: "Assessment History",
+    subtitle: "Past clinical consultations, triage records, and PDF exports.",
   },
   profile: {
-    title: "Patient Health Profile",
-    subtitle:
-      "Confidential medical context, pre-existing conditions, and AI personalization consent.",
+    title: "Health Profile",
+    subtitle: "Medical background, allergies, and conditions for tailored care.",
   },
   contacts: {
-    title: "Designated Emergency Contacts",
-    subtitle:
-      "Rapid one-tap calling contacts surfaced during critical and red-flag emergency screening.",
+    title: "Emergency Contacts",
+    subtitle: "Designated contacts notified during emergency situations.",
   },
 };
 

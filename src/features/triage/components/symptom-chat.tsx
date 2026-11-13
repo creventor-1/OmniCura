@@ -67,7 +67,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
       id: "initial-assistant-msg",
       role: "assistant",
       content:
-        'Hello, I am Omnicura. Please describe your symptoms naturally (for example: "I have had a mild headache and sore throat for two days"). How can I help you today?',
+        "Hello. Describe your symptoms, duration, and any discomfort you are experiencing.",
       timestamp: "Just now",
     },
   ]);
@@ -380,7 +380,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
               <div>
                 <h3 className="text-sm font-semibold text-foreground leading-none">Omnicura Assistant</h3>
                 <span className="text-[11px] text-muted-foreground">
-                  Adaptive Clinical Screening &amp; Guidance
+                  Clinical Decision Support
                 </span>
               </div>
             </div>
@@ -423,7 +423,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
                         {isAssistant ? (
                           <>
                             <span className="size-1.5 rounded-full bg-accent" />
-                            <span className="text-accent uppercase tracking-wider">Clinical Consultation Note</span>
+                            <span className="text-accent uppercase tracking-wider">Clinical Note</span>
                           </>
                         ) : (
                           <>

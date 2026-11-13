@@ -20,8 +20,8 @@ import { MedicationScanResponse } from "@/schemas/vision";
 const MEDICATION_PRESETS = [
   {
     id: "sample-paracetamol",
-    title: "Preset 1: Paracetamol 500mg",
-    description: "Standard blister pack labeled Paracetamol 500mg tablets.",
+    title: "Paracetamol 500mg",
+    description: "Analgesic blister pack tablets.",
     notes: "White tablet blister pack labeled Paracetamol 500mg. Taking for mild headache.",
     base64:
       "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNlMmU4ZjAiLz48cmVjdCB4PSIyMCIgeT0iMzAiIHdpZHRoPSI2MCIgaGVpZ2h0PSI0MCIgcng9IjgiIGZpbGw9IiNmZmZmZmYiIHN0cm9rZT0iIzBiNzkyZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PHRleHQgeD0iNTAiIHk9IjUyIiBmb250LXNpemU9IjgiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzFmMjkzNyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UEFSQUNFVEFNT0w8L3RleHQ+PHRleHQgeD0iNTAiIHk9IjYzIiBmb250LXNpemU9IjYiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmaWxsPSIjNDI3MTRkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj41MDBtZzwvdGV4dD48L3N2Zz4=",
@@ -29,8 +29,8 @@ const MEDICATION_PRESETS = [
   },
   {
     id: "sample-amoxicillin",
-    title: "Preset 2: Amoxicillin 500mg",
-    description: "Antibiotic capsule packaging marked Amoxicillin 500mg.",
+    title: "Amoxicillin 500mg",
+    description: "Antibiotic capsule packaging.",
     notes: "Yellow and maroon capsule box labeled Amoxicillin 500mg.",
     base64:
       "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNlMmU4ZjAiLz48cmVjdCB4PSIyMCIgeT0iMjUiIHdpZHRoPSI2MCIgaGVpZ2h0PSI1MCIgcng9IjQiIGZpbGw9IiNmZmZmZmYiIHN0cm9rZT0iI2Q5NzcwNiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHJlY3QgeD0iMjAiIHk9IjI1IiB3aWR0aD0iNjAiIGhlaWdodD0iMTUiIGZpbGw9IiNmM2I5MWMiLz48dGV4dCB4PSI1MCIgeT0iNTIiIGZvbnQtc2l6ZT0iNyIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWYyOTM3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BTU9YSUNJTExJTjwvdGV4dD48dGV4dCB4PSI1MCIgeT0iNjMiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM0MjcxNGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjUwMG1nIENhcHN1bGVzPC90ZXh0Pjwvc3ZnPg==",
@@ -38,8 +38,8 @@ const MEDICATION_PRESETS = [
   },
   {
     id: "sample-ibuprofen",
-    title: "Preset 3: Ibuprofen 200mg",
-    description: "NSAID pain reliever blister pack labeled Ibuprofen 200mg.",
+    title: "Ibuprofen 200mg",
+    description: "NSAID pain reliever blister pack.",
     notes: "Orange blister strip labeled Ibuprofen 200mg for joint ache.",
     base64:
       "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNlMmU4ZjAiLz48cmVjdCB4PSIyMCIgeT0iMzAiIHdpZHRoPSI2MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiNmZmZmZmYiIHN0cm9rZT0iI2VhNTgwYyIgc3Ryb2tlLXdpZHRoPSIyIi8+PHRleHQgeD0iNTAiIHk9IjUyIiBmb250LXNpemU9IjgiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzFmMjkzNyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SUJVUFJPRkVOPC90ZXh0Pjx0ZXh0IHg9IjUwIiB5PSI2MyIgZm9udC1zaXplPSI2IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZmlsbD0iIzQyNzE0ZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MjAwbWcgVGFibGV0czwvdGV4dD48L3N2Zz4=",
@@ -151,7 +151,7 @@ export function MedicationScanner() {
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-accent">
               <Sparkles className="size-3.5" />
-              <span>One-Click Test Presets:</span>
+              <span>Demo Presets</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {MEDICATION_PRESETS.map((preset) => (
@@ -331,28 +331,11 @@ export function MedicationScanner() {
             </p>
           </div>
 
-          {/* Typical Uses */}
-          {scanResult.typicalUses.length > 0 && (
-            <div className="space-y-1.5 border-t pt-3">
-              <div className="text-xs font-bold text-foreground">Typical Uses:</div>
-              <div className="flex flex-wrap gap-1.5">
-                {scanResult.typicalUses.map((use, i) => (
-                  <span
-                    key={i}
-                    className="px-2.5 py-1 rounded-md text-xs font-medium bg-muted text-foreground border"
-                  >
-                    {use}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Safety Precautions */}
+          {/* Safety Precautions (Always Visible) */}
           {scanResult.safetyPrecautions.length > 0 && (
-            <div className="space-y-2 border-t pt-3">
+            <div className="space-y-1.5 border-t border-border pt-3">
               <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                <ShieldCheck className="size-3.5 text-primary" />
+                <ShieldCheck className="size-3.5 text-accent" />
                 <span>Safety Precautions:</span>
               </div>
               <ul className="space-y-1 text-xs text-muted-foreground list-disc list-inside">
@@ -363,16 +346,42 @@ export function MedicationScanner() {
             </div>
           )}
 
-          {/* Common Side Effects */}
-          {scanResult.commonSideEffects.length > 0 && (
-            <div className="space-y-2 border-t pt-3">
-              <div className="text-xs font-bold text-foreground">Common Side Effects:</div>
-              <ul className="space-y-1 text-xs text-muted-foreground list-disc list-inside">
-                {scanResult.commonSideEffects.map((effect, i) => (
-                  <li key={i}>{effect}</li>
-                ))}
-              </ul>
-            </div>
+          {/* Progressive Disclosure for Secondary Details: Typical Uses & Side Effects */}
+          {(scanResult.typicalUses.length > 0 || scanResult.commonSideEffects.length > 0) && (
+            <details className="border-t border-border pt-3 group text-xs">
+              <summary className="font-semibold text-text-secondary cursor-pointer hover:text-foreground select-none list-none flex items-center justify-between py-1">
+                <span>View uses &amp; common side effects</span>
+                <span className="text-[10px] text-text-tertiary group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <div className="pt-2.5 space-y-3">
+                {scanResult.typicalUses.length > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="text-[11px] font-semibold text-text-secondary uppercase">Typical Uses:</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {scanResult.typicalUses.map((use, i) => (
+                        <span
+                          key={i}
+                          className="px-2 py-0.5 rounded-md text-xs font-medium bg-muted text-foreground border border-border"
+                        >
+                          {use}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {scanResult.commonSideEffects.length > 0 && (
+                  <div className="space-y-1">
+                    <div className="text-[11px] font-semibold text-text-secondary uppercase">Common Side Effects:</div>
+                    <ul className="space-y-0.5 text-xs text-muted-foreground list-disc list-inside">
+                      {scanResult.commonSideEffects.map((effect, i) => (
+                        <li key={i}>{effect}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </details>
           )}
 
           {/* Interactions Warning */}

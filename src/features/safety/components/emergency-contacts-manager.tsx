@@ -167,22 +167,16 @@ export function EmergencyContactsManager() {
         confirmLabel="Delete Contact"
       />
 
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight text-foreground flex items-center gap-2">
-            <Users className="size-4.5 text-accent" />
-            <span>Emergency Contacts</span>
-          </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Designated responders surfaced during red-flag events and available for one-tap calling.
-          </p>
-        </div>
+      {/* Top Action Bar */}
+      <div className="flex items-center justify-between gap-3 pb-1">
+        <span className="text-xs font-medium text-text-secondary">
+          {contacts.length} {contacts.length === 1 ? "contact" : "contacts"} saved
+        </span>
 
         <Button
           size="sm"
           onClick={() => setIsAdding(!isAdding)}
-          className="rounded-lg text-xs font-semibold gap-1.5 self-start sm:self-auto h-9 px-3"
+          className="rounded-lg text-xs font-semibold gap-1.5 h-9 px-3"
         >
           {isAdding ? <X className="size-3.5" /> : <Plus className="size-3.5" />}
           <span>{isAdding ? "Cancel" : "Add Contact"}</span>

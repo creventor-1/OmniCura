@@ -3,7 +3,6 @@
 import * as React from "react";
 import {
   Upload,
-  Image as ImageIcon,
   AlertTriangle,
   CheckCircle2,
   Download,
@@ -25,23 +24,22 @@ import { useAuth } from "@/features/authentication/context/auth-context";
 import { createClient } from "@/services/database/supabase/client";
 import { generateTriagePdfReport } from "@/services/pdf/generate-report";
 
-// Preset sample images (base64 SVG data) for instant judge testing without needing a real injury photo
+// Preset sample images (base64 SVG data) for instant testing
 const SAMPLE_PRESETS = [
   {
     id: "sample-rash",
-    title: "Sample 1: Mild Contact Rash",
-    description: "Superficial red patch on forearm without systemic symptoms.",
+    title: "Contact Rash",
+    description: "Red patch on forearm without fever.",
     category: "non-urgent",
-    notes: "Red bumpy rash appeared after gardening yesterday. Mild itchiness, no fever or trouble breathing.",
-    // 64x64 SVG representation encoded as base64
+    notes: "Red bumpy rash appeared yesterday. Mild itchiness, no fever or trouble breathing.",
     base64:
       "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmZGVlZTQiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSIyNSIgZmlsbD0iI2Y4NzE3MSIgb3BhY2l0eT0iMC42Ii8+PGNpcmNsZSBjeD0iNDUiIGN5PSI0NSIgcj0iNSIgZmlsbD0iI2RjMjYyNiIvPjxjaXJjbGUgY3g9IjU1IiBjeT0iNDgiIHI9IjQiIGZpbGw9IiNkYzI2MjYiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjU2IiByPSI2IiBmaWxsPSIjZGMyNjI2Ii8+PC9zdmc+",
     mimeType: "image/svg+xml",
   },
   {
     id: "sample-burn",
-    title: "Sample 2: Minor First-Degree Burn",
-    description: "Localized thermal redness without blistering or open skin.",
+    title: "First-Degree Burn",
+    description: "Localized thermal redness, skin intact.",
     category: "non-urgent",
     notes: "Accidentally touched hot baking pan. Red and stinging, skin is intact without blisters.",
     base64:
@@ -50,8 +48,8 @@ const SAMPLE_PRESETS = [
   },
   {
     id: "sample-cut",
-    title: "Sample 3: Superficial Scrape / Cut",
-    description: "Minor epidermal scrape with minimal bleeding.",
+    title: "Superficial Scrape",
+    description: "Minor epidermal scrape, bleeding stopped.",
     category: "non-urgent",
     notes: "Scraped knee on pavement while jogging. Minor bleeding stopped after gentle pressure.",
     base64:
@@ -217,6 +215,7 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-6">
+      {/* Emergency Alert Modal (Safety Critical) */}
       <EmergencyAlertModal
         isOpen={isEmergencyModalOpen}
         onClose={() => setIsEmergencyModalOpen(false)}
@@ -224,24 +223,13 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
         onLocateFacilities={onLocateFacilities}
       />
 
-      {/* Header Info */}
-      <div className="text-center space-y-1">
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center justify-center gap-2">
-          <ImageIcon className="size-6 text-primary" />
-          <span>Multimodal Symptom Vision</span>
-        </h2>
-        <p className="text-xs sm:text-sm text-muted-foreground max-w-lg mx-auto">
-          Upload or capture a photo of a visible symptom (rash, cut, burn, swelling, insect bite) for educational first-aid and urgency screening.
-        </p>
-      </div>
-
       {!analysisResult ? (
         <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-none">
           {/* Preset Buttons for Quick Testing */}
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-accent">
               <Sparkles className="size-3.5" />
-              <span>One-Click Demo Test Cases:</span>
+              <span>Demo Samples</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {SAMPLE_PRESETS.map((preset) => (

@@ -1,161 +1,158 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   Sparkles,
   ArrowRight,
   ShieldAlert,
-  Info,
   HeartPulse,
-  Activity,
   AlertTriangle,
-} from "lucide-react"
-import { AssessmentResponse } from "@/schemas/triage"
-import { SeverityBadge } from "@/components/shared/severity-badge"
-import { Card } from "@/components/ui/card"
-import { cn } from "cn"
+  ChevronDown,
+} from "lucide-react";
+import { AssessmentResponse } from "@/schemas/triage";
+import { SeverityBadge } from "@/components/shared/severity-badge";
+import { Card } from "@/components/ui/card";
+import { cn } from "cn";
 
 export interface AIResultPanelProps {
-  assessment: AssessmentResponse
-  className?: string
+  assessment: AssessmentResponse;
+  className?: string;
 }
 
 export function AIResultPanel({ assessment, className = "" }: AIResultPanelProps) {
-  const { severity } = assessment
+  const { severity } = assessment;
 
   const severityDescription = {
-    "non-urgent": "Symptoms may be monitored with appropriate self-care and supportive guidance. Consult a doctor if symptoms persist.",
-    urgent: "Evaluation by a healthcare professional is advised within 12–24 hours.",
-    emergency: "Immediate professional emergency medical attention is strongly advised. Do not delay.",
-  }[severity]
+    "non-urgent": "Monitor with self-care. Consult a doctor if symptoms persist.",
+    urgent: "Evaluation by a healthcare professional advised within 12–24 hours.",
+    emergency: "Immediate emergency medical attention advised. Do not delay.",
+  }[severity];
+
+  const hasDisclosableDetails =
+    Boolean(assessment.severityReasoning) ||
+    Boolean(assessment.possibleConditions && assessment.possibleConditions.length > 0);
 
   return (
     <div
       role="region"
       aria-label="Clinical Assessment Results"
-      className={cn("w-full space-y-5 animate-in fade-in-50 duration-200 text-left", className)}
+      className={cn("w-full space-y-4 animate-in fade-in-50 duration-200 text-left", className)}
     >
-      {/* 1. Header Metadata Bar (AI-Generated Marker) */}
+      {/* 1. Header Metadata Bar */}
       <div className="flex items-center justify-between gap-3 px-1">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary border border-border-subtle text-xs font-semibold text-text-secondary select-none">
-          <Sparkles className="size-3.5 text-accent" />
-          <span>AI-Generated • Clinical Decision Support</span>
+        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary border border-border-subtle text-[11px] font-semibold text-text-secondary select-none">
+          <Sparkles className="size-3 text-accent" />
+          <span>AI Clinical Decision Support</span>
         </div>
-        <span className="text-xs text-text-tertiary">Basis: Clinical Protocol Match</span>
       </div>
 
-      {/* 2. Primary Urgency Classification Card (Solid Surface) */}
-      <Card className="border border-border-subtle bg-surface shadow-xs">
-        <div className="p-5 sm:p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
-                Clinical Urgency Assessment
-              </span>
-              <h2 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight capitalize">
-                {severity} Classification
-              </h2>
-            </div>
-            <SeverityBadge severity={severity} className="self-start sm:self-center text-xs py-1 px-3" />
-          </div>
-
-          <p className="text-xs sm:text-sm text-text-secondary font-medium leading-relaxed">
-            {severityDescription}
-          </p>
-
-          {/* Basis for this result / Clinical Reasoning */}
-          <div className="pt-3 border-t border-border-subtle space-y-1.5">
-            <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-              <Info className="size-3.5 text-accent" />
-              <span>Basis for this Evaluation:</span>
+      {/* 2. Primary Urgency Classification & Recommended Action (Always Visible) */}
+      <Card className="border border-border-subtle bg-surface shadow-xs p-4 sm:p-5 space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+              Triage Level
             </span>
-            <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
-              {assessment.severityReasoning}
-            </p>
+            <h2 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight capitalize">
+              {severity} Priority
+            </h2>
           </div>
+          <SeverityBadge severity={severity} className="self-start sm:self-center text-xs py-1 px-3" />
+        </div>
+
+        <p className="text-xs sm:text-sm text-text-secondary font-medium leading-relaxed">
+          {severityDescription}
+        </p>
+
+        {/* Recommended Action Highlight */}
+        <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 space-y-1">
+          <div className="flex items-center gap-1.5 text-accent font-semibold text-xs uppercase tracking-wider">
+            <ArrowRight className="size-3.5" />
+            <span>Recommended Action</span>
+          </div>
+          <p className="text-xs sm:text-sm font-semibold text-foreground leading-snug">
+            {assessment.recommendedAction}
+          </p>
         </div>
       </Card>
 
-      {/* 3. Recommended Action Highlight Card */}
-      <div className="rounded-xl border border-accent/40 bg-surface p-5 sm:p-6 space-y-2 text-left">
-        <div className="flex items-center gap-2 text-accent font-semibold text-xs uppercase tracking-wider">
-          <ArrowRight className="size-4" />
-          <span>Recommended Clinical Next Step</span>
-        </div>
-        <p className="text-sm sm:text-base font-medium text-foreground leading-relaxed pl-6">
-          {assessment.recommendedAction}
-        </p>
-      </div>
-
-      {/* 4. Actionable First-Aid Care Steps (Numbered List) */}
+      {/* 3. Actionable First-Aid Care Steps (Always Visible) */}
       {assessment.firstAidSteps && assessment.firstAidSteps.length > 0 && (
-        <Card className="border border-border-subtle bg-surface">
-          <div className="p-5 space-y-3">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <HeartPulse className="size-4 text-accent" />
-              <span>Supportive First-Aid Instructions</span>
-            </h3>
-            <ol className="space-y-2 pl-2">
-              {assessment.firstAidSteps.map((step, idx) => (
-                <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-foreground">
-                  <span className="size-5 rounded-full bg-secondary border border-border-subtle text-foreground flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 tabular-nums">
-                    {idx + 1}
-                  </span>
-                  <span className="leading-relaxed">{step}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
+        <Card className="border border-border-subtle bg-surface p-4 sm:p-5 space-y-2.5">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground flex items-center gap-1.5">
+            <HeartPulse className="size-3.5 text-accent" />
+            <span>First-Aid Guidance</span>
+          </h3>
+          <ol className="space-y-1.5 pl-1">
+            {assessment.firstAidSteps.map((step, idx) => (
+              <li key={idx} className="flex items-start gap-2 text-xs sm:text-sm text-foreground">
+                <span className="size-4.5 rounded-full bg-secondary border border-border-subtle text-foreground flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5 tabular-nums">
+                  {idx + 1}
+                </span>
+                <span className="leading-relaxed">{step}</span>
+              </li>
+            ))}
+          </ol>
         </Card>
       )}
 
-      {/* 5. Warning Signs & Possible Considerations Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Warning Signs */}
-        {assessment.warningSigns && assessment.warningSigns.length > 0 && (
-          <div className="rounded-xl border border-warning/30 bg-warning-muted p-4 space-y-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-warning-text flex items-center gap-1.5">
-              <AlertTriangle className="size-3.5" />
-              <span>Warning Signs Requiring Escalation</span>
-            </h4>
-            <ul className="space-y-1.5 text-xs text-foreground/90 font-medium">
-              {assessment.warningSigns.map((sign, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <span className="text-warning-text font-bold shrink-0">•</span>
-                  <span className="leading-relaxed">{sign}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+      {/* 4. Warning Signs Requiring Immediate Escalation (Always Visible) */}
+      {assessment.warningSigns && assessment.warningSigns.length > 0 && (
+        <div className="rounded-xl border border-warning/30 bg-warning-muted p-3.5 space-y-1.5">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-warning-text flex items-center gap-1.5">
+            <AlertTriangle className="size-3.5" />
+            <span>Warning Signs Requiring Escalation</span>
+          </h4>
+          <ul className="space-y-1 text-xs text-foreground/90 font-medium">
+            {assessment.warningSigns.map((sign, idx) => (
+              <li key={idx} className="flex items-start gap-1.5">
+                <span className="text-warning-text font-bold shrink-0">•</span>
+                <span className="leading-relaxed">{sign}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
-        {/* Possible Conditions (Non-Diagnostic) */}
-        {assessment.possibleConditions && assessment.possibleConditions.length > 0 && (
-          <div className="rounded-xl border border-border-subtle bg-surface p-4 space-y-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-              <Activity className="size-3.5 text-accent" />
-              <span>Differential Considerations (Non-Diagnostic)</span>
-            </h4>
-            <ul className="space-y-1.5 text-xs text-text-secondary">
-              {assessment.possibleConditions.map((cond, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <span className="text-accent font-bold shrink-0">•</span>
-                  <span className="leading-relaxed">{cond}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
+      {/* 5. Progressive Disclosure: Clinical Reasoning & Considerations */}
+      {hasDisclosableDetails && (
+        <details className="rounded-xl border border-border-subtle bg-surface p-3.5 group text-xs">
+          <summary className="font-semibold text-text-secondary cursor-pointer hover:text-foreground select-none list-none flex items-center justify-between">
+            <span>Clinical Reasoning &amp; Differential Considerations</span>
+            <ChevronDown className="size-4 text-text-tertiary group-open:rotate-180 transition-transform" />
+          </summary>
+          <div className="pt-3 space-y-3 border-t border-border-subtle mt-2.5">
+            {assessment.severityReasoning && (
+              <div className="space-y-1">
+                <span className="text-[11px] font-semibold text-text-secondary uppercase">Evaluation Basis</span>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  {assessment.severityReasoning}
+                </p>
+              </div>
+            )}
 
-      {/* 6. Non-Obstructive Educational Disclaimer */}
-      <div className="flex items-start gap-2 p-3 rounded-lg border border-border-subtle bg-secondary/50 text-[11px] text-text-secondary leading-relaxed">
-        <ShieldAlert className="size-4 shrink-0 text-text-tertiary mt-0.5" />
-        <span>
-          {assessment.disclaimer ||
-            "Educational decision support only. This is not a medical diagnosis. Always consult a licensed physician or emergency room for definitive diagnosis and treatment."}
-        </span>
+            {assessment.possibleConditions && assessment.possibleConditions.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-[11px] font-semibold text-text-secondary uppercase">Differential Considerations (Non-Diagnostic)</span>
+                <ul className="space-y-1 text-xs text-text-secondary">
+                  {assessment.possibleConditions.map((cond, idx) => (
+                    <li key={idx} className="flex items-start gap-1.5">
+                      <span className="text-accent font-bold">•</span>
+                      <span>{cond}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </details>
+      )}
+
+      {/* 6. Consolidated Medical Disclaimer (Single Line) */}
+      <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border-subtle bg-secondary/40 text-[11px] text-text-secondary">
+        <ShieldAlert className="size-3.5 shrink-0 text-text-tertiary" />
+        <span>Educational guidance only. Not a medical diagnosis. Consult a doctor for medical evaluation.</span>
       </div>
     </div>
-  )
+  );
 }

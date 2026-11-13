@@ -18,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -179,18 +178,6 @@ export function HealthProfileForm() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      {/* Page Header */}
-      <div className="border-b border-border pb-3">
-        <h2 className="text-lg font-semibold tracking-tight text-foreground flex items-center gap-2">
-          <HeartPulse className="size-4.5 text-accent" />
-          <span>Patient Health Profile</span>
-        </h2>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-          Confidential health context stored under Supabase Row Level Security.
-          Explicit consent required for AI consideration.
-        </p>
-      </div>
-
       {/* Dynamic Alerts with Accessible aria-live */}
       {errorMessage && (
         <Alert
@@ -214,10 +201,10 @@ export function HealthProfileForm() {
         >
           <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
           <AlertTitle className="text-sm font-semibold">
-            Profile Saved Successfully
+            Profile Saved
           </AlertTitle>
           <AlertDescription className="text-xs sm:text-sm">
-            Your clinical background and AI personalization preferences have been safely updated.
+            Your clinical background and consent preferences have been updated.
           </AlertDescription>
         </Alert>
       )}
@@ -228,11 +215,8 @@ export function HealthProfileForm() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
               <User className="size-4 text-accent" />
-              <span>Personal &amp; Biometric Details</span>
+              <span>Personal &amp; Biometrics</span>
             </CardTitle>
-            <CardDescription className="text-xs">
-              Baseline physiological measurements used to evaluate pediatric or geriatric risk factors.
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
@@ -324,11 +308,8 @@ export function HealthProfileForm() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
               <Activity className="size-4 text-accent" />
-              <span>Clinical History &amp; Medications</span>
+              <span>Medical History</span>
             </CardTitle>
-            <CardDescription className="text-xs">
-              Pre-existing conditions that influence symptom severity and potential drug interactions.
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3.5">
             <div className="space-y-1.5">
@@ -383,7 +364,7 @@ export function HealthProfileForm() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
               <Lock className="size-4 text-accent" />
-              <span>AI Personalization Consent &amp; Privacy</span>
+              <span>AI Personalization Consent</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -393,26 +374,20 @@ export function HealthProfileForm() {
                 id="allow_ai_use"
                 checked={allowAiUse}
                 onChange={(e) => setAllowAiUse(e.target.checked)}
-                className="mt-1 size-4 rounded border-border text-accent focus:ring-accent cursor-pointer"
+                className="mt-0.5 size-4 rounded border-border text-accent focus:ring-accent cursor-pointer"
               />
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <label
                   htmlFor="allow_ai_use"
                   className="text-sm font-medium text-foreground cursor-pointer block"
                 >
-                  Allow Omnicura to personalize clinical assessments using this profile
+                  Factor health profile into symptom assessments
                 </label>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  When enabled, reported age, allergies, and chronic conditions are sent to tailor follow-up questions and supportive care instructions. When disabled, assessments operate with standard baseline protocols.
+                <p className="text-xs text-muted-foreground leading-normal">
+                  When enabled, known conditions and allergies are evaluated for contraindications.
                 </p>
               </div>
             </div>
-
-            {allowAiUse && (
-              <p className="text-xs text-amber-700 dark:text-amber-300 font-medium pl-1">
-                Prototype Notice: For hackathon demonstration purposes, avoid submitting actual sensitive personal health data.
-              </p>
-            )}
           </CardContent>
         </Card>
 
