@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/features/authentication/context/auth-context";
@@ -14,10 +14,49 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#0284c7" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
+  ],
+};
+
 export const metadata: Metadata = {
-  title: "TriageAI - Emergency Triage & First-Aid Assistant",
+  title: "TriageAI • Clinical Emergency & First-Aid Intelligence",
   description:
-    "AI-powered emergency triage and first-aid guidance assistant. Educational guidance only - not a medical diagnosis.",
+    "Intelligent emergency triage, deterministic safety screening, symptom vision analysis, and verified hospital locator. Educational guidance and supportive care.",
+  keywords: [
+    "triage",
+    "emergency medicine",
+    "first aid",
+    "hospital locator",
+    "symptom checker",
+    "healthcare AI",
+    "clinical triage",
+  ],
+  authors: [{ name: "TriageAI Team" }],
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
+  openGraph: {
+    title: "TriageAI • Clinical Emergency & First-Aid Intelligence",
+    description:
+      "Deterministic emergency screening, adaptive clinical follow-ups, and verified hospital locator with real-time directions.",
+    url: "https://triage-ai-flame.vercel.app",
+    siteName: "TriageAI",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TriageAI • Clinical Emergency & First-Aid Intelligence",
+    description:
+      "Intelligent emergency triage, deterministic safety screening, and hospital discovery.",
+  },
 };
 
 export default function RootLayout({
@@ -31,7 +70,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

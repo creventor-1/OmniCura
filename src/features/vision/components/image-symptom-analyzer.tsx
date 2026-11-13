@@ -251,8 +251,8 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
                   onClick={() => handleSelectPreset(preset)}
                   className="p-2.5 text-left border rounded-xl hover:bg-muted/60 transition-colors bg-background text-xs space-y-1"
                 >
-                  <div className="font-semibold text-foreground">{preset.title}</div>
-                  <div className="text-[11px] text-muted-foreground line-clamp-2">
+                  <div className="font-semibold text-foreground text-xs sm:text-sm">{preset.title}</div>
+                  <div className="text-xs text-muted-foreground line-clamp-2">
                     {preset.description}
                   </div>
                 </button>
@@ -309,20 +309,28 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
 
           {/* Additional Notes Input */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">
+            <label
+              htmlFor="symptom-vision-notes"
+              className="text-sm font-semibold text-foreground cursor-pointer block"
+            >
               Additional Context / Symptoms (Optional):
             </label>
             <textarea
+              id="symptom-vision-notes"
               value={additionalNotes}
               onChange={(e) => setAdditionalNotes(e.target.value)}
               placeholder="e.g. Started 2 days ago, mild burning sensation, no fever..."
               rows={2}
-              className="w-full text-xs sm:text-sm p-3 rounded-xl border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full text-sm p-3.5 rounded-xl border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
 
           {errorMessage && (
-            <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs flex items-center gap-2">
+            <div
+              role="alert"
+              aria-live="polite"
+              className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs sm:text-sm font-medium flex items-center gap-2"
+            >
               <AlertTriangle className="size-4 shrink-0" />
               <span>{errorMessage}</span>
             </div>
@@ -349,8 +357,8 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
           </Button>
 
           {/* Educational Disclaimer */}
-          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/30 border border-border/40 text-[11px] text-muted-foreground">
-            <Info className="size-3.5 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/40 text-xs sm:text-sm text-muted-foreground">
+            <Info className="size-4 shrink-0 mt-0.5 text-primary" />
             <span>
               <strong>Educational Notice:</strong> Visual analysis cannot replace an in-person physical clinical examination. Images are compressed client-side before processing.
             </span>
@@ -358,7 +366,12 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
         </div>
       ) : (
         /* Results View */
-        <div className="space-y-5 rounded-2xl border bg-card p-4 sm:p-6 shadow-sm animate-in fade-in-50 duration-200">
+        <div
+          role="region"
+          aria-live="polite"
+          aria-label="Vision Triage Assessment Results"
+          className="space-y-5 rounded-2xl border bg-card p-4 sm:p-6 shadow-sm animate-in fade-in-50 duration-200"
+        >
           {/* Severity Banner */}
           <div
             className={`p-4 rounded-xl border flex items-center justify-between ${
@@ -389,16 +402,16 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
               variant="outline"
               size="sm"
               onClick={handleReset}
-              className="text-xs h-8 gap-1 bg-background"
+              className="text-xs sm:text-sm h-9 gap-1.5 rounded-xl bg-background"
             >
-              <RotateCcw className="size-3" />
+              <RotateCcw className="size-3.5" />
               Analyze Another
             </Button>
           </div>
 
           {/* Visual Observations */}
           <div className="p-3.5 rounded-xl border bg-muted/20 space-y-1">
-            <div className="text-xs font-bold text-foreground">Visual Observations:</div>
+            <div className="text-xs sm:text-sm font-bold text-foreground">Visual Observations:</div>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
               {analysisResult.visualObservations}
             </p>
@@ -406,18 +419,18 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
 
           {/* Possible Conditions */}
           <div className="space-y-2">
-            <div className="text-xs font-bold text-foreground">Possible Explanations (Educational):</div>
+            <div className="text-xs sm:text-sm font-bold text-foreground">Possible Explanations (Educational):</div>
             <div className="flex flex-wrap gap-1.5">
               {analysisResult.possibleConditions.map((cond, i) => (
                 <span
                   key={i}
-                  className="px-2.5 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary border border-primary/20"
+                  className="px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20"
                 >
                   {cond}
                 </span>
               ))}
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               {analysisResult.severityReasoning}
             </p>
           </div>
@@ -425,11 +438,11 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
           {/* First-Aid Care Checklist */}
           {analysisResult.firstAidSteps.length > 0 && (
             <div className="space-y-2 border-t pt-4">
-              <div className="text-xs font-bold text-foreground">Recommended First-Aid Guidance:</div>
+              <div className="text-xs sm:text-sm font-bold text-foreground">Recommended First-Aid Guidance:</div>
               <ul className="space-y-1.5 text-xs sm:text-sm text-muted-foreground">
                 {analysisResult.firstAidSteps.map((step, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="size-4 shrink-0 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">
+                    <span className="size-5 shrink-0 rounded-full bg-primary/20 text-primary text-xs font-bold flex items-center justify-center mt-0.5">
                       {i + 1}
                     </span>
                     <span>{step}</span>
@@ -442,11 +455,11 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
           {/* Escalation Warning Signs */}
           {analysisResult.warningSigns.length > 0 && (
             <div className="p-3.5 rounded-xl border border-destructive/20 bg-destructive/5 space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-destructive">
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-destructive">
                 <AlertTriangle className="size-3.5" />
                 <span>Warning Signs Requiring Escalation:</span>
               </div>
-              <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
+              <ul className="list-disc list-inside text-xs sm:text-sm text-muted-foreground space-y-1">
                 {analysisResult.warningSigns.map((sign, i) => (
                   <li key={i}>{sign}</li>
                 ))}
@@ -460,9 +473,9 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
               type="button"
               variant="outline"
               onClick={handleExportPdf}
-              className="flex-1 h-10 text-xs font-semibold gap-1.5"
+              className="flex-1 h-11 text-xs sm:text-sm font-semibold gap-2 rounded-xl"
             >
-              <Download className="size-3.5" />
+              <Download className="size-4" />
               Download PDF Report
             </Button>
 
@@ -470,16 +483,16 @@ export function ImageSymptomAnalyzer({ onLocateFacilities }: ImageSymptomAnalyze
               <Button
                 type="button"
                 onClick={onLocateFacilities}
-                className="flex-1 h-10 text-xs font-semibold gap-1.5"
+                className="flex-1 h-11 text-xs sm:text-sm font-semibold gap-2 rounded-xl"
               >
-                <MapPin className="size-3.5" />
+                <MapPin className="size-4" />
                 Find Nearby Hospitals
               </Button>
             )}
           </div>
 
           {/* Disclaimer Footer */}
-          <div className="text-[11px] text-muted-foreground bg-muted/30 p-2.5 rounded-lg border text-center">
+          <div className="text-xs sm:text-sm text-muted-foreground bg-muted/30 p-3 rounded-xl border text-center leading-relaxed">
             {analysisResult.disclaimer}
           </div>
         </div>

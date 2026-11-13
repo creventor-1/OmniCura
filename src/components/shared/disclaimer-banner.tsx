@@ -6,7 +6,7 @@ export function DisclaimerBanner() {
   return (
     <aside
       aria-label="Medical Disclaimer Banner"
-      className="w-full border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs text-amber-900 dark:text-amber-200"
+      className="w-full border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs sm:text-sm font-medium text-amber-900 dark:text-amber-200"
     >
       <div className="mx-auto flex max-w-5xl items-center justify-center gap-2 text-center">
         <ShieldAlert className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />

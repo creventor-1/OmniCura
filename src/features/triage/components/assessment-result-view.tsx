@@ -69,7 +69,12 @@ export function AssessmentResultView({
   const SeverityIcon = severityConfig.icon;
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in-50 duration-500 pb-16">
+    <div
+      role="region"
+      aria-live="polite"
+      aria-label="Clinical Triage Assessment Results"
+      className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in-50 duration-500 pb-16"
+    >
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
@@ -113,7 +118,7 @@ export function AssessmentResultView({
                 <SeverityIcon className="size-7" />
               </div>
               <div>
-                <span className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">
+                <span className="text-xs font-bold tracking-wider uppercase text-muted-foreground">
                   Clinical Urgency Classification
                 </span>
                 <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
@@ -153,7 +158,7 @@ export function AssessmentResultView({
             <ArrowRight className="size-4" />
           </div>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">
               Immediate Primary Takeaway
             </span>
             <h3 className="text-base sm:text-lg font-bold text-foreground">
@@ -209,8 +214,8 @@ export function AssessmentResultView({
           <CardContent>
             <ul className="space-y-2">
               {assessment.firstAidSteps.map((step, idx) => (
-                <li key={idx} className="flex items-start gap-2.5 text-xs text-muted-foreground leading-relaxed">
-                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold text-[10px] mt-0.5">
+                <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold text-xs mt-0.5">
                     {idx + 1}
                   </span>
                   <span>{step}</span>
@@ -224,18 +229,18 @@ export function AssessmentResultView({
       {/* 4. WARNING SIGNS & ESCALATION RED-FLAGS */}
       <Card className="border border-amber-500/30 bg-amber-500/5 shadow-xs">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-bold flex items-center gap-2 text-amber-900 dark:text-amber-200">
-            <ShieldAlert className="size-4 text-amber-600 shrink-0" />
+          <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-amber-900 dark:text-amber-200">
+            <ShieldAlert className="size-4.5 text-amber-600 shrink-0" />
             <span>Escalation Warning Signs (Seek Immediate Medical Care)</span>
           </CardTitle>
-          <CardDescription className="text-xs text-amber-800/80 dark:text-amber-300/80">
+          <CardDescription className="text-xs sm:text-sm text-amber-800/80 dark:text-amber-300/80">
             If you or the patient experience any of the following symptoms, escalate immediately to emergency services or an urgent care center:
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-amber-950 dark:text-amber-100 font-medium">
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm text-amber-950 dark:text-amber-100 font-medium">
             {assessment.warningSigns.map((sign, idx) => (
-              <li key={idx} className="flex items-start gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <li key={idx} className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
                 <span className="text-amber-600 dark:text-amber-400 font-bold shrink-0">•</span>
                 <span>{sign}</span>
               </li>
@@ -255,7 +260,7 @@ export function AssessmentResultView({
             })
           }
           variant="outline"
-          className="flex-1 h-11 text-xs font-semibold gap-2 rounded-xl border-border/80 hover:bg-muted/60"
+          className="flex-1 h-11 text-xs sm:text-sm font-semibold gap-2 rounded-xl border-border/80 hover:bg-muted/60"
         >
           <FileDown className="size-4 text-primary" />
           <span>Download PDF Medical Report</span>
@@ -263,7 +268,7 @@ export function AssessmentResultView({
 
         <Button
           onClick={onReset}
-          className="flex-1 h-11 text-xs font-semibold gap-2 rounded-xl shadow-xs"
+          className="flex-1 h-11 text-xs sm:text-sm font-bold gap-2 rounded-xl shadow-xs"
         >
           <RotateCcw className="size-4" />
           <span>Start New Assessment</span>
@@ -273,11 +278,11 @@ export function AssessmentResultView({
       {/* 6. EMBEDDED NEARBY HEALTHCARE LOCATOR (Per Redesign Spec) */}
       <div className="space-y-3 pt-4 border-t border-border/60">
         <div className="space-y-0.5">
-          <div className="flex items-center gap-2 text-primary font-bold text-sm">
-            <MapPin className="size-4" />
+          <div className="flex items-center gap-2 text-primary font-bold text-sm sm:text-base">
+            <MapPin className="size-4.5" />
             <span>Nearby Healthcare Facilities</span>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Interactive map centered on active coordinates with verified hospitals, clinics, and emergency contact details.
           </p>
         </div>
@@ -289,7 +294,7 @@ export function AssessmentResultView({
       </div>
 
       {/* 7. MANDATORY DISCLAIMER FOOTER */}
-      <div className="text-[11px] text-muted-foreground bg-muted/30 p-3 rounded-xl border text-center leading-relaxed">
+      <div className="text-xs sm:text-sm text-muted-foreground bg-muted/30 p-3.5 rounded-xl border text-center leading-relaxed">
         {assessment.disclaimer}
       </div>
     </div>

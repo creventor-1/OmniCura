@@ -388,8 +388,14 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
             </Button>
           </div>
 
-          {/* Messages Scroll Area */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+          {/* Messages Scroll Area with Accessible aria-live Log */}
+          <div
+            role="log"
+            aria-live="polite"
+            aria-atomic="false"
+            aria-label="Triage conversation history"
+            className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4"
+          >
             {messages.map((message) => {
               const isAssistant = message.role === "assistant";
               return (
@@ -413,8 +419,8 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
                     <p className="whitespace-pre-wrap">{message.content}</p>
                     {message.timestamp && (
                       <div
-                        className={`flex items-center justify-end gap-1 mt-1.5 text-[10px] ${
-                          isAssistant ? "text-muted-foreground" : "text-primary-foreground/75"
+                        className={`flex items-center justify-end gap-1 mt-1.5 text-xs ${
+                          isAssistant ? "text-muted-foreground/80" : "text-primary-foreground/85"
                         }`}
                       >
                         <span>{message.timestamp}</span>
@@ -433,7 +439,11 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
 
             {/* Pulsing 3-Dot Shimmer Loading Indicator */}
             {isLoading && (
-              <div className="flex items-start gap-3 animate-in fade-in-50 duration-200">
+              <div
+                role="status"
+                aria-live="polite"
+                className="flex items-start gap-3 animate-in fade-in-50 duration-200"
+              >
                 <div className="flex size-8 shrink-0 select-none items-center justify-center rounded-xl bg-gradient-to-tr from-sky-600 to-teal-600 text-white shadow-xs text-xs font-bold mt-0.5">
                   <Bot className="size-4" />
                 </div>
@@ -446,7 +456,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
                       TriageAI is analyzing symptoms...
                     </span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Screening duration, clinical urgency factors &amp; safety red-flags.
                   </p>
                 </div>

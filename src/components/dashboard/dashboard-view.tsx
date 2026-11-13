@@ -6,16 +6,11 @@ import {
   History,
   UserCheck,
   PhoneCall,
-  LogIn,
-  LogOut,
-  User,
   MapPin,
   Camera,
   Pill,
+  ChevronRight,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/features/authentication/context/auth-context";
-import { AuthModal } from "@/features/authentication/components/auth-modal";
 import { SymptomChat } from "@/features/triage/components/symptom-chat";
 import { AssessmentHistoryView } from "@/features/triage/components/assessment-history-view";
 import { HealthProfileForm } from "@/features/health-profile/components/health-profile-form";
@@ -23,7 +18,6 @@ import { EmergencyContactsManager } from "@/features/safety/components/emergency
 import { HospitalMap } from "@/components/map/hospital-map";
 import { ImageSymptomAnalyzer } from "@/features/vision/components/image-symptom-analyzer";
 import { MedicationScanner } from "@/features/vision/components/medication-scanner";
-import { DashboardSummaryCards } from "./dashboard-summary-cards";
 
 export type ActiveTab =
   | "triage"
@@ -40,14 +34,64 @@ export interface DashboardViewProps {
   showTabsHeader?: boolean;
 }
 
+const tabMeta: Record<
+  ActiveTab,
+  {
+    title: string;
+    subtitle: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }
+> = {
+  triage: {
+    title: "Clinical Emergency Triage",
+    subtitle:
+      "Interactive assessment with deterministic red-flag screening and supportive care guidance.",
+    icon: Activity,
+  },
+  vision: {
+    title: "Symptom Vision Analysis",
+    subtitle:
+      "Inspect visible injuries, rashes, cuts, and burns with computer vision models.",
+    icon: Camera,
+  },
+  medication: {
+    title: "Medication & Prescription Scan",
+    subtitle:
+      "Extract active ingredients, standard dosing guidelines, and safety precautions from medication labels.",
+    icon: Pill,
+  },
+  hospitals: {
+    title: "Nearby Healthcare Facilities",
+    subtitle:
+      "Coordinate-based hospital locator with verified emergency departments and turn-by-turn routing.",
+    icon: MapPin,
+  },
+  history: {
+    title: "Assessment History Timeline",
+    subtitle:
+      "Confidential historical triage records with clinical reasoning summaries and PDF exports.",
+    icon: History,
+  },
+  profile: {
+    title: "Patient Health Profile",
+    subtitle:
+      "Confidential medical context, pre-existing conditions, and AI personalization consent.",
+    icon: UserCheck,
+  },
+  contacts: {
+    title: "Designated Emergency Contacts",
+    subtitle:
+      "Rapid one-tap calling contacts surfaced during critical and red-flag emergency screening.",
+    icon: PhoneCall,
+  },
+};
+
 export function DashboardView({
   activeTab: controlledTab,
   onTabChange,
-  showTabsHeader = true,
+  showTabsHeader = false,
 }: DashboardViewProps) {
-  const { user, signOut } = useAuth();
   const [internalTab, setInternalTab] = React.useState<ActiveTab>("triage");
-  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
 
   const activeTab = controlledTab ?? internalTab;
   const handleTabChange = (tab: ActiveTab) => {
@@ -55,143 +99,91 @@ export function DashboardView({
     onTabChange?.(tab);
   };
 
+  const currentMeta = tabMeta[activeTab] || tabMeta.triage;
+  const CurrentIcon = currentMeta.icon;
+
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col flex-1">
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
-
-      {/* Top Navigation & User State Bar */}
-      {showTabsHeader && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-4 mb-4 border-b border-border/50">
-          {/* Navigation Tabs */}
-          <nav className="flex items-center gap-1.5 p-1 rounded-xl bg-muted/60 border border-border/60 text-xs overflow-x-auto max-w-full">
-            <Button
-              size="sm"
-              variant={activeTab === "triage" ? "default" : "ghost"}
-              onClick={() => handleTabChange("triage")}
-              className="h-8 gap-1.5 rounded-lg text-xs"
-            >
-              <Activity className="size-3.5" />
-              Triage Chat
-            </Button>
-
-            <Button
-              size="sm"
-              variant={activeTab === "vision" ? "default" : "ghost"}
-              onClick={() => handleTabChange("vision")}
-              className="h-8 gap-1.5 rounded-lg text-xs"
-            >
-              <Camera className="size-3.5" />
-              Symptom Vision
-            </Button>
-
-            <Button
-              size="sm"
-              variant={activeTab === "medication" ? "default" : "ghost"}
-              onClick={() => handleTabChange("medication")}
-              className="h-8 gap-1.5 rounded-lg text-xs"
-            >
-              <Pill className="size-3.5" />
-              Medication Scan
-            </Button>
-
-            <Button
-              size="sm"
-              variant={activeTab === "hospitals" ? "default" : "ghost"}
-              onClick={() => handleTabChange("hospitals")}
-              className="h-8 gap-1.5 rounded-lg text-xs"
-            >
-              <MapPin className="size-3.5" />
-              Hospitals &amp; Clinics
-            </Button>
-
-            <Button
-              size="sm"
-              variant={activeTab === "history" ? "default" : "ghost"}
-              onClick={() => handleTabChange("history")}
-              className="h-8 gap-1.5 rounded-lg text-xs"
-            >
-              <History className="size-3.5" />
-              History
-            </Button>
-
-            <Button
-              size="sm"
-              variant={activeTab === "profile" ? "default" : "ghost"}
-              onClick={() => handleTabChange("profile")}
-              className="h-8 gap-1.5 rounded-lg text-xs"
-            >
-              <UserCheck className="size-3.5" />
-              Health Profile
-            </Button>
-
-            <Button
-              size="sm"
-              variant={activeTab === "contacts" ? "default" : "ghost"}
-              onClick={() => handleTabChange("contacts")}
-              className="h-8 gap-1.5 rounded-lg text-xs"
-            >
-              <PhoneCall className="size-3.5" />
-              Contacts
-            </Button>
-          </nav>
-
-          {/* User Account State Controls */}
-          <div className="flex items-center gap-2">
-            {user ? (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground hidden sm:inline-flex items-center gap-1">
-                  <User className="size-3" />
-                  {user.email}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => signOut()}
-                  className="h-8 text-xs gap-1.5"
-                  title="Sign out of account"
-                >
-                  <LogOut className="size-3" />
-                  Sign Out
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsAuthModalOpen(true)}
-                className="h-8 text-xs gap-1.5"
-              >
-                <LogIn className="size-3" />
-                Sign In / Register
-              </Button>
-            )}
+      {/* Clean Contextual Section Header (Replaces the duplicate secondary navbar) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-6 border-b border-border/50">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <span>TriageAI Workspace</span>
+            <ChevronRight className="size-3" />
+            <span className="text-primary font-bold flex items-center gap-1.5">
+              <CurrentIcon className="size-3.5" />
+              <span>{currentMeta.title}</span>
+            </span>
           </div>
+          <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
+            {currentMeta.title}
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {currentMeta.subtitle}
+          </p>
         </div>
-      )}
 
-      {/* Quick Summary Cards (Dashboard Overview) */}
-      {showTabsHeader && <DashboardSummaryCards onSelectTab={handleTabChange} />}
-
-      {/* Tab Content Rendering */}
-      <div className="flex-1 w-full">
-        {activeTab === "triage" && (
-          <div className="space-y-4">
-            <div className="text-center max-w-lg mx-auto mb-4">
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                Emergency Triage &amp; First-Aid
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                Describe symptoms to receive an educational urgency assessment and supportive care steps.
-              </p>
-            </div>
-            <SymptomChat
-              onLocateFacilities={() => handleTabChange("hospitals")}
-              onOpenVision={() => handleTabChange("vision")}
-            />
+        {/* Quick View Switcher Pills (Secondary fast jump without duplicate nav row) */}
+        {showTabsHeader && (
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-muted/40 border border-border/50 self-start sm:self-auto overflow-x-auto max-w-full text-xs">
+            <button
+              type="button"
+              onClick={() => handleTabChange("triage")}
+              className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+                activeTab === "triage"
+                  ? "bg-background text-primary shadow-xs font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Chat
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange("vision")}
+              className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+                activeTab === "vision"
+                  ? "bg-background text-primary shadow-xs font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Vision
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange("hospitals")}
+              className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+                activeTab === "hospitals"
+                  ? "bg-background text-primary shadow-xs font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Hospitals
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange("history")}
+              className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+                activeTab === "history"
+                  ? "bg-background text-primary shadow-xs font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              History
+            </button>
           </div>
+        )}
+      </div>
+
+      {/* Tab Content Rendering with Smooth Page Transition */}
+      <div
+        key={activeTab}
+        className="flex-1 w-full animate-in fade-in-50 duration-200 slide-in-from-bottom-2 motion-reduce:animate-none"
+      >
+        {activeTab === "triage" && (
+          <SymptomChat
+            onLocateFacilities={() => handleTabChange("hospitals")}
+            onOpenVision={() => handleTabChange("vision")}
+          />
         )}
 
         {activeTab === "vision" && (
@@ -199,12 +191,19 @@ export function DashboardView({
             onLocateFacilities={() => handleTabChange("hospitals")}
           />
         )}
+
         {activeTab === "medication" && <MedicationScanner />}
+
         {activeTab === "hospitals" && <HospitalMap />}
+
         {activeTab === "history" && (
-          <AssessmentHistoryView onStartAssessment={() => handleTabChange("triage")} />
+          <AssessmentHistoryView
+            onStartAssessment={() => handleTabChange("triage")}
+          />
         )}
+
         {activeTab === "profile" && <HealthProfileForm />}
+
         {activeTab === "contacts" && <EmergencyContactsManager />}
       </div>
     </div>

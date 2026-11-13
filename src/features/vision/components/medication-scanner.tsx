@@ -219,20 +219,28 @@ export function MedicationScanner() {
 
           {/* Additional Notes Input */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">
+            <label
+              htmlFor="medication-scan-notes"
+              className="text-sm font-semibold text-foreground cursor-pointer block"
+            >
               Additional Details (Optional):
             </label>
             <textarea
+              id="medication-scan-notes"
               value={additionalNotes}
               onChange={(e) => setAdditionalNotes(e.target.value)}
               placeholder="e.g. Any known markings, pill shape, or what you are taking it for..."
               rows={2}
-              className="w-full text-xs sm:text-sm p-3 rounded-xl border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full text-sm p-3.5 rounded-xl border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
 
           {errorMessage && (
-            <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs flex items-center gap-2">
+            <div
+              role="alert"
+              aria-live="polite"
+              className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs sm:text-sm font-medium flex items-center gap-2"
+            >
               <AlertTriangle className="size-4 shrink-0" />
               <span>{errorMessage}</span>
             </div>
@@ -259,8 +267,8 @@ export function MedicationScanner() {
           </Button>
 
           {/* Educational Disclaimer */}
-          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/30 border border-border/40 text-[11px] text-muted-foreground">
-            <Info className="size-3.5 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/40 text-xs sm:text-sm text-muted-foreground">
+            <Info className="size-4 shrink-0 mt-0.5 text-primary" />
             <span>
               <strong>Crucial Safety Warning:</strong> Never ingest unidentified pills or change prescribed dosages based solely on automated image scanning. Always verify with a licensed pharmacist or physician.
             </span>
@@ -268,18 +276,23 @@ export function MedicationScanner() {
         </div>
       ) : (
         /* Results View */
-        <div className="space-y-5 rounded-2xl border bg-card p-4 sm:p-6 shadow-sm animate-in fade-in-50 duration-200">
+        <div
+          role="region"
+          aria-live="polite"
+          aria-label="Medication Identification Results"
+          className="space-y-5 rounded-2xl border bg-card p-4 sm:p-6 shadow-sm animate-in fade-in-50 duration-200"
+        >
           {/* Header Card */}
-          <div className="p-4 rounded-xl border bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="p-4 sm:p-5 rounded-xl border bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Identified Medication
               </div>
-              <h3 className="text-xl font-extrabold text-foreground mt-0.5">
+              <h3 className="text-xl sm:text-2xl font-extrabold text-foreground mt-0.5">
                 {scanResult.identifiedName}
               </h3>
               {scanResult.genericName && (
-                <div className="text-xs text-primary font-medium mt-0.5">
+                <div className="text-xs sm:text-sm text-primary font-semibold mt-0.5">
                   Generic: {scanResult.genericName}
                 </div>
               )}
@@ -287,7 +300,7 @@ export function MedicationScanner() {
 
             <div className="flex items-center gap-2">
               <span
-                className={`text-[11px] font-bold uppercase px-2.5 py-1 rounded-full border ${
+                className={`text-xs font-bold uppercase px-3 py-1 rounded-full border ${
                   scanResult.confidence === "high"
                     ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
                     : scanResult.confidence === "moderate"
@@ -302,9 +315,9 @@ export function MedicationScanner() {
                 variant="outline"
                 size="sm"
                 onClick={handleReset}
-                className="text-xs h-8 gap-1 bg-background"
+                className="text-xs sm:text-sm h-9 gap-1.5 rounded-xl bg-background"
               >
-                <RotateCcw className="size-3" />
+                <RotateCcw className="size-3.5" />
                 Scan Another
               </Button>
             </div>
@@ -387,7 +400,7 @@ export function MedicationScanner() {
           </div>
 
           {/* Disclaimer Footer */}
-          <div className="text-[11px] text-muted-foreground bg-muted/30 p-2.5 rounded-lg border text-center">
+          <div className="text-xs sm:text-sm text-muted-foreground bg-muted/30 p-3 rounded-xl border text-center leading-relaxed">
             {scanResult.disclaimer}
           </div>
         </div>

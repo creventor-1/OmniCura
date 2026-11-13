@@ -18,11 +18,15 @@ interface DashboardSummaryCardsProps {
   onSelectTab: (tab: ActiveTab) => void;
 }
 
-export function DashboardSummaryCards({ onSelectTab }: DashboardSummaryCardsProps) {
+export function DashboardSummaryCards({
+  onSelectTab,
+}: DashboardSummaryCardsProps) {
   const { user } = useAuth();
   const supabase = React.useMemo(() => createClient(), []);
 
-  const [assessmentCount, setAssessmentCount] = React.useState<number | null>(null);
+  const [assessmentCount, setAssessmentCount] = React.useState<number | null>(
+    null
+  );
   const [latestUrgency, setLatestUrgency] = React.useState<string | null>(null);
   const [hasProfile, setHasProfile] = React.useState<boolean | null>(null);
   const [contactCount, setContactCount] = React.useState<number | null>(null);
@@ -94,35 +98,40 @@ export function DashboardSummaryCards({ onSelectTab }: DashboardSummaryCardsProp
     };
   }, [user, supabase]);
 
-  const urgencyPillStyles = {
-    "non-urgent": "text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/30",
-    urgent: "text-amber-700 dark:text-amber-300 bg-amber-500/10 border-amber-500/30",
-    emergency: "text-red-700 dark:text-red-300 bg-red-500/10 border-red-500/30",
-  }[latestUrgency?.toLowerCase() || ""] || "text-muted-foreground bg-muted border-border/50";
+  const urgencyPillStyles =
+    {
+      "non-urgent":
+        "text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/30",
+      urgent:
+        "text-amber-700 dark:text-amber-300 bg-amber-500/10 border-amber-500/30",
+      emergency:
+        "text-red-700 dark:text-red-300 bg-red-500/10 border-red-500/30",
+    }[latestUrgency?.toLowerCase() || ""] ||
+    "text-muted-foreground bg-muted border-border/50";
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full mb-5">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 w-full">
       {/* Card 1: Assessments Completed */}
       <button
         type="button"
         onClick={() => onSelectTab("history")}
-        className="rounded-2xl border border-border/70 bg-card p-3.5 sm:p-4 text-left hover:border-primary/50 hover:shadow-xs transition-all group flex flex-col justify-between"
+        className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 text-left hover:border-primary/50 hover:shadow-xs transition-all group flex flex-col justify-between"
       >
         <div className="flex items-center justify-between w-full">
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
             Assessments
           </span>
-          <div className="size-7 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
-            <Activity className="size-3.5" />
+          <div className="size-8 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+            <Activity className="size-4" />
           </div>
         </div>
         <div className="pt-2">
-          <div className="text-xl sm:text-2xl font-black text-foreground">
+          <div className="text-2xl sm:text-3xl font-black text-foreground">
             {isLoading ? "—" : (assessmentCount ?? 0)}
           </div>
-          <div className="text-[11px] text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors mt-0.5">
+          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors mt-1 font-medium">
             <span>Review past triage</span>
-            <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+            <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
           </div>
         </div>
       </button>
@@ -131,14 +140,14 @@ export function DashboardSummaryCards({ onSelectTab }: DashboardSummaryCardsProp
       <button
         type="button"
         onClick={() => onSelectTab("history")}
-        className="rounded-2xl border border-border/70 bg-card p-3.5 sm:p-4 text-left hover:border-primary/50 hover:shadow-xs transition-all group flex flex-col justify-between"
+        className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 text-left hover:border-primary/50 hover:shadow-xs transition-all group flex flex-col justify-between"
       >
         <div className="flex items-center justify-between w-full">
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
             Latest Result
           </span>
-          <div className="size-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-            <Clock className="size-3.5" />
+          <div className="size-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <Clock className="size-4" />
           </div>
         </div>
         <div className="pt-2">
@@ -147,15 +156,15 @@ export function DashboardSummaryCards({ onSelectTab }: DashboardSummaryCardsProp
               "—"
             ) : (
               <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-bold uppercase ${urgencyPillStyles}`}
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full border text-xs font-bold uppercase ${urgencyPillStyles}`}
               >
                 {latestUrgency || "None"}
               </span>
             )}
           </div>
-          <div className="text-[11px] text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors mt-1">
+          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors mt-1 font-medium">
             <span>Urgency status</span>
-            <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+            <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
           </div>
         </div>
       </button>
@@ -164,14 +173,14 @@ export function DashboardSummaryCards({ onSelectTab }: DashboardSummaryCardsProp
       <button
         type="button"
         onClick={() => onSelectTab("profile")}
-        className="rounded-2xl border border-border/70 bg-card p-3.5 sm:p-4 text-left hover:border-primary/50 hover:shadow-xs transition-all group flex flex-col justify-between"
+        className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 text-left hover:border-primary/50 hover:shadow-xs transition-all group flex flex-col justify-between"
       >
         <div className="flex items-center justify-between w-full">
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
             Health Profile
           </span>
-          <div className="size-7 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
-            <HeartPulse className="size-3.5" />
+          <div className="size-8 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+            <HeartPulse className="size-4" />
           </div>
         </div>
         <div className="pt-2">
@@ -179,20 +188,20 @@ export function DashboardSummaryCards({ onSelectTab }: DashboardSummaryCardsProp
             {isLoading ? (
               "—"
             ) : hasProfile ? (
-              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 text-xs sm:text-sm">
+              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 text-xs sm:text-sm font-bold">
                 <ShieldCheck className="size-4 shrink-0" />
                 Configured
               </span>
             ) : (
-              <span className="text-muted-foreground flex items-center gap-1 text-xs">
+              <span className="text-muted-foreground flex items-center gap-1 text-xs sm:text-sm font-medium">
                 <AlertTriangle className="size-3.5 text-amber-500 shrink-0" />
                 Setup Profile
               </span>
             )}
           </div>
-          <div className="text-[11px] text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors mt-0.5">
+          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors mt-1 font-medium">
             <span>Manage medical bio</span>
-            <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+            <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
           </div>
         </div>
       </button>
@@ -201,23 +210,23 @@ export function DashboardSummaryCards({ onSelectTab }: DashboardSummaryCardsProp
       <button
         type="button"
         onClick={() => onSelectTab("contacts")}
-        className="rounded-2xl border border-border/70 bg-card p-3.5 sm:p-4 text-left hover:border-primary/50 hover:shadow-xs transition-all group flex flex-col justify-between"
+        className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 text-left hover:border-primary/50 hover:shadow-xs transition-all group flex flex-col justify-between"
       >
         <div className="flex items-center justify-between w-full">
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
             Emergency Contacts
           </span>
-          <div className="size-7 rounded-lg bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center">
-            <PhoneCall className="size-3.5" />
+          <div className="size-8 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center">
+            <PhoneCall className="size-4" />
           </div>
         </div>
         <div className="pt-2">
-          <div className="text-xl sm:text-2xl font-black text-foreground">
+          <div className="text-2xl sm:text-3xl font-black text-foreground">
             {isLoading ? "—" : (contactCount ?? 0)}
           </div>
-          <div className="text-[11px] text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors mt-0.5">
+          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-primary transition-colors mt-1 font-medium">
             <span>Quick-call responders</span>
-            <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+            <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
           </div>
         </div>
       </button>
