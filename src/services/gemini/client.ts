@@ -12,7 +12,9 @@ export const FLASH_MODEL_CANDIDATES = [
   "gemini-3.8-flash",
 ];
 
-export type GeminiMessagePart = { text: string };
+export type GeminiMessagePart =
+  | { text: string }
+  | { inlineData: { mimeType: string; data: string } };
 export type GeminiContentItem = { role?: string; parts: GeminiMessagePart[] };
 export type GeminiContent = string | GeminiContentItem[];
 
@@ -48,7 +50,7 @@ export async function generateWithFallback(
             responseSchema: options.responseSchema,
             temperature: 0.2, // Low temperature for deterministic, careful triage
           },
-          contents: options.contents as unknown as string,
+          contents: options.contents as unknown as Parameters<typeof client.models.generateContent>[0]["contents"],
         });
 
         if (result && result.text) {

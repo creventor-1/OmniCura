@@ -10,6 +10,8 @@ import {
   LogOut,
   User,
   MapPin,
+  Camera,
+  Pill,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/authentication/context/auth-context";
@@ -19,8 +21,17 @@ import { AssessmentHistoryView } from "@/features/triage/components/assessment-h
 import { HealthProfileForm } from "@/features/health-profile/components/health-profile-form";
 import { EmergencyContactsManager } from "@/features/safety/components/emergency-contacts-manager";
 import { HospitalMap } from "@/components/map/hospital-map";
+import { ImageSymptomAnalyzer } from "@/features/vision/components/image-symptom-analyzer";
+import { MedicationScanner } from "@/features/vision/components/medication-scanner";
 
-type ActiveTab = "triage" | "hospitals" | "history" | "profile" | "contacts";
+type ActiveTab =
+  | "triage"
+  | "vision"
+  | "medication"
+  | "hospitals"
+  | "history"
+  | "profile"
+  | "contacts";
 
 export function DashboardView() {
   const { user, signOut } = useAuth();
@@ -46,6 +57,26 @@ export function DashboardView() {
           >
             <Activity className="size-3.5" />
             Triage Chat
+          </Button>
+
+          <Button
+            size="sm"
+            variant={activeTab === "vision" ? "default" : "ghost"}
+            onClick={() => setActiveTab("vision")}
+            className="h-8 gap-1.5 rounded-lg text-xs"
+          >
+            <Camera className="size-3.5" />
+            Symptom Vision
+          </Button>
+
+          <Button
+            size="sm"
+            variant={activeTab === "medication" ? "default" : "ghost"}
+            onClick={() => setActiveTab("medication")}
+            className="h-8 gap-1.5 rounded-lg text-xs"
+          >
+            <Pill className="size-3.5" />
+            Medication Scan
           </Button>
 
           <Button
@@ -134,10 +165,19 @@ export function DashboardView() {
                 Describe symptoms to receive an educational urgency assessment and supportive care steps.
               </p>
             </div>
-            <SymptomChat onLocateFacilities={() => setActiveTab("hospitals")} />
+            <SymptomChat
+              onLocateFacilities={() => setActiveTab("hospitals")}
+              onOpenVision={() => setActiveTab("vision")}
+            />
           </div>
         )}
 
+        {activeTab === "vision" && (
+          <ImageSymptomAnalyzer
+            onLocateFacilities={() => setActiveTab("hospitals")}
+          />
+        )}
+        {activeTab === "medication" && <MedicationScanner />}
         {activeTab === "hospitals" && <HospitalMap />}
         {activeTab === "history" && <AssessmentHistoryView />}
         {activeTab === "profile" && <HealthProfileForm />}

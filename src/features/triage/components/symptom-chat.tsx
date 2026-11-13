@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Send, Mic, MicOff, Bot, User, RefreshCw } from "lucide-react";
+import { Send, Mic, MicOff, Bot, User, RefreshCw, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
@@ -49,9 +49,10 @@ interface WindowWithSpeech extends Window {
 
 interface SymptomChatProps {
   onLocateFacilities?: () => void;
+  onOpenVision?: () => void;
 }
 
-export function SymptomChat({ onLocateFacilities }: SymptomChatProps) {
+export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatProps) {
   const { user, setGuestAssessment } = useAuth();
   const supabase = React.useMemo(() => createClient(), []);
 
@@ -471,6 +472,20 @@ export function SymptomChat({ onLocateFacilities }: SymptomChatProps) {
                 {isListening ? <MicOff className="size-4" /> : <Mic className="size-4" />}
                 <span className="sr-only">Voice input</span>
               </Button>
+
+              {onOpenVision && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={onOpenVision}
+                  className="size-10 shrink-0 text-muted-foreground hover:text-primary transition-colors"
+                  title="Upload visible symptom photo (rash, cut, burn)"
+                >
+                  <Camera className="size-4" />
+                  <span className="sr-only">Upload symptom image</span>
+                </Button>
+              )}
 
               <Input
                 value={inputValue}
