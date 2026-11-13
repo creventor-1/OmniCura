@@ -13,6 +13,7 @@ import {
 import { useAuth } from "@/features/authentication/context/auth-context";
 import { createClient } from "@/services/database/supabase/client";
 import { ActiveTab } from "./dashboard-view";
+import { SeverityBadge } from "@/components/shared/severity-badge";
 
 interface DashboardSummaryCardsProps {
   onSelectTab: (tab: ActiveTab) => void;
@@ -98,30 +99,19 @@ export function DashboardSummaryCards({
     };
   }, [user, supabase]);
 
-  const urgencyPillStyles =
-    {
-      "non-urgent":
-        "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-      urgent:
-        "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
-      emergency:
-        "border-destructive/30 bg-destructive/10 text-destructive",
-    }[latestUrgency?.toLowerCase() || ""] ||
-    "border-border bg-muted text-muted-foreground";
-
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 w-full">
       {/* Card 1: Assessments Completed */}
       <button
         type="button"
         onClick={() => onSelectTab("history")}
-        className="rounded-xl border border-border bg-card p-4 text-left hover:border-border-strong transition-colors group flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="rounded-xl border border-border-subtle bg-surface p-4 text-left hover:border-border-strong hover:shadow-card-hover transition-all duration-180 group flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
       >
         <div className="flex items-center justify-between w-full">
-          <span className="text-xs font-medium text-muted-foreground">
+          <span className="text-xs font-semibold text-text-secondary">
             Assessments
           </span>
-          <div className="size-7 rounded-md bg-muted text-muted-foreground flex items-center justify-center border border-border/60">
+          <div className="size-7 rounded-md bg-secondary text-text-secondary flex items-center justify-center border border-border-subtle">
             <Activity className="size-3.5" />
           </div>
         </div>
@@ -129,7 +119,7 @@ export function DashboardSummaryCards({
           <div className="text-2xl font-semibold tabular-nums text-foreground tracking-tight">
             {isLoading ? "—" : (assessmentCount ?? 0)}
           </div>
-          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-foreground transition-colors mt-1">
+          <div className="text-xs text-text-secondary flex items-center gap-1 group-hover:text-foreground transition-colors mt-1">
             <span>Historical log</span>
             <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
           </div>
@@ -140,13 +130,13 @@ export function DashboardSummaryCards({
       <button
         type="button"
         onClick={() => onSelectTab("history")}
-        className="rounded-xl border border-border bg-card p-4 text-left hover:border-border-strong transition-colors group flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="rounded-xl border border-border-subtle bg-surface p-4 text-left hover:border-border-strong hover:shadow-card-hover transition-all duration-180 group flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
       >
         <div className="flex items-center justify-between w-full">
-          <span className="text-xs font-medium text-muted-foreground">
+          <span className="text-xs font-semibold text-text-secondary">
             Latest Urgency
           </span>
-          <div className="size-7 rounded-md bg-muted text-muted-foreground flex items-center justify-center border border-border/60">
+          <div className="size-7 rounded-md bg-secondary text-text-secondary flex items-center justify-center border border-border-subtle">
             <Clock className="size-3.5" />
           </div>
         </div>
@@ -154,15 +144,15 @@ export function DashboardSummaryCards({
           <div className="text-sm font-medium truncate">
             {isLoading ? (
               "—"
+            ) : latestUrgency && latestUrgency !== "None" && latestUrgency !== "Guest Session" ? (
+              <SeverityBadge severity={latestUrgency} />
             ) : (
-              <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-medium capitalize ${urgencyPillStyles}`}
-              >
+              <span className="text-xs text-text-secondary font-medium">
                 {latestUrgency || "None"}
               </span>
             )}
           </div>
-          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-foreground transition-colors mt-1.5">
+          <div className="text-xs text-text-secondary flex items-center gap-1 group-hover:text-foreground transition-colors mt-1.5">
             <span>Clinical status</span>
             <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
           </div>
@@ -173,13 +163,13 @@ export function DashboardSummaryCards({
       <button
         type="button"
         onClick={() => onSelectTab("profile")}
-        className="rounded-xl border border-border bg-card p-4 text-left hover:border-border-strong transition-colors group flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="rounded-xl border border-border-subtle bg-surface p-4 text-left hover:border-border-strong hover:shadow-card-hover transition-all duration-180 group flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
       >
         <div className="flex items-center justify-between w-full">
-          <span className="text-xs font-medium text-muted-foreground">
+          <span className="text-xs font-semibold text-text-secondary">
             Patient Bio
           </span>
-          <div className="size-7 rounded-md bg-muted text-muted-foreground flex items-center justify-center border border-border/60">
+          <div className="size-7 rounded-md bg-secondary text-text-secondary flex items-center justify-center border border-border-subtle">
             <HeartPulse className="size-3.5" />
           </div>
         </div>
@@ -188,18 +178,18 @@ export function DashboardSummaryCards({
             {isLoading ? (
               "—"
             ) : hasProfile ? (
-              <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1 text-xs font-medium">
+              <span className="text-success flex items-center gap-1 text-xs font-semibold">
                 <ShieldCheck className="size-3.5 shrink-0" />
                 Configured
               </span>
             ) : (
-              <span className="text-muted-foreground flex items-center gap-1 text-xs">
-                <AlertTriangle className="size-3 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span className="text-text-secondary flex items-center gap-1 text-xs">
+                <AlertTriangle className="size-3 text-warning-text shrink-0" />
                 Setup Needed
               </span>
             )}
           </div>
-          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-foreground transition-colors mt-1.5">
+          <div className="text-xs text-text-secondary flex items-center gap-1 group-hover:text-foreground transition-colors mt-1.5">
             <span>Medical context</span>
             <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
           </div>
@@ -210,13 +200,13 @@ export function DashboardSummaryCards({
       <button
         type="button"
         onClick={() => onSelectTab("contacts")}
-        className="rounded-xl border border-border bg-card p-4 text-left hover:border-border-strong transition-colors group flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="rounded-xl border border-border-subtle bg-surface p-4 text-left hover:border-border-strong hover:shadow-card-hover transition-all duration-180 group flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
       >
         <div className="flex items-center justify-between w-full">
-          <span className="text-xs font-medium text-muted-foreground">
+          <span className="text-xs font-semibold text-text-secondary">
             Emergency Contacts
           </span>
-          <div className="size-7 rounded-md bg-muted text-muted-foreground flex items-center justify-center border border-border/60">
+          <div className="size-7 rounded-md bg-secondary text-text-secondary flex items-center justify-center border border-border-subtle">
             <PhoneCall className="size-3.5" />
           </div>
         </div>
@@ -224,7 +214,7 @@ export function DashboardSummaryCards({
           <div className="text-2xl font-semibold tabular-nums text-foreground tracking-tight">
             {isLoading ? "—" : (contactCount ?? 0)}
           </div>
-          <div className="text-xs text-muted-foreground flex items-center gap-1 group-hover:text-foreground transition-colors mt-1">
+          <div className="text-xs text-text-secondary flex items-center gap-1 group-hover:text-foreground transition-colors mt-1">
             <span>Quick-call responders</span>
             <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
           </div>

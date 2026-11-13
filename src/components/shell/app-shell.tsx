@@ -11,7 +11,6 @@ import {
   PhoneCall,
   LayoutDashboard,
   Menu,
-  X,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -85,11 +84,10 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
       ? internalCollapsed
       : isClient &&
         typeof window !== "undefined" &&
-        localStorage.getItem("triage_sidebar_collapsed") === "true";
+        localStorage.getItem("omnicura_sidebar_collapsed") === "true";
 
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = React.useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
-  const drawerRef = React.useRef<HTMLDivElement>(null);
 
   const emergencyNumber =
     process.env.NEXT_PUBLIC_DEFAULT_EMERGENCY_NUMBER || "112";
@@ -98,7 +96,7 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
     const next = !isCollapsed;
     setInternalCollapsed(next);
     try {
-      localStorage.setItem("triage_sidebar_collapsed", String(next));
+      localStorage.setItem("omnicura_sidebar_collapsed", String(next));
     } catch {
       // ignore in environments without localStorage
     }
@@ -109,7 +107,7 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
     setIsMobileDrawerOpen(false);
   };
 
-  // Keyboard navigation / Focus trapping for mobile drawer
+  // Keyboard navigation for mobile drawer
   React.useEffect(() => {
     if (!isMobileDrawerOpen) return;
 
@@ -126,7 +124,7 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
   const currentCrumb = sectionBreadcrumbs[activeSection] || sectionBreadcrumbs.home;
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground selection:bg-accent/15 selection:text-accent font-sans antialiased">
+    <div className="flex min-h-screen bg-app text-foreground selection:bg-accent/15 selection:text-accent font-sans antialiased">
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
@@ -134,16 +132,16 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
 
       {/* 1. Desktop & Tablet Left Sidebar */}
       <aside
-        className={`hidden md:flex flex-col border-r border-border bg-sidebar shrink-0 transition-all duration-180 ease-out z-30 select-none ${
+        className={`hidden md:flex flex-col border-r border-border-subtle glass-chrome shrink-0 transition-all duration-180 ease-out z-30 select-none ${
           isCollapsed ? "w-16" : "w-60"
         }`}
       >
         {/* Brand Header */}
-        <div className="h-14 border-b border-border flex items-center justify-between px-3.5">
+        <div className="h-14 border-b border-border-subtle flex items-center justify-between px-3.5">
           <button
             type="button"
             onClick={() => handleNavClick("home")}
-            className="flex items-center gap-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg overflow-hidden"
+            className="flex items-center gap-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg overflow-hidden cursor-pointer"
             title="Omnicura Home"
           >
             <OmnicuraLogo size="sm" showWordmark={!isCollapsed} />
@@ -153,7 +151,7 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
             <button
               type="button"
               onClick={toggleCollapsed}
-              className="size-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="size-7 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
               title="Collapse sidebar rail"
               aria-label="Collapse sidebar rail"
             >
@@ -167,7 +165,7 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
           {navGroups.map((group, gIdx) => (
             <div key={gIdx} className="space-y-1">
               {!isCollapsed && (
-                <div className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+                <div className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
                   {group.group}
                 </div>
               )}
@@ -182,10 +180,10 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
                       type="button"
                       onClick={() => handleNavClick(item.id)}
                       title={item.label}
-                      className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring relative ${
+                      className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-120 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring relative cursor-pointer ${
                         isActive
-                          ? "bg-muted text-foreground font-medium"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          ? "bg-accent/10 text-foreground font-semibold"
+                          : "text-text-secondary hover:text-foreground hover:bg-muted/60"
                       } ${isCollapsed ? "justify-center px-0" : ""}`}
                     >
                       {isActive && (
@@ -193,7 +191,7 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
                       )}
                       <Icon
                         className={`size-4 shrink-0 stroke-[1.75] ${
-                          isActive ? "text-accent" : "text-muted-foreground"
+                          isActive ? "text-accent" : "text-text-secondary"
                         }`}
                       />
                       {!isCollapsed && <span className="truncate">{item.label}</span>}
@@ -206,11 +204,11 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
         </div>
 
         {/* Sidebar Footer Controls */}
-        <div className="p-2 border-t border-border space-y-1.5 bg-sidebar">
+        <div className="p-2 border-t border-border-subtle space-y-1.5">
           {/* Emergency Hotline Button */}
           <a
             href={`tel:${emergencyNumber}`}
-            className={`w-full flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-destructive border border-destructive/25 bg-destructive/5 hover:bg-destructive/10 transition-colors ${
+            className={`w-full flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-danger border border-danger/25 bg-danger-muted hover:opacity-90 transition-opacity ${
               isCollapsed ? "justify-center px-0" : ""
             }`}
             title={`Direct Emergency Dial ${emergencyNumber}`}
@@ -222,16 +220,16 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
           {/* User Account Bar */}
           {user ? (
             <div
-              className={`flex items-center gap-2 p-1.5 rounded-lg border border-border/60 bg-muted/30 ${
+              className={`flex items-center gap-2 p-1.5 rounded-lg border border-border-subtle bg-surface ${
                 isCollapsed ? "justify-center" : "justify-between"
               }`}
             >
               {!isCollapsed && (
                 <div className="flex items-center gap-2 min-w-0 pr-1">
-                  <div className="size-6 rounded-md bg-muted text-muted-foreground flex items-center justify-center shrink-0 text-xs font-medium border border-border">
+                  <div className="size-6 rounded-md bg-secondary text-text-secondary flex items-center justify-center shrink-0 text-xs font-medium border border-border-subtle">
                     <UserIcon className="size-3.5" />
                   </div>
-                  <span className="text-xs text-muted-foreground truncate max-w-[110px]">
+                  <span className="text-xs text-text-secondary truncate max-w-[110px]">
                     {user.email}
                   </span>
                 </div>
@@ -239,7 +237,7 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
               <button
                 type="button"
                 onClick={() => signOut()}
-                className="size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center shrink-0"
+                className="size-7 rounded-md text-text-secondary hover:text-foreground hover:bg-muted flex items-center justify-center shrink-0 cursor-pointer"
                 title="Sign out of account"
               >
                 <LogOut className="size-3.5" />
@@ -266,7 +264,7 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
               <button
                 type="button"
                 onClick={toggleCollapsed}
-                className="size-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center transition-colors border border-border/70"
+                className="size-9 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted flex items-center justify-center transition-colors border border-border-subtle cursor-pointer"
                 title="Expand sidebar"
                 aria-label="Expand sidebar"
               >
@@ -280,27 +278,27 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
       {/* 2. Main Viewport & Layout */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         {/* Top Application Bar */}
-        <header className="sticky top-0 z-20 h-14 border-b border-border bg-card/85 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between gap-3">
+        <header className="sticky top-0 z-20 h-14 border-b border-border-subtle glass-chrome px-4 sm:px-6 flex items-center justify-between gap-3">
           {/* Breadcrumbs & Mobile Trigger */}
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setIsMobileDrawerOpen(true)}
-              className="md:hidden size-9 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground"
+              className="md:hidden size-9 rounded-lg border border-border-subtle flex items-center justify-center text-text-secondary hover:text-foreground cursor-pointer"
               aria-label="Open navigation drawer"
             >
               <Menu className="size-4" />
             </button>
 
-            <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground min-w-0">
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm text-text-secondary min-w-0">
               <span className="font-semibold text-foreground hidden sm:inline">
                 Omnicura
               </span>
-              <span className="hidden sm:inline text-muted-foreground/60">/</span>
-              <span className="text-muted-foreground truncate">
+              <span className="hidden sm:inline text-text-tertiary">/</span>
+              <span className="text-text-secondary truncate">
                 {currentCrumb.section}
               </span>
-              <span className="text-muted-foreground/60">/</span>
+              <span className="text-text-tertiary">/</span>
               <span className="font-medium text-foreground truncate">
                 {currentCrumb.title}
               </span>
@@ -310,15 +308,15 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
           {/* Top Actions: Medical Disclaimer, SOS Dial, Theme, User */}
           <div className="flex items-center gap-2.5 shrink-0">
             {/* Restrained Clinical Disclaimer Chip */}
-            <div className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border/80 bg-muted/40 text-[11px] text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-emerald-500" />
+            <div className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border-subtle bg-surface text-[11px] text-text-secondary">
+              <span className="size-1.5 rounded-full bg-success" />
               <span>Clinical Decision Support • Non-Diagnostic</span>
             </div>
 
-            {/* Discrete SOS 112 Dial */}
+            {/* Discrete SOS Dial (Reachable in one tap) */}
             <a
               href={`tel:${emergencyNumber}`}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-xs font-semibold hover:bg-destructive/10 transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-danger/30 bg-danger-muted text-danger text-xs font-semibold hover:opacity-90 transition-opacity"
               title={`Call Emergency Hotline ${emergencyNumber}`}
             >
               <PhoneCall className="size-3" />
@@ -342,21 +340,25 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
           </div>
         </header>
 
-        {/* Page Content Body */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto pb-20 md:pb-8">
+        {/* Page Content Body with faint radial teal glow behind header */}
+        <main className="flex-1 relative p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto pb-20 md:pb-8">
+          <div
+            className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 bg-radial from-accent/5 to-transparent blur-2xl -z-10"
+            aria-hidden="true"
+          />
           {children}
         </main>
 
-        {/* 3. Mobile Bottom Tab Bar (< md) */}
+        {/* 3. Mobile Bottom Tab Bar (< md) - Max 5 Items */}
         <nav
           aria-label="Mobile quick tabs"
-          className="md:hidden fixed bottom-0 left-0 right-0 z-30 h-14 bg-card/95 backdrop-blur-md border-t border-border grid grid-cols-5 items-center px-1 text-[11px]"
+          className="md:hidden fixed bottom-0 left-0 right-0 z-30 h-14 glass-chrome border-t border-border-subtle grid grid-cols-5 items-center px-1 text-[11px] pb-safe"
         >
           <button
             type="button"
             onClick={() => handleNavClick("home")}
-            className={`flex flex-col items-center justify-center gap-0.5 py-1 ${
-              activeSection === "home" ? "text-accent font-semibold" : "text-muted-foreground"
+            className={`flex flex-col items-center justify-center gap-0.5 py-1 cursor-pointer ${
+              activeSection === "home" ? "text-accent font-semibold" : "text-text-secondary"
             }`}
           >
             <LayoutDashboard className="size-4" />
@@ -366,8 +368,8 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
           <button
             type="button"
             onClick={() => handleNavClick("triage")}
-            className={`flex flex-col items-center justify-center gap-0.5 py-1 ${
-              activeSection === "triage" ? "text-accent font-semibold" : "text-muted-foreground"
+            className={`flex flex-col items-center justify-center gap-0.5 py-1 cursor-pointer ${
+              activeSection === "triage" ? "text-accent font-semibold" : "text-text-secondary"
             }`}
           >
             <Activity className="size-4" />
@@ -377,8 +379,8 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
           <button
             type="button"
             onClick={() => handleNavClick("vision")}
-            className={`flex flex-col items-center justify-center gap-0.5 py-1 ${
-              activeSection === "vision" ? "text-accent font-semibold" : "text-muted-foreground"
+            className={`flex flex-col items-center justify-center gap-0.5 py-1 cursor-pointer ${
+              activeSection === "vision" ? "text-accent font-semibold" : "text-text-secondary"
             }`}
           >
             <Camera className="size-4" />
@@ -388,117 +390,116 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
           <button
             type="button"
             onClick={() => handleNavClick("hospitals")}
-            className={`flex flex-col items-center justify-center gap-0.5 py-1 ${
-              activeSection === "hospitals" ? "text-accent font-semibold" : "text-muted-foreground"
+            className={`flex flex-col items-center justify-center gap-0.5 py-1 cursor-pointer ${
+              activeSection === "hospitals" ? "text-accent font-semibold" : "text-text-secondary"
             }`}
           >
             <MapPin className="size-4" />
-            <span>Map</span>
+            <span>Hospitals</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setIsMobileDrawerOpen(true)}
-            className="flex flex-col items-center justify-center gap-0.5 py-1 text-muted-foreground hover:text-foreground"
+            onClick={() => handleNavClick("history")}
+            className={`flex flex-col items-center justify-center gap-0.5 py-1 cursor-pointer ${
+              activeSection === "history" ? "text-accent font-semibold" : "text-text-secondary"
+            }`}
           >
-            <Menu className="size-4" />
-            <span>More</span>
+            <History className="size-4" />
+            <span>History</span>
           </button>
         </nav>
       </div>
 
-      {/* 4. Accessible Mobile Drawer Overlay */}
+      {/* 4. Mobile Drawer Overlay */}
       {isMobileDrawerOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Mobile Navigation"
-          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex md:hidden animate-in fade-in-50 duration-180"
-          onClick={() => setIsMobileDrawerOpen(false)}
+          aria-label="Navigation Menu"
+          className="md:hidden fixed inset-0 z-50 flex"
         >
           <div
-            ref={drawerRef}
-            onClick={(e) => e.stopPropagation()}
-            className="w-72 max-w-[85%] bg-card h-full border-r border-border p-4 flex flex-col justify-between animate-in slide-in-from-left duration-200"
-          >
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-border">
-                <OmnicuraLogo size="sm" showWordmark />
-                <button
-                  type="button"
-                  onClick={() => setIsMobileDrawerOpen(false)}
-                  className="size-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground"
-                  aria-label="Close navigation drawer"
-                >
-                  <X className="size-4" />
-                </button>
-              </div>
+            className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-180"
+            onClick={() => setIsMobileDrawerOpen(false)}
+          />
 
-              {/* Navigation groups */}
-              <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-180px)] pr-1">
-                {navGroups.map((group, idx) => (
-                  <div key={idx} className="space-y-1">
-                    <div className="px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {group.group}
-                    </div>
+          <div
+            className="relative flex flex-col w-4/5 max-w-xs h-full bg-surface border-r border-border-subtle p-4 space-y-4 shadow-overlay z-10 animate-in slide-in-from-left duration-240"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+              <OmnicuraLogo size="sm" showWordmark />
+              <button
+                type="button"
+                onClick={() => setIsMobileDrawerOpen(false)}
+                className="size-8 rounded-lg text-text-secondary hover:text-foreground flex items-center justify-center cursor-pointer"
+                aria-label="Close menu"
+              >
+                <ChevronLeft className="size-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4">
+              {navGroups.map((group, idx) => (
+                <div key={idx} className="space-y-1">
+                  <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                    {group.group}
+                  </div>
+                  <div className="space-y-0.5">
                     {group.items.map((item) => {
                       const Icon = item.icon;
                       const isActive = activeSection === item.id;
-
                       return (
                         <button
                           key={item.id}
                           type="button"
                           onClick={() => handleNavClick(item.id)}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                          className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-left transition-colors cursor-pointer ${
                             isActive
-                              ? "bg-accent/10 text-accent font-semibold border border-accent/20"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                              ? "bg-accent/10 text-foreground font-semibold"
+                              : "text-text-secondary hover:bg-muted"
                           }`}
                         >
-                          <Icon className="size-4 shrink-0" />
+                          <Icon className={`size-4.5 ${isActive ? "text-accent" : "text-text-secondary"}`} />
                           <span>{item.label}</span>
                         </button>
                       );
                     })}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
 
-            {/* Bottom Actions in Drawer */}
-            <div className="pt-3 border-t border-border space-y-2">
+            <div className="pt-3 border-t border-border-subtle space-y-2">
               <a
                 href={`tel:${emergencyNumber}`}
-                className="w-full flex items-center justify-center gap-1.5 h-9 rounded-lg bg-destructive text-destructive-foreground font-semibold text-xs"
+                className="w-full flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-semibold text-danger border border-danger/30 bg-danger-muted"
               >
-                <PhoneCall className="size-3.5" />
-                <span>Call Emergency Hotline ({emergencyNumber})</span>
+                <PhoneCall className="size-4" />
+                <span>Call Emergency ({emergencyNumber})</span>
               </a>
 
-              {user ? (
+              {!user ? (
+                <Button
+                  className="w-full text-xs h-9"
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    setIsAuthModalOpen(true);
+                  }}
+                >
+                  Sign In / Register
+                </Button>
+              ) : (
                 <Button
                   variant="outline"
-                  size="sm"
+                  className="w-full text-xs h-9 gap-1.5"
                   onClick={() => {
                     signOut();
                     setIsMobileDrawerOpen(false);
                   }}
-                  className="w-full h-9 text-xs"
                 >
-                  Sign Out ({user.email})
-                </Button>
-              ) : (
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => {
-                    setIsAuthModalOpen(true);
-                    setIsMobileDrawerOpen(false);
-                  }}
-                  className="w-full h-9 text-xs"
-                >
-                  Sign In / Register
+                  <LogOut className="size-3.5" />
+                  <span>Sign Out ({user.email})</span>
                 </Button>
               )}
             </div>

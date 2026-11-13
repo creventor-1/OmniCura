@@ -10,6 +10,7 @@ import { DisclaimerModal } from "./disclaimer-modal";
 import { AssessmentResultView } from "./assessment-result-view";
 import { DemoScenarios } from "./demo-scenarios";
 import { AudioWaveformVisualizer } from "@/components/audio/audio-waveform-visualizer";
+import { RedFlagBanner } from "@/components/emergency/red-flag-banner";
 import { TriageMessage, AssessmentResponse, TriageTurnResponse } from "@/schemas/triage";
 import { RedFlagCheckResult } from "@/types";
 import { useAuth } from "@/features/authentication/context/auth-context";
@@ -351,6 +352,12 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
       <EmergencyAlertModal
         isOpen={isEmergencyModalOpen}
         onClose={() => setIsEmergencyModalOpen(false)}
+        result={emergencyResult}
+        onLocateFacilities={onLocateFacilities}
+      />
+
+      {/* Synchronous Deterministic RedFlagBanner (Top of View, Solid Surface) */}
+      <RedFlagBanner
         result={emergencyResult}
         onLocateFacilities={onLocateFacilities}
       />

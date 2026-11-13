@@ -50,20 +50,15 @@ export function HospitalMap() {
   const [isLocating, setIsLocating] = React.useState(false);
   const [isLoadingFacilities, setIsLoadingFacilities] = React.useState(true);
   const [geoStatus, setGeoStatus] = React.useState<"idle" | "granted" | "denied" | "unavailable">("idle");
-  const [geoNotice, setGeoNotice] = React.useState<string | null>(null);
 
   // 1. Geolocation detection function
   const detectUserLocation = React.useCallback(() => {
     if (typeof window === "undefined" || !("geolocation" in navigator)) {
       setGeoStatus("unavailable");
-      setGeoNotice(
-        "Geolocation is not supported by your browser. Nearby hospitals are being shown for the default location (Enugu State, Nigeria)."
-      );
       return;
     }
 
     setIsLocating(true);
-    setGeoNotice(null);
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -76,15 +71,11 @@ export function HospitalMap() {
         });
         setLocationName(`Detected Coordinates (${detectedLat}, ${detectedLon})`);
         setGeoStatus("granted");
-        setGeoNotice(null);
         setIsLocating(false);
       },
       (err) => {
         console.warn("[GEOLOCATION_NOTICE] Access unavailable/denied:", err.message);
         setGeoStatus("denied");
-        setGeoNotice(
-          "Location access is unavailable or was denied. Showing nearby hospitals for the default location (Enugu State, Nigeria)."
-        );
         setIsLocating(false);
       },
       { timeout: 8000, enableHighAccuracy: true, maximumAge: 60000 }
@@ -192,12 +183,12 @@ export function HospitalMap() {
         maxZoom: 19,
       }).addTo(map);
 
-      // User location marker (blue pulse)
+      // User location marker (Distinct accent dot per spec)
       const userIcon = L.divIcon({
         className: "custom-user-marker",
-        html: `<div style="background-color: #2563eb; width: 16px; height: 16px; border-radius: 50%; border: 3px solid #ffffff; box-shadow: 0 0 10px rgba(37,99,235,0.8);"></div>`,
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
+        html: `<div style="background-color: #14A3B3; width: 18px; height: 18px; border-radius: 50%; border: 3px solid #FFFFFF; box-shadow: 0 0 12px rgba(20,163,179,0.9);"></div>`,
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
       });
 
       const userMarker = L.marker(
@@ -264,8 +255,8 @@ export function HospitalMap() {
         const hospitalIcon = L.divIcon({
           className: "custom-hospital-marker",
           html: `<div style="background-color: ${
-            f.emergency ? "#dc2626" : "#059669"
-          }; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 15px; border: 2px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.35);">+</div>`,
+            f.emergency ? "#C0392B" : "#1F9D63"
+          }; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 15px; border: 2px solid #ffffff; box-shadow: 0 2px 8px rgba(11,27,51,0.25);">+</div>`,
           iconSize: [28, 28],
           iconAnchor: [14, 14],
         });
@@ -273,7 +264,7 @@ export function HospitalMap() {
         const marker = L.marker([f.lat, f.lon], { icon: hospitalIcon });
         const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lon}`;
         const phoneHtml = f.phone
-          ? `<div style="margin-top: 6px;"><a href="tel:${f.phone}" style="color: #0b7a87; font-weight: 600; text-decoration: none; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">Phone: ${f.phone}</a></div>`
+          ? `<div style="margin-top: 6px;"><a href="tel:${f.phone}" style="color: #0B7A87; font-weight: 600; text-decoration: none; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">Phone: ${f.phone}</a></div>`
           : "";
 
         marker.bindPopup(`
@@ -281,8 +272,8 @@ export function HospitalMap() {
             <div style="font-size: 14px; font-weight: 600; color: #0b1b33; margin-bottom: 4px;">${f.name}</div>
             <div style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 6px; ${
               f.emergency
-                ? "background-color: #fee2e2; color: #c0392b; border: 1px solid #fca5a5;"
-                : "background-color: #e6f6ee; color: #1f9d63; border: 1px solid #a3e6cd;"
+                ? "background-color: #FCEBE9; color: #C0392B; border: 1px solid rgba(192,57,43,0.3);"
+                : "background-color: #E8F6EF; color: #1F9D63; border: 1px solid rgba(31,157,99,0.3);"
             }">
               ${f.emergency ? "Emergency Dept" : "Clinic / Hospital"}
             </div>
@@ -290,7 +281,7 @@ export function HospitalMap() {
             ${f.address ? `<div style="font-size: 12px; margin-top: 3px; color: #51607a;">${f.address}</div>` : ""}
             ${phoneHtml}
             <div style="margin-top: 10px;">
-              <a href="${directionsUrl}" target="_blank" rel="noopener noreferrer" aria-label="Get driving directions to ${f.name} on Google Maps" style="display: inline-flex; align-items: center; justify-content: center; width: 100%; background: #0b7a87; color: #ffffff; padding: 6px 12px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 600;">
+              <a href="${directionsUrl}" target="_blank" rel="noopener noreferrer" aria-label="Get driving directions to ${f.name} on Google Maps" style="display: inline-flex; align-items: center; justify-content: center; width: 100%; background: #12305A; color: #ffffff; padding: 6px 12px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 600;">
                 Get Directions
               </a>
             </div>
@@ -328,38 +319,35 @@ export function HospitalMap() {
     });
     setLocationName("Enugu, Nigeria (Default)");
     setGeoStatus("idle");
-    setGeoNotice(null);
   };
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-4">
-      {/* Geolocation Denied / Unavailable Informational Notice */}
-      {geoNotice && (
-        <div className="flex items-start gap-2.5 p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs animate-in fade-in-50">
-          <Info className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-          <div className="flex-1">
-            <span className="font-semibold">Location Notice: </span>
-            <span>{geoNotice}</span>
+      {/* Persistent Location Fallback Notice */}
+      {geoStatus !== "granted" && (
+        <div className="flex items-center justify-between gap-2.5 p-3 rounded-xl border border-warning/30 bg-warning-muted text-warning-text text-xs animate-in fade-in-50">
+          <div className="flex items-center gap-2">
+            <Info className="size-4 shrink-0" />
+            <span>Showing facilities near an approximate location. Enable location for accurate results.</span>
           </div>
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={detectUserLocation}
-            className="text-xs h-7 px-2 font-medium hover:bg-amber-500/20"
+            className="text-xs h-7 px-2.5 font-medium border-warning/40 text-warning-text hover:bg-warning/10 shrink-0"
           >
-            Retry GPS
+            Enable Location
           </Button>
         </div>
       )}
 
       {/* Offline Mode Informational Banner */}
       {isOfflineMode && (
-        <div className="flex items-start gap-2.5 p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs animate-in fade-in-50">
-          <WifiOff className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+        <div className="flex items-center gap-2.5 p-3 rounded-xl border border-border-subtle bg-surface text-text-secondary text-xs animate-in fade-in-50">
+          <WifiOff className="size-4 shrink-0 text-text-tertiary" />
           <div className="flex-1">
-            <span className="font-semibold">Emergency Offline Mode: </span>
-            <span>Network disconnected or slow. Loaded nearest healthcare facilities &amp; routing directions from local device emergency cache.</span>
+            <span>You&apos;re offline. Showing saved facilities.</span>
           </div>
         </div>
       )}

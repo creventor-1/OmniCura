@@ -420,11 +420,11 @@ export function HealthProfileForm() {
         <div className="pt-2">
           <Button
             type="submit"
-            disabled={isSaving}
-            className="w-full sm:w-auto px-6 h-9 rounded-lg font-semibold text-xs gap-2"
+            isLoading={isSaving}
+            className="w-full sm:w-auto px-6 h-10 rounded-lg font-semibold text-xs sm:text-sm gap-2"
           >
             <Save className="size-3.5" />
-            <span>{isSaving ? "Saving Profile..." : "Save Health Profile"}</span>
+            <span>Save Health Profile</span>
           </Button>
         </div>
       </form>

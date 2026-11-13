@@ -5,7 +5,7 @@ import { SymptomChat } from "@/features/triage/components/symptom-chat";
 import { AssessmentHistoryView } from "@/features/triage/components/assessment-history-view";
 import { HealthProfileForm } from "@/features/health-profile/components/health-profile-form";
 import { EmergencyContactsManager } from "@/features/safety/components/emergency-contacts-manager";
-import { HospitalMap } from "@/components/map/hospital-map";
+import { MapShell } from "@/components/map/map-shell";
 import { ImageSymptomAnalyzer } from "@/features/vision/components/image-symptom-analyzer";
 import { MedicationScanner } from "@/features/vision/components/medication-scanner";
 
@@ -114,7 +114,7 @@ export function DashboardView({
 
         {activeTab === "medication" && <MedicationScanner />}
 
-        {activeTab === "hospitals" && <HospitalMap />}
+        {activeTab === "hospitals" && <MapShell />}
 
         {activeTab === "history" && (
           <AssessmentHistoryView

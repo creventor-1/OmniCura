@@ -29,9 +29,9 @@ export function EmergencyFloatingButton({
       <button
         onClick={() => setIsOpen(true)}
         aria-label={`Emergency dial ${DEFAULT_EMERGENCY_NUMBER}`}
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-red-600 px-4 py-3 font-semibold text-white shadow-xl shadow-red-600/30 hover:bg-red-500 active:scale-95 transition-all focus:outline-none focus:ring-4 focus:ring-red-400"
+        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-danger px-4 py-3 font-semibold text-white shadow-overlay hover:opacity-90 active:translate-y-px transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2 cursor-pointer"
       >
-        <PhoneCall className="size-4 animate-pulse" />
+        <PhoneCall className="size-4" />
         <span className="text-sm">SOS ({DEFAULT_EMERGENCY_NUMBER})</span>
       </button>
 

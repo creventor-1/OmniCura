@@ -149,6 +149,8 @@ export function EmergencyContactsManager() {
     );
   }
 
+  const targetContact = contacts.find((c) => c.id === contactToDelete);
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Delete Confirmation Accessible Dialog (Replaces native confirm) */}
@@ -157,7 +159,11 @@ export function EmergencyContactsManager() {
         onClose={() => setContactToDelete(null)}
         onConfirm={handleConfirmDelete}
         title="Delete Emergency Contact"
-        description="Are you sure you want to remove this designated emergency contact? You can re-add them at any time."
+        description={
+          targetContact
+            ? `Are you sure you want to remove "${targetContact.name}" from your designated emergency contacts? You can re-add them at any time.`
+            : "Are you sure you want to remove this designated emergency contact? You can re-add them at any time."
+        }
         confirmLabel="Delete Contact"
       />
 

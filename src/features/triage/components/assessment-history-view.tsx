@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -24,6 +23,7 @@ import { createClient } from "@/services/database/supabase/client";
 import { StoredAssessment } from "@/types/database";
 import { AssessmentResponse } from "@/schemas/triage";
 import { generateTriagePdfReport } from "@/services/pdf/generate-report";
+import { SeverityBadge } from "@/components/shared/severity-badge";
 
 interface AssessmentHistoryViewProps {
   onStartAssessment?: () => void;
@@ -154,14 +154,7 @@ export function AssessmentHistoryView({
     );
   }
 
-  const severityBadgeConfig = {
-    "non-urgent":
-      "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-    urgent:
-      "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-    emergency:
-      "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300",
-  };
+  const targetItem = assessments.find((a) => a.id === deleteId);
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -171,7 +164,11 @@ export function AssessmentHistoryView({
         onClose={() => setDeleteId(null)}
         onConfirm={handleConfirmDelete}
         title="Delete Assessment Record"
-        description="Are you sure you want to permanently delete this clinical assessment from your records? This action cannot be undone."
+        description={
+          targetItem
+            ? `Are you sure you want to permanently delete the clinical assessment record for "${targetItem.symptoms.slice(0, 45)}..."? This action cannot be undone.`
+            : "Are you sure you want to permanently delete this clinical assessment from your records? This action cannot be undone."
+        }
         confirmLabel="Delete Record"
       />
 
@@ -220,14 +217,7 @@ export function AssessmentHistoryView({
                 >
                   <div className="space-y-1.5 flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge
-                        variant="outline"
-                        className={`text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
-                          severityBadgeConfig[item.severity] || ""
-                        }`}
-                      >
-                        {item.severity}
-                      </Badge>
+                      <SeverityBadge severity={item.severity} />
 
                       <div className="flex items-center gap-1 text-xs text-muted-foreground font-medium">
                         <Calendar className="size-3 text-muted-foreground" />

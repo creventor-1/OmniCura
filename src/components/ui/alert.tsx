@@ -3,20 +3,22 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
 const alertVariants = cva(
-  "group/alert relative flex w-full items-start gap-3 rounded-xl border p-4 text-left text-sm",
+  "group/alert relative flex w-full items-start gap-3 rounded-xl border p-4 text-left text-sm transition-colors",
   {
     variants: {
       variant: {
         default:
-          "border-border bg-card text-foreground",
+          "border-border-subtle bg-surface text-foreground",
         info:
-          "border-accent/30 bg-accent/5 text-foreground",
+          "border-accent/30 bg-accent/10 text-foreground",
         success:
-          "border-emerald-500/30 bg-emerald-500/5 text-emerald-950 dark:text-emerald-100",
+          "border-success/30 bg-success-muted text-success",
         warning:
-          "border-amber-500/30 bg-amber-500/5 text-amber-950 dark:text-amber-100",
+          "border-warning/30 bg-warning-muted text-warning-text",
         destructive:
-          "border-destructive/30 bg-destructive/5 text-destructive-foreground dark:text-destructive",
+          "border-danger/30 bg-danger-muted text-danger",
+        danger:
+          "border-danger/30 bg-danger-muted text-danger",
       },
     },
     defaultVariants: {
@@ -60,13 +62,10 @@ function AlertDescription({
   return (
     <div
       data-slot="alert-description"
-      className={cn(
-        "text-xs leading-relaxed text-muted-foreground mt-1",
-        className
-      )}
+      className={cn("text-xs leading-relaxed text-text-secondary mt-1", className)}
       {...props}
     />
   )
 }
 
-export { Alert, AlertTitle, AlertDescription }
+export { Alert, AlertTitle, AlertDescription, alertVariants }

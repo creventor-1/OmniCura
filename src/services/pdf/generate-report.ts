@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { AssessmentResponse } from "@/schemas/triage";
+import { PDF_THEME } from "./pdf-theme";
 
 interface ExportReportOptions {
   assessment: AssessmentResponse;
@@ -28,14 +29,15 @@ export function generateTriagePdfReport({
       ? new Date(date).toLocaleString("en-US")
       : date.toLocaleString("en-US");
 
-  // 1. Header Banner
-  doc.setFillColor(30, 41, 59); // Slate-800
+  // 1. Header Banner using Omnicura Brand Navy
+  const [bN0, bN1, bN2] = PDF_THEME.colors.brandNavy;
+  doc.setFillColor(bN0, bN1, bN2);
   doc.rect(0, 0, pageWidth, 26, "F");
 
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
-  doc.text("Omnicura - Clinical Urgency & First-Aid Summary", 14, 12);
+  doc.text("Omnicura - Clinical Decision Support Summary", 14, 12);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
@@ -47,7 +49,8 @@ export function generateTriagePdfReport({
 
   // 2. Metadata Block
   let cursorY = 34;
-  doc.setTextColor(51, 65, 85);
+  const [tS0, tS1, tS2] = PDF_THEME.colors.textSecondary;
+  doc.setTextColor(tS0, tS1, tS2);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.text(`Generated: ${reportDate}`, 14, cursorY);
@@ -58,11 +61,7 @@ export function generateTriagePdfReport({
   cursorY += 6;
 
   // 3. Urgency Classification Box
-  const severityColors = {
-    "non-urgent": { fill: [236, 253, 245], text: [4, 120, 87], border: [52, 211, 153] }, // Emerald
-    urgent: { fill: [254, 243, 199], text: [180, 83, 9], border: [251, 191, 36] }, // Amber
-    emergency: { fill: [254, 242, 242], text: [185, 28, 28], border: [248, 113, 113] }, // Red
-  }[assessment.severity];
+  const severityColors = PDF_THEME.colors.severity[assessment.severity] || PDF_THEME.colors.severity["non-urgent"];
 
   doc.setFillColor(severityColors.fill[0], severityColors.fill[1], severityColors.fill[2]);
   doc.setDrawColor(severityColors.border[0], severityColors.border[1], severityColors.border[2]);

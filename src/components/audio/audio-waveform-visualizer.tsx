@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Mic, Check, X } from "lucide-react";
+import { Mic, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface AudioWaveformVisualizerProps {
@@ -20,10 +20,50 @@ export function AudioWaveformVisualizer({
   const analyserRef = React.useRef<AnalyserNode | null>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
   const animFrameRef = React.useRef<number | null>(null);
+  const themeColorsRef = React.useRef<{ accent: string; muted: string }>({
+    accent: "#14A3B3",
+    muted: "#CBD4DF",
+  });
+
+  // Track prefers-reduced-motion via useSyncExternalStore
+  const prefersReducedMotion = React.useSyncExternalStore(
+    (callback) => {
+      if (typeof window === "undefined") return () => {};
+      const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+      mq.addEventListener("change", callback);
+      return () => mq.removeEventListener("change", callback);
+    },
+    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false
+  );
+
+  // Read CSS variables via getComputedStyle & watch theme changes
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function updateColors() {
+      const styles = getComputedStyle(document.documentElement);
+      const accent = styles.getPropertyValue("--accent").trim() || "#14A3B3";
+      const muted = styles.getPropertyValue("--border-strong").trim() || "#CBD4DF";
+      themeColorsRef.current = { accent, muted };
+    }
+
+    updateColors();
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.attributeName === "class") {
+          updateColors();
+        }
+      }
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
 
   React.useEffect(() => {
     if (!isListening) {
-      // Clean up audio streams and animation
       if (animFrameRef.current) {
         cancelAnimationFrame(animFrameRef.current);
         animFrameRef.current = null;
@@ -37,6 +77,10 @@ export function AudioWaveformVisualizer({
         audioCtxRef.current = null;
       }
       return;
+    }
+
+    if (prefersReducedMotion) {
+      return; // Under reduced motion, do not spin up canvas animation
     }
 
     let isSubscribed = true;
@@ -80,33 +124,41 @@ export function AudioWaveformVisualizer({
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
 
+        // DPR-aware canvas sizing
+        const dpr = window.devicePixelRatio || 1;
+        const displayWidth = canvas.clientWidth || 240;
+        const displayHeight = canvas.clientHeight || 28;
+
+        canvas.width = displayWidth * dpr;
+        canvas.height = displayHeight * dpr;
+        ctx.scale(dpr, dpr);
+
         const renderFrame = () => {
           if (!isSubscribed) return;
 
           analyser.getByteFrequencyData(dataArray);
 
-          const width = canvas.width;
-          const height = canvas.height;
-          ctx.clearRect(0, 0, width, height);
+          ctx.clearRect(0, 0, displayWidth, displayHeight);
 
           const barCount = 20;
           const barWidth = 3;
-          const gap = (width - barCount * barWidth) / (barCount - 1);
+          const totalBarsWidth = barCount * barWidth;
+          const gap = Math.max(2, (displayWidth - totalBarsWidth) / (barCount - 1));
+
+          const { accent } = themeColorsRef.current;
 
           for (let i = 0; i < barCount; i++) {
-            // Sample frequency index
             const dataIndex = Math.floor((i / barCount) * (bufferLength / 2));
             const value = dataArray[dataIndex] || 0;
 
-            // Normalized height with subtle resting baseline
             const percent = value / 255;
-            const barHeight = Math.max(3, percent * (height - 4));
+            const barHeight = Math.max(3, percent * (displayHeight - 4));
 
             const x = i * (barWidth + gap);
-            const y = (height - barHeight) / 2;
+            const y = (displayHeight - barHeight) / 2;
 
-            // Surgical teal bar style
-            ctx.fillStyle = percent > 0.4 ? "#0D9488" : "#14B8A6";
+            ctx.fillStyle = accent;
+            ctx.globalAlpha = percent > 0.3 ? 1.0 : 0.6;
             ctx.beginPath();
             ctx.roundRect(x, y, barWidth, barHeight, 1.5);
             ctx.fill();
@@ -117,7 +169,7 @@ export function AudioWaveformVisualizer({
 
         renderFrame();
       } catch (err) {
-        console.warn("[AUDIO_VISUALIZER_NOTICE] Microphones unavailable or permission denied:", err);
+        console.warn("[AUDIO_VISUALIZER_NOTICE] Mic unavailable or permission denied:", err);
       }
     }
 
@@ -138,7 +190,7 @@ export function AudioWaveformVisualizer({
         audioCtxRef.current = null;
       }
     };
-  }, [isListening]);
+  }, [isListening, prefersReducedMotion]);
 
   if (!isListening) {
     return null;
@@ -148,56 +200,45 @@ export function AudioWaveformVisualizer({
     <div
       role="status"
       aria-live="polite"
-      className={`rounded-xl border border-accent/30 bg-accent/5 p-3 flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in-50 duration-180 ${className}`}
+      className={`flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl border border-accent/40 bg-surface shadow-xs ${className}`}
     >
-      <div className="flex items-center gap-2.5 min-w-0 w-full sm:w-auto">
-        <div className="size-7 rounded-lg bg-accent/15 text-accent flex items-center justify-center shrink-0 border border-accent/25">
-          <Mic className="size-3.5 stroke-[2] animate-pulse" />
-        </div>
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="size-2.5 rounded-full bg-accent animate-pulse" />
+        <span className="text-xs font-semibold text-accent tracking-tight flex items-center gap-1.5 shrink-0">
+          <Mic className="size-3.5" />
+          Listening...
+        </span>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-            <span className="size-1.5 rounded-full bg-destructive animate-ping" />
-            <span>Voice Dictation Active</span>
+        {/* Dynamic Canvas or Reduced-Motion Static Bars */}
+        {prefersReducedMotion ? (
+          <div className="flex items-center gap-1 px-2" aria-hidden="true">
+            {[4, 12, 18, 14, 8, 16, 20, 10, 6, 14].map((h, i) => (
+              <span
+                key={i}
+                className="w-1 rounded-full bg-accent opacity-75"
+                style={{ height: `${h}px` }}
+              />
+            ))}
           </div>
-          <p className="text-[11px] text-muted-foreground truncate">
-            Speak your symptoms naturally...
-          </p>
-        </div>
+        ) : (
+          <canvas
+            ref={canvasRef}
+            className="w-44 sm:w-56 h-7 block"
+            aria-hidden="true"
+          />
+        )}
       </div>
 
-      {/* Real-Time Waveform Canvas */}
-      <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-        <canvas
-          ref={canvasRef}
-          width={140}
-          height={24}
-          className="w-[140px] h-[24px] shrink-0"
-        />
-
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Button
-            type="button"
-            size="sm"
-            onClick={onStop}
-            className="h-7 px-2.5 text-xs font-semibold rounded-lg gap-1"
-          >
-            <Check className="size-3" />
-            <span>Done</span>
-          </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onStop}
-            className="size-7 p-0 rounded-lg text-muted-foreground hover:text-foreground"
-            title="Cancel voice input"
-          >
-            <X className="size-3.5" />
-          </Button>
-        </div>
-      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onStop}
+        className="text-xs h-7 px-2.5 rounded-lg text-text-secondary hover:text-foreground gap-1 shrink-0"
+        title="Stop dictation"
+      >
+        <Square className="size-3 fill-current" />
+        <span>Stop</span>
+      </Button>
     </div>
   );
 }

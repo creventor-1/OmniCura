@@ -389,18 +389,18 @@ export function MedicationScanner() {
           )}
 
           {/* Mandatory Pharmacist Notice */}
-          <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 space-y-1.5">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
+          <div className="p-3.5 rounded-xl border border-warning/30 bg-warning-muted space-y-1.5 text-left">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-warning-text">
               <FileText className="size-3.5" />
-              <span>Mandatory Pharmacist Verification Notice:</span>
+              <span>Verify with Pharmacist or Licensed Physician:</span>
             </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {scanResult.pharmacistNotice}
+            <p className="text-xs text-foreground/90 leading-relaxed font-medium">
+              {scanResult.pharmacistNotice || "Always confirm correct dosage, potential drug interactions, and expiration dates with a certified pharmacist before taking any medication."}
             </p>
           </div>
 
           {/* Disclaimer Footer */}
-          <div className="text-xs sm:text-sm text-muted-foreground bg-muted/30 p-3 rounded-xl border text-center leading-relaxed">
+          <div className="text-xs text-text-secondary bg-secondary/50 p-3 rounded-xl border border-border-subtle text-center leading-relaxed">
             {scanResult.disclaimer}
           </div>
         </div>
