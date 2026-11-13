@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     title: "Omnicura • Autonomous Clinical Triage & Emergency Intelligence",
     description:
       "Deterministic emergency screening, adaptive clinical follow-ups, and verified hospital locator with real-time routing.",
-    url: "https://triage-ai-flame.vercel.app",
+    url: "https://omnicura-health.vercel.app",
     siteName: "Omnicura",
     type: "website",
     locale: "en_US",
