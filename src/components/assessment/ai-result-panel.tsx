@@ -12,6 +12,7 @@ import {
 import { AssessmentResponse } from "@/schemas/triage";
 import { SeverityBadge } from "@/components/shared/severity-badge";
 import { Card } from "@/components/ui/card";
+import { ConfidenceMeter } from "@/components/assessment/confidence-meter";
 import { cn } from "cn";
 
 export interface AIResultPanelProps {
@@ -75,6 +76,11 @@ export function AIResultPanel({ assessment, className = "" }: AIResultPanelProps
           </p>
         </div>
       </Card>
+
+      {/* 2.5 Multi-Condition Confidence Meter */}
+      {assessment.possibleConditions && assessment.possibleConditions.length > 0 && (
+        <ConfidenceMeter conditions={assessment.possibleConditions} />
+      )}
 
       {/* 3. Actionable First-Aid Care Steps (Always Visible) */}
       {assessment.firstAidSteps && assessment.firstAidSteps.length > 0 && (

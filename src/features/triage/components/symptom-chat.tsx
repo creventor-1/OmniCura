@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Send, Mic, MicOff, Bot, User, RefreshCw, Camera, Sparkles } from "lucide-react";
+import { Send, Mic, MicOff, Bot, User, RefreshCw, Camera, Sparkles, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { checkRedFlags } from "@/lib/red-flags";
@@ -58,24 +58,87 @@ interface SymptomChatProps {
   onOpenVision?: () => void;
 }
 
+const DEFAULT_INITIAL_MESSAGES: TriageMessage[] = [
+  {
+    id: "initial-assistant-msg",
+    role: "assistant",
+    content:
+      "Hello. Describe your symptoms, duration, and any discomfort you are experiencing.",
+    timestamp: "Just now",
+  },
+];
+
+function getInitialChatSession(): {
+  messages: TriageMessage[];
+  currentQuickOptions: string[];
+  assessment: AssessmentResponse | null;
+} {
+  if (typeof window === "undefined") {
+    return { messages: DEFAULT_INITIAL_MESSAGES, currentQuickOptions: [], assessment: null };
+  }
+  try {
+    const saved = sessionStorage.getItem("omnicura_active_chat_session");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        messages:
+          Array.isArray(parsed.messages) && parsed.messages.length > 0
+            ? parsed.messages
+            : DEFAULT_INITIAL_MESSAGES,
+        currentQuickOptions: Array.isArray(parsed.currentQuickOptions)
+          ? parsed.currentQuickOptions
+          : [],
+        assessment: parsed.assessment || null,
+      };
+    }
+  } catch {
+    // ignore
+  }
+  return { messages: DEFAULT_INITIAL_MESSAGES, currentQuickOptions: [], assessment: null };
+}
+
+function createStoredAssessment(
+  userId: string | undefined,
+  symptoms: string,
+  assessment: AssessmentResponse
+) {
+  return {
+    id: "assessment-" + Date.now(),
+    user_id: userId || "guest",
+    symptoms,
+    severity: assessment.severity,
+    assessment_result: assessment,
+    disclaimer: assessment.disclaimer,
+    created_at: new Date().toISOString(),
+  };
+}
+
 export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatProps) {
   const { user, setGuestAssessment } = useAuth();
   const supabase = React.useMemo(() => createClient(), []);
 
-  const [messages, setMessages] = React.useState<TriageMessage[]>([
-    {
-      id: "initial-assistant-msg",
-      role: "assistant",
-      content:
-        "Hello. Describe your symptoms, duration, and any discomfort you are experiencing.",
-      timestamp: "Just now",
-    },
-  ]);
-
+  const [messages, setMessages] = React.useState<TriageMessage[]>(
+    () => getInitialChatSession().messages
+  );
   const [inputValue, setInputValue] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
-  const [currentQuickOptions, setCurrentQuickOptions] = React.useState<string[]>([]);
-  const [assessment, setAssessment] = React.useState<AssessmentResponse | null>(null);
+  const [currentQuickOptions, setCurrentQuickOptions] = React.useState<string[]>(
+    () => getInitialChatSession().currentQuickOptions
+  );
+  const [assessment, setAssessment] = React.useState<AssessmentResponse | null>(
+    () => getInitialChatSession().assessment
+  );
+
+  // Active Health Profile context
+  const [activeProfile, setActiveProfile] = React.useState<{
+    fullName?: string;
+    age?: number;
+    sex?: string;
+    allergies?: string[];
+    chronicConditions?: string[];
+    currentMedications?: string[];
+    summaryText?: string;
+  } | null>(null);
 
   // Safety & Disclaimer states
   const [isDisclaimerOpen, setIsDisclaimerOpen] = React.useState(false);
@@ -96,6 +159,46 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
     scrollToBottom();
   }, [messages, isLoading]);
 
+  // Sync active chat session into sessionStorage
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (messages.length > 1 || assessment) {
+        sessionStorage.setItem(
+          "omnicura_active_chat_session",
+          JSON.stringify({ messages, currentQuickOptions, assessment })
+        );
+      }
+    } catch {
+      // ignore storage error
+    }
+  }, [messages, currentQuickOptions, assessment]);
+
+  // Undo last response handler
+  const handleUndoLastTurn = () => {
+    if (isLoading) return;
+    let lastUserIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") {
+        lastUserIdx = i;
+        break;
+      }
+    }
+    if (lastUserIdx === -1) return;
+
+    const lastUserMsg = messages[lastUserIdx];
+    const restoredMessages = messages.slice(0, lastUserIdx);
+    setMessages(restoredMessages);
+    setInputValue(lastUserMsg.content);
+    setCurrentQuickOptions([]);
+  };
+
+  const userTurnCount = React.useMemo(() => {
+    return messages.filter((m) => m.role === "user").length;
+  }, [messages]);
+
+  const canUndo = !isLoading && !assessment && userTurnCount > 0;
+
   // Check one-time disclaimer asynchronously after initial mount
   React.useEffect(() => {
     if (typeof window !== "undefined") {
@@ -115,6 +218,75 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
     }
     setIsDisclaimerOpen(false);
   };
+
+  // Load persistent health profile context automatically
+  React.useEffect(() => {
+    async function loadActiveProfile() {
+      // 1. Check Supabase if user logged in
+      if (user) {
+        try {
+          const { data } = await supabase
+            .from("health_profiles")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (data && data.allow_ai_use) {
+            const parts: string[] = [];
+            if (data.age) parts.push(`${data.age}yo`);
+            if (data.sex) parts.push(data.sex);
+            if (data.chronic_conditions?.length) parts.push(data.chronic_conditions.join(", "));
+            if (data.allergies?.length) parts.push(`Allergies: ${data.allergies.join(", ")}`);
+
+            setActiveProfile({
+              fullName: user.user_metadata?.full_name,
+              age: data.age,
+              sex: data.sex,
+              allergies: data.allergies,
+              chronicConditions: data.chronic_conditions,
+              currentMedications: data.medications,
+              summaryText: parts.join(" • "),
+            });
+            return;
+          }
+        } catch (e) {
+          console.warn("Could not query health_profiles:", e);
+        }
+      }
+
+      // 2. Check localStorage fallback (works for guests/demos)
+      try {
+        const stored = localStorage.getItem("omnicura_active_profile");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.allowAiUse !== false) {
+            const parseList = (val?: string) =>
+              val ? val.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
+
+            const parts: string[] = [];
+            if (parsed.age) parts.push(`${parsed.age}yo`);
+            if (parsed.sex) parts.push(parsed.sex);
+            if (parsed.chronicConditions) parts.push(parsed.chronicConditions);
+            if (parsed.allergies) parts.push(`Allergies: ${parsed.allergies}`);
+
+            setActiveProfile({
+              fullName: parsed.fullName,
+              age: parsed.age ? Number(parsed.age) : undefined,
+              sex: parsed.sex,
+              allergies: parseList(parsed.allergies),
+              chronicConditions: parseList(parsed.chronicConditions),
+              currentMedications: parseList(parsed.medications),
+              summaryText: parts.join(" • "),
+            });
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    loadActiveProfile();
+  }, [user, supabase]);
 
   // Setup Web Speech API for voice description
   const toggleSpeechRecognition = () => {
@@ -202,29 +374,17 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
     setIsLoading(true);
 
     try {
-      // Check if user has consented health profile to attach
-      let healthProfilePayload = undefined;
-      if (user) {
-        try {
-          const { data: profile } = await supabase
-            .from("health_profiles")
-            .select("*")
-            .eq("user_id", user.id)
-            .maybeSingle();
-
-          if (profile && profile.allow_ai_use) {
-            healthProfilePayload = {
-              age: profile.age,
-              sex: profile.sex,
-              allergies: profile.allergies,
-              chronicConditions: profile.chronic_conditions,
-              currentMedications: profile.medications,
-            };
+      // Persistent health profile payload (consented and pre-loaded)
+      const healthProfilePayload = activeProfile
+        ? {
+            fullName: activeProfile.fullName,
+            age: activeProfile.age,
+            sex: activeProfile.sex,
+            allergies: activeProfile.allergies,
+            chronicConditions: activeProfile.chronicConditions,
+            currentMedications: activeProfile.currentMedications,
           }
-        } catch (e) {
-          console.warn("Could not load health profile for triage:", e);
-        }
-      }
+        : undefined;
 
       // Server-side triage API call (server re-runs red-flag check before any AI call)
       const res = await fetch("/api/ai/triage", {
@@ -286,6 +446,25 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
           });
         }
 
+        // Mirror in local assessment history for immediate timeline visibility
+        if (typeof window !== "undefined") {
+          try {
+            const guestItem = createStoredAssessment(
+              user?.id,
+              firstSymptom,
+              turnData.assessment
+            );
+            const stored = localStorage.getItem("omnicura_guest_assessments");
+            const existing = stored ? JSON.parse(stored) : [];
+            localStorage.setItem(
+              "omnicura_guest_assessments",
+              JSON.stringify([guestItem, ...existing.filter((item: { id: string }) => item.id !== guestItem.id)])
+            );
+          } catch (e) {
+            console.warn("Failed to save local assessment history:", e);
+          }
+        }
+
         setMessages((prev) => [
           ...prev,
           {
@@ -328,6 +507,9 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
   };
 
   const handleReset = () => {
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("omnicura_active_chat_session");
+    }
     setAssessment(null);
     setCurrentQuickOptions([]);
     setMessages([
@@ -335,7 +517,8 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
         id: "initial-assistant-msg",
         role: "assistant",
         content:
-          "Hello, I am Omnicura. Please describe your symptoms naturally. How can I help you today?",
+          "Hello. Describe your symptoms, duration, and any discomfort you are experiencing.",
+        timestamp: "Just now",
       },
     ]);
   };
@@ -372,28 +555,82 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
       ) : (
         <div className="flex flex-col flex-1 border border-border rounded-xl bg-card shadow-none overflow-hidden min-h-[580px]">
           {/* Clinical Chat Header */}
-          <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/20">
-            <div className="flex items-center gap-2.5">
-              <div className="flex size-7 items-center justify-center rounded-lg bg-accent/10 text-accent border border-accent/20">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/20 gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-accent/10 text-accent border border-accent/20 shrink-0">
                 <Bot className="size-4 stroke-[1.75]" />
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-foreground leading-none">Omnicura Assistant</h3>
-                <span className="text-[11px] text-muted-foreground">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-foreground leading-none">Omnicura Assistant</h3>
+                  {activeProfile?.summaryText && (
+                    <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-accent/30 bg-accent/10 text-accent text-[10px] font-medium max-w-[220px] truncate" title={`Active Profile: ${activeProfile.summaryText}`}>
+                      <span className="size-1.5 rounded-full bg-accent shrink-0" />
+                      <span className="truncate">Context: {activeProfile.summaryText}</span>
+                    </span>
+                  )}
+                </div>
+                <span className="text-[11px] text-muted-foreground block truncate">
                   Clinical Decision Support
                 </span>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleReset}
-              className="text-xs text-muted-foreground gap-1.5 h-8 px-2.5 rounded-lg hover:text-foreground"
-              title="Reset conversation"
-            >
-              <RefreshCw className="size-3" />
-              Reset
-            </Button>
+            <div className="flex items-center gap-1.5">
+              {canUndo && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleUndoLastTurn}
+                  className="text-xs text-muted-foreground gap-1 h-8 px-2 rounded-lg hover:text-foreground"
+                  title="Undo last response and edit"
+                >
+                  <Undo2 className="size-3" />
+                  <span className="hidden sm:inline">Undo</span>
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleReset}
+                className="text-xs text-muted-foreground gap-1.5 h-8 px-2.5 rounded-lg hover:text-foreground"
+                title="Reset conversation"
+              >
+                <RefreshCw className="size-3" />
+                Reset
+              </Button>
+            </div>
+          </div>
+
+          {/* Consultation Progress Indicator Bar */}
+          <div className="border-b border-border/70 bg-muted/15 px-4 py-2 flex items-center justify-between text-[11px]">
+            <div className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-accent shrink-0" />
+              <span className="font-semibold text-foreground">
+                Consultation Stage {Math.min(userTurnCount + 1, 4)} of ~4
+              </span>
+              <span className="text-muted-foreground hidden sm:inline">•</span>
+              <span className="text-muted-foreground hidden sm:inline">
+                {userTurnCount === 0
+                  ? "Symptom Presentation"
+                  : userTurnCount === 1
+                  ? "Duration & Severity"
+                  : userTurnCount === 2
+                  ? "Location & Context"
+                  : "Clinical Synthesis"}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="w-20 sm:w-28 h-1.5 rounded-full bg-muted/80 overflow-hidden">
+                <div
+                  className="h-full bg-accent transition-all duration-300 rounded-full"
+                  style={{ width: `${Math.min(((userTurnCount + 1) / 4) * 100, 100)}%` }}
+                />
+              </div>
+              <span className="text-muted-foreground font-mono tabular-nums text-[10px]">
+                {Math.min(Math.round(((userTurnCount + 1) / 4) * 100), 100)}%
+              </span>
+            </div>
           </div>
 
           {/* Messages Scroll Area with Accessible aria-live Log */}
@@ -453,8 +690,12 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-semibold text-accent">
-                    <span className="size-2 rounded-full bg-accent animate-pulse" />
-                    <span>Analyzing clinical presentation...</span>
+                    <div className="flex items-center gap-1 py-0.5">
+                      <span className="size-1.5 rounded-full bg-accent animate-bounce [animation-delay:-0.3s]" />
+                      <span className="size-1.5 rounded-full bg-accent animate-bounce [animation-delay:-0.15s]" />
+                      <span className="size-1.5 rounded-full bg-accent animate-bounce" />
+                    </div>
+                    <span>Omnicura is evaluating clinical presentation...</span>
                   </div>
                   <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
                     Screening

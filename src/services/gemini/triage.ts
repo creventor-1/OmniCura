@@ -19,6 +19,7 @@ export interface ProcessTriageResult {
 export async function processTriageConversation(
   messages: TriageMessage[],
   healthProfile?: {
+    fullName?: string;
     age?: number;
     sex?: string;
     allergies?: string[];
@@ -54,12 +55,16 @@ export async function processTriageConversation(
   // 2. Prepare context for Gemini
   let profileContext = "";
   if (healthProfile) {
-    profileContext = `\n\nOPTIONAL USER HEALTH CONTEXT (Consented by user):
-- Age: ${healthProfile.age || "Unknown"}
-- Sex: ${healthProfile.sex || "Unknown"}
+    profileContext = `\n\nUSER PERSISTENT HEALTH PROFILE (ALREADY KNOWN - DO NOT RE-ASK):
+- Patient Name: ${healthProfile.fullName || "User"}
+- Age: ${healthProfile.age ? `${healthProfile.age} years old` : "Unknown"}
+- Biological Sex: ${healthProfile.sex || "Unknown"}
 - Known Allergies: ${healthProfile.allergies?.join(", ") || "None reported"}
 - Chronic Conditions: ${healthProfile.chronicConditions?.join(", ") || "None reported"}
-- Current Medications: ${healthProfile.currentMedications?.join(", ") || "None reported"}`;
+- Current Medications: ${healthProfile.currentMedications?.join(", ") || "None reported"}
+
+INSTRUCTION FOR CLINICAL INTERACTION:
+The user has already provided their age, chronic conditions, and allergies above. Do NOT ask them for their age or medical history. Incorporate this context directly into your clinical questions (e.g., consider interactions with their reported medications or preexisting conditions like asthma).`;
   }
 
   const systemInstruction = `${TRIAGE_SYSTEM_PROMPT}${profileContext}`;

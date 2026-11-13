@@ -12,6 +12,8 @@ import {
   User,
   Activity,
   Lock,
+  Phone,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,23 +25,27 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/shared/empty-state";
 import { useAuth } from "@/features/authentication/context/auth-context";
 import { createClient } from "@/services/database/supabase/client";
 import { HealthProfile } from "@/types/database";
 
 const HealthProfileFormSchema = z.object({
+  fullName: z.string().optional(),
   age: z.string().optional(),
   sex: z.string().optional(),
-  allergies: z.string().optional(),
-  chronic_conditions: z.string().optional(),
-  medications: z.string().optional(),
-  blood_group: z.string().optional(),
+  bloodGroup: z.string().optional(),
   height: z.string().optional(),
   weight: z.string().optional(),
+  allergies: z.string().optional(),
+  chronicConditions: z.string().optional(),
+  medications: z.string().optional(),
+  emergencyContactName: z.string().optional(),
+  emergencyContactNumber: z.string().optional(),
 });
 
 type HealthProfileFormValues = z.infer<typeof HealthProfileFormSchema>;
+
+export const LOCAL_PROFILE_STORAGE_KEY = "omnicura_active_profile";
 
 export function HealthProfileForm() {
   const { user } = useAuth();
@@ -49,53 +55,120 @@ export function HealthProfileForm() {
   const [isSaving, setIsSaving] = React.useState(false);
   const [saveSuccess, setSaveSuccess] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
-  const [allowAiUse, setAllowAiUse] = React.useState(false);
+  const [allowAiUse, setAllowAiUse] = React.useState(true);
+  const [isFirstTimeUser, setIsFirstTimeUser] = React.useState(false);
 
   const { register, handleSubmit, setValue } =
     useForm<HealthProfileFormValues>({
       resolver: zodResolver(HealthProfileFormSchema),
+      defaultValues: {
+        fullName: "",
+        age: "",
+        sex: "",
+        bloodGroup: "",
+        height: "",
+        weight: "",
+        allergies: "",
+        chronicConditions: "",
+        medications: "",
+        emergencyContactName: "",
+        emergencyContactNumber: "",
+      },
     });
 
-  // Load existing profile asynchronously
+  // Load existing profile from Supabase or localStorage
   React.useEffect(() => {
     let active = true;
 
     async function loadProfile() {
+      // 1. Try loading from localStorage first (works for guest or offline)
+      let localData: Record<string, unknown> | null = null;
+      try {
+        const stored = localStorage.getItem(LOCAL_PROFILE_STORAGE_KEY);
+        if (stored) {
+          localData = JSON.parse(stored);
+        }
+      } catch {
+        // ignore parse error
+      }
+
       if (!user) {
-        if (active) setIsLoading(false);
+        if (active) {
+          if (localData) {
+            populateForm(localData);
+            setIsFirstTimeUser(false);
+          } else {
+            setIsFirstTimeUser(true);
+          }
+          setIsLoading(false);
+        }
         return;
       }
 
+      // 2. Load from Supabase if logged in
       try {
-        const { data, error } = await supabase
+        const { data: profile } = await supabase
           .from("health_profiles")
           .select("*")
           .eq("user_id", user.id)
           .maybeSingle();
 
-        if (active && !error && data) {
-          const profile = data as HealthProfile;
-          if (profile.age) setValue("age", String(profile.age));
-          if (profile.sex) setValue("sex", profile.sex);
-          if (profile.blood_group) setValue("blood_group", profile.blood_group);
-          if (profile.height) setValue("height", String(profile.height));
-          if (profile.weight) setValue("weight", String(profile.weight));
-          setAllowAiUse(!!profile.allow_ai_use);
-          if (profile.allergies?.length)
-            setValue("allergies", profile.allergies.join(", "));
-          if (profile.chronic_conditions?.length)
-            setValue(
-              "chronic_conditions",
-              profile.chronic_conditions.join(", ")
-            );
-          if (profile.medications?.length)
-            setValue("medications", profile.medications.join(", "));
+        // Also fetch latest emergency contact
+        const { data: contacts } = await supabase
+          .from("emergency_contacts")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (active) {
+          if (profile) {
+            const contact = contacts && contacts.length > 0 ? contacts[0] : null;
+            populateForm({
+              fullName: user.user_metadata?.full_name || localData?.fullName || "",
+              age: profile.age ? String(profile.age) : "",
+              sex: profile.sex || "",
+              bloodGroup: profile.blood_group || "",
+              height: profile.height ? String(profile.height) : "",
+              weight: profile.weight ? String(profile.weight) : "",
+              allowAiUse: profile.allow_ai_use ?? true,
+              allergies: profile.allergies?.join(", ") || "",
+              chronicConditions: profile.chronic_conditions?.join(", ") || "",
+              medications: profile.medications?.join(", ") || "",
+              emergencyContactName: contact?.name || localData?.emergencyContactName || "",
+              emergencyContactNumber: contact?.phone_number || localData?.emergencyContactNumber || "",
+            });
+            setIsFirstTimeUser(false);
+          } else if (localData) {
+            populateForm(localData);
+            setIsFirstTimeUser(false);
+          } else {
+            setIsFirstTimeUser(true);
+          }
         }
       } catch (err) {
         console.warn("[HEALTH_PROFILE_LOAD_EXCEPTION]", err);
+        if (active && localData) {
+          populateForm(localData);
+        }
       } finally {
         if (active) setIsLoading(false);
       }
+    }
+
+    function populateForm(data: Record<string, unknown>) {
+      if (data.fullName) setValue("fullName", String(data.fullName));
+      if (data.age) setValue("age", String(data.age));
+      if (data.sex) setValue("sex", String(data.sex));
+      if (data.bloodGroup) setValue("bloodGroup", String(data.bloodGroup));
+      if (data.height) setValue("height", String(data.height));
+      if (data.weight) setValue("weight", String(data.weight));
+      if (data.allergies) setValue("allergies", String(data.allergies));
+      if (data.chronicConditions) setValue("chronicConditions", String(data.chronicConditions));
+      if (data.medications) setValue("medications", String(data.medications));
+      if (data.emergencyContactName) setValue("emergencyContactName", String(data.emergencyContactName));
+      if (data.emergencyContactNumber) setValue("emergencyContactNumber", String(data.emergencyContactNumber));
+      if (typeof data.allowAiUse === "boolean") setAllowAiUse(data.allowAiUse);
     }
 
     loadProfile();
@@ -104,8 +177,24 @@ export function HealthProfileForm() {
     };
   }, [user, supabase, setValue]);
 
+  // Demo auto-fill template for hackathon presentation
+  const handleQuickDemoFill = () => {
+    setValue("fullName", "Alex Chen");
+    setValue("age", "26");
+    setValue("sex", "Male");
+    setValue("bloodGroup", "O+");
+    setValue("height", "178");
+    setValue("weight", "72");
+    setValue("allergies", "Penicillin, Peanuts");
+    setValue("chronicConditions", "Mild Asthma");
+    setValue("medications", "Albuterol inhaler as needed");
+    setValue("emergencyContactName", "Dr. Sarah Chen");
+    setValue("emergencyContactNumber", "+1 (555) 392-1084");
+    setAllowAiUse(true);
+    setIsFirstTimeUser(false);
+  };
+
   const onSubmit = async (data: HealthProfileFormValues) => {
-    if (!user) return;
     setIsSaving(true);
     setSaveSuccess(false);
     setErrorMessage(null);
@@ -122,49 +211,71 @@ export function HealthProfileForm() {
     const parsedHeight = data.height ? parseFloat(data.height) : undefined;
     const parsedWeight = data.weight ? parseFloat(data.weight) : undefined;
 
-    const payload: Partial<HealthProfile> = {
-      user_id: user.id,
+    // 1. Local storage record (always saved for immediate AI context availability)
+    const localRecord = {
+      fullName: data.fullName || undefined,
       age: isNaN(parsedAge as number) ? undefined : parsedAge,
       sex: data.sex || undefined,
-      blood_group: data.blood_group || undefined,
+      bloodGroup: data.bloodGroup || undefined,
       height: isNaN(parsedHeight as number) ? undefined : parsedHeight,
       weight: isNaN(parsedWeight as number) ? undefined : parsedWeight,
-      allow_ai_use: allowAiUse,
-      allergies: parseList(data.allergies),
-      chronic_conditions: parseList(data.chronic_conditions),
-      medications: parseList(data.medications),
-      updated_at: new Date().toISOString(),
+      allergies: data.allergies || "",
+      chronicConditions: data.chronicConditions || "",
+      medications: data.medications || "",
+      emergencyContactName: data.emergencyContactName || undefined,
+      emergencyContactNumber: data.emergencyContactNumber || undefined,
+      allowAiUse,
+      updatedAt: new Date().toISOString(),
     };
 
     try {
-      const { error } = await supabase
-        .from("health_profiles")
-        .upsert(payload, { onConflict: "user_id" });
-
-      if (error) {
-        setErrorMessage(error.message || "Failed to save profile.");
-      } else {
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3500);
-      }
-    } catch (err: unknown) {
-      setErrorMessage(
-        (err as Error).message || "An unexpected error occurred."
-      );
-    } finally {
-      setIsSaving(false);
+      localStorage.setItem(LOCAL_PROFILE_STORAGE_KEY, JSON.stringify(localRecord));
+    } catch {
+      // ignore
     }
-  };
 
-  if (!user) {
-    return (
-      <EmptyState
-        icon={HeartPulse}
-        title="Sign In to Manage Your Health Profile"
-        description="Securely store your medical context, allergies, and daily medications to enable tailored clinical evaluations."
-      />
-    );
-  }
+    // 2. Supabase sync if user is signed in
+    if (user) {
+      const payload: Partial<HealthProfile> = {
+        user_id: user.id,
+        age: isNaN(parsedAge as number) ? undefined : parsedAge,
+        sex: data.sex || undefined,
+        blood_group: data.bloodGroup || undefined,
+        height: isNaN(parsedHeight as number) ? undefined : parsedHeight,
+        weight: isNaN(parsedWeight as number) ? undefined : parsedWeight,
+        allow_ai_use: allowAiUse,
+        allergies: parseList(data.allergies),
+        chronic_conditions: parseList(data.chronicConditions),
+        medications: parseList(data.medications),
+        updated_at: new Date().toISOString(),
+      };
+
+      try {
+        const { error: profileError } = await supabase
+          .from("health_profiles")
+          .upsert(payload, { onConflict: "user_id" });
+
+        if (profileError) throw profileError;
+
+        // Sync emergency contact if provided
+        if (data.emergencyContactName && data.emergencyContactNumber) {
+          await supabase.from("emergency_contacts").insert({
+            user_id: user.id,
+            name: data.emergencyContactName,
+            relationship: "Primary Emergency Contact",
+            phone_number: data.emergencyContactNumber,
+          });
+        }
+      } catch (err: unknown) {
+        console.warn("[SUPABASE_PROFILE_SAVE_WARNING]", err);
+      }
+    }
+
+    setIsFirstTimeUser(false);
+    setIsSaving(false);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3500);
+  };
 
   if (isLoading) {
     return (
@@ -178,7 +289,32 @@ export function HealthProfileForm() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      {/* Dynamic Alerts with Accessible aria-live */}
+      {/* First-Time Empty State Banner */}
+      {isFirstTimeUser && (
+        <div className="p-4 rounded-xl border border-accent/30 bg-accent/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in-50">
+          <div className="flex items-center gap-2.5">
+            <HeartPulse className="size-5 text-accent shrink-0" />
+            <div>
+              <div className="text-sm font-semibold text-foreground">Welcome to Your Health Profile</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Save your medical background once so Omnicura automatically personalizes your triage assessments without asking repeatedly.
+              </div>
+            </div>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={handleQuickDemoFill}
+            className="text-xs font-semibold gap-1.5 shrink-0 bg-background"
+          >
+            <Sparkles className="size-3 text-accent" />
+            <span>Fill Demo Profile</span>
+          </Button>
+        </div>
+      )}
+
+      {/* Dynamic Alerts */}
       {errorMessage && (
         <Alert
           variant="destructive"
@@ -201,16 +337,16 @@ export function HealthProfileForm() {
         >
           <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
           <AlertTitle className="text-sm font-semibold">
-            Profile Saved
+            Health Profile Saved
           </AlertTitle>
           <AlertDescription className="text-xs sm:text-sm">
-            Your clinical background and consent preferences have been updated.
+            Your physiological details, allergies, and AI personalization preferences are active. Omnicura will incorporate this context during assessments.
           </AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        {/* Section Card 1: Personal & Biometric Information */}
+        {/* Section Card 1: Personal & Biometrics */}
         <Card className="rounded-xl border border-border bg-card shadow-none">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
@@ -219,7 +355,39 @@ export function HealthProfileForm() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="profile-fullname"
+                  className="text-xs font-medium text-foreground cursor-pointer block"
+                >
+                  Full Name (Optional)
+                </label>
+                <Input
+                  id="profile-fullname"
+                  placeholder="e.g. Alex Chen"
+                  className="rounded-lg h-9 text-sm"
+                  {...register("fullName")}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="profile-blood-group"
+                  className="text-xs font-medium text-foreground cursor-pointer block"
+                >
+                  Blood Group
+                </label>
+                <Input
+                  id="profile-blood-group"
+                  placeholder="e.g. O+, A-, B+, AB+"
+                  className="rounded-lg h-9 text-sm"
+                  {...register("bloodGroup")}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
               <div className="space-y-1.5">
                 <label
                   htmlFor="profile-age"
@@ -230,7 +398,7 @@ export function HealthProfileForm() {
                 <Input
                   id="profile-age"
                   type="number"
-                  placeholder="e.g. 28"
+                  placeholder="e.g. 26"
                   className="rounded-lg h-9 text-sm tabular-nums"
                   {...register("age")}
                 />
@@ -251,23 +419,6 @@ export function HealthProfileForm() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="profile-blood-group"
-                  className="text-xs font-medium text-foreground cursor-pointer block"
-                >
-                  Blood Group
-                </label>
-                <Input
-                  id="profile-blood-group"
-                  placeholder="e.g. O+, A-, B+"
-                  className="rounded-lg h-9 text-sm"
-                  {...register("blood_group")}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div className="space-y-1.5">
                 <label
                   htmlFor="profile-height"
@@ -303,42 +454,42 @@ export function HealthProfileForm() {
           </CardContent>
         </Card>
 
-        {/* Section Card 2: Clinical Context & Medical History */}
+        {/* Section Card 2: Medical History & Allergies */}
         <Card className="rounded-xl border border-border bg-card shadow-none">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
               <Activity className="size-4 text-accent" />
-              <span>Medical History</span>
+              <span>Medical History &amp; Sensitivities</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3.5">
             <div className="space-y-1.5">
               <label
-                htmlFor="profile-allergies"
+                htmlFor="profile-chronic-conditions"
                 className="text-xs font-medium text-foreground cursor-pointer block"
               >
-                Known Allergies (comma separated)
+                Chronic Conditions (Comma separated)
               </label>
               <Input
-                id="profile-allergies"
-                placeholder="Penicillin, Peanuts, Latex"
+                id="profile-chronic-conditions"
+                placeholder="e.g. Asthma, Hypertension, Type 2 Diabetes"
                 className="rounded-lg h-9 text-sm"
-                {...register("allergies")}
+                {...register("chronicConditions")}
               />
             </div>
 
             <div className="space-y-1.5">
               <label
-                htmlFor="profile-chronic-conditions"
+                htmlFor="profile-allergies"
                 className="text-xs font-medium text-foreground cursor-pointer block"
               >
-                Chronic Conditions (comma separated)
+                Known Allergies (Comma separated)
               </label>
               <Input
-                id="profile-chronic-conditions"
-                placeholder="Asthma, Type 2 Diabetes, Hypertension"
+                id="profile-allergies"
+                placeholder="e.g. Penicillin, Peanuts, Latex, Sulfa"
                 className="rounded-lg h-9 text-sm"
-                {...register("chronic_conditions")}
+                {...register("allergies")}
               />
             </div>
 
@@ -347,11 +498,11 @@ export function HealthProfileForm() {
                 htmlFor="profile-medications"
                 className="text-xs font-medium text-foreground cursor-pointer block"
               >
-                Current Medications (comma separated)
+                Current Daily Medications (Comma separated)
               </label>
               <Input
                 id="profile-medications"
-                placeholder="Metformin, Albuterol inhaler, Lisinopril"
+                placeholder="e.g. Albuterol inhaler, Metformin 500mg, Lisinopril"
                 className="rounded-lg h-9 text-sm"
                 {...register("medications")}
               />
@@ -359,12 +510,56 @@ export function HealthProfileForm() {
           </CardContent>
         </Card>
 
-        {/* Section Card 3: AI Personalization & Consent Preference */}
+        {/* Section Card 3: Designated Emergency Contact */}
+        <Card className="rounded-xl border border-border bg-card shadow-none">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
+              <Phone className="size-4 text-accent" />
+              <span>Primary Emergency Contact</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="profile-emergency-name"
+                  className="text-xs font-medium text-foreground cursor-pointer block"
+                >
+                  Emergency Contact Name
+                </label>
+                <Input
+                  id="profile-emergency-name"
+                  placeholder="e.g. Dr. Sarah Chen / Spouse"
+                  className="rounded-lg h-9 text-sm"
+                  {...register("emergencyContactName")}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="profile-emergency-phone"
+                  className="text-xs font-medium text-foreground cursor-pointer block"
+                >
+                  Emergency Phone Number
+                </label>
+                <Input
+                  id="profile-emergency-phone"
+                  type="tel"
+                  placeholder="e.g. +1 (555) 392-1084"
+                  className="rounded-lg h-9 text-sm"
+                  {...register("emergencyContactNumber")}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Section Card 4: AI Personalization Consent */}
         <Card className="rounded-xl border border-border bg-card shadow-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
               <Lock className="size-4 text-accent" />
-              <span>AI Personalization Consent</span>
+              <span>AI Autonomous Context Consent</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -381,25 +576,34 @@ export function HealthProfileForm() {
                   htmlFor="allow_ai_use"
                   className="text-sm font-medium text-foreground cursor-pointer block"
                 >
-                  Factor health profile into symptom assessments
+                  Automatically incorporate this health profile into symptom triage
                 </label>
                 <p className="text-xs text-muted-foreground leading-normal">
-                  When enabled, known conditions and allergies are evaluated for contraindications.
+                  When enabled, Omnicura immediately references your age, asthma/allergies, and medications during consultations, eliminating redundant questions.
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Save Button */}
-        <div className="pt-2">
+        {/* Action Controls */}
+        <div className="flex items-center gap-3 pt-2">
           <Button
             type="submit"
             isLoading={isSaving}
-            className="w-full sm:w-auto px-6 h-10 rounded-lg font-semibold text-xs sm:text-sm gap-2"
+            className="px-6 h-10 rounded-lg font-semibold text-xs sm:text-sm gap-2"
           >
             <Save className="size-3.5" />
             <span>Save Health Profile</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleQuickDemoFill}
+            className="h-10 text-xs px-4"
+          >
+            Load Demo Profile
           </Button>
         </div>
       </form>

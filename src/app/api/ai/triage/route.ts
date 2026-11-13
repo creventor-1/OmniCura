@@ -7,6 +7,7 @@ const RequestBodySchema = z.object({
   messages: z.array(TriageMessageSchema).min(1),
   healthProfile: z
     .object({
+      fullName: z.string().optional(),
       age: z.number().optional(),
       sex: z.string().optional(),
       allergies: z.array(z.string()).optional(),

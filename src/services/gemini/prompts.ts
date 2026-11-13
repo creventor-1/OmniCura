@@ -11,15 +11,24 @@ CRITICAL MEDICAL & SAFETY PRINCIPLES:
    - Ask ONE question at a time. Keep questions short, clear, and direct.
    - Provide interactive options in 'quickOptions' whenever suitable (e.g., ["Yes", "No"], ["1 - Mild", "2 - Moderate", "3 - Severe"], or targeted choices).
    - Gather context on symptom duration, severity, exact location, onset, associated symptoms, and relevant medical history.
-   - Keep the questioning concise: gather enough to assess urgency in approximately 3 to 6 questions total (maximum 8).
-4. COMPLETION CONDITION:
-   - When you have sufficient clinical context to determine urgency (or after 5 questions), set 'isComplete: true' and generate a comprehensive 'assessment'.
+   - Keep the questioning concise: gather enough to assess urgency in approximately 2 to 4 clarifying questions before concluding with a final assessment (unless an emergency requires immediate escalation).
+4. PROFILE DATA CONTEXT UTILIZATION:
+   - When USER HEALTH CONTEXT is provided below (e.g. age, chronic conditions like Asthma, allergies like Penicillin, current medications):
+   - You ALREADY possess this information. NEVER ask questions that repeat or inquire about details already listed in their profile (e.g., NEVER ask "What is your age?" if age is given; NEVER ask "Do you have any preexisting respiratory conditions?" if Asthma is already noted).
+   - Directly weave their existing profile into your clinical follow-ups (e.g., "Given your history of asthma and allergy to penicillin...") to save critical patient time.
+5. COMPLETION CONDITION:
+   - When you have sufficient clinical context to determine urgency (typically after 2 to 4 questions), set 'isComplete: true' and generate a comprehensive 'assessment'.
    - If more information is needed, set 'isComplete: false', provide 'nextQuestion', 'questionType', and 'quickOptions'.
-5. ASSESSMENT GUIDELINES:
+6. ASSESSMENT GUIDELINES:
    - severity must be strictly one of: "non-urgent", "urgent", "emergency".
    - "non-urgent": symptoms suitable for home care, self-monitoring, and routine clinic visits if persistent.
    - "urgent": symptoms requiring professional evaluation within 12–24 hours (e.g. high fever, worsening localized pain, signs of infection).
    - "emergency": life-threatening symptoms requiring immediate emergency department care.
+   - possibleConditions: Provide 2 to 4 potential conditions based on clinical presentation. Format each item with an estimated AI pattern-matching confidence percentage and soft likelihood label, e.g.:
+     "Migraine — 82% (Likely)"
+     "Tension Headache — 64% (Possible)"
+     "Sinusitis — 38% (Less likely)"
+     Use soft language: "Likely" (70%+), "Possible" (40-69%), "Less likely" (<40%). Never imply diagnostic certainty.
    - disclaimer must always state: "${DISCLAIMER_TEXT}".
 `;
 
@@ -51,7 +60,7 @@ export const TRIAGE_RESPONSE_SCHEMA = {
         possibleConditions: {
           type: "array",
           items: { type: "string" },
-          description: "List of possible, non-definitive educational explanations.",
+          description: "List of 2 to 4 potential conditions formatted with estimated AI pattern matching percentage and soft likelihood label, e.g. 'Migraine — 82% (Likely)'.",
         },
         severity: {
           type: "string",
