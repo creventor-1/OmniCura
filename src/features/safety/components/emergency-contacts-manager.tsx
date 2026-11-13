@@ -4,11 +4,13 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Phone, PhoneCall, Plus, Trash2, Users } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Phone, PhoneCall, Plus, Trash2, Users, X } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/shared/empty-state";
 import { useAuth } from "@/features/authentication/context/auth-context";
 import { createClient } from "@/services/database/supabase/client";
 import { EmergencyContact } from "@/types/database";
@@ -100,6 +102,8 @@ export function EmergencyContactsManager() {
   };
 
   const onDeleteContact = async (id: string) => {
+    if (!confirm("Are you sure you want to remove this emergency contact?")) return;
+
     try {
       await supabase.from("emergency_contacts").delete().eq("id", id);
       setContacts((prev) => prev.filter((c) => c.id !== id));
@@ -110,149 +114,186 @@ export function EmergencyContactsManager() {
 
   if (!user) {
     return (
-      <Card className="max-w-xl mx-auto my-6 text-center p-6">
-        <Users className="size-10 text-muted-foreground mx-auto mb-2" />
-        <CardTitle className="text-lg">Sign in to manage Emergency Contacts</CardTitle>
-        <CardDescription className="text-xs mt-1">
-          Registered users can save emergency contacts for one-tap calling during urgent situations.
-        </CardDescription>
-      </Card>
+      <EmptyState
+        icon={Users}
+        title="Sign In to Manage Emergency Contacts"
+        description="Register or sign in to configure trusted family members, physicians, or emergency responders for instant one-tap dialing during critical events."
+      />
     );
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <Spinner size="lg" />
+      <div className="max-w-2xl mx-auto space-y-4">
+        <Skeleton className="h-8 w-48 rounded-lg" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+        </div>
       </div>
     );
   }
 
   return (
-    <Card className="max-w-2xl mx-auto shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between">
+    <div className="max-w-3xl mx-auto space-y-6">
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 pb-3">
         <div>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Phone className="size-5 text-red-500" />
-            Emergency Contacts
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Quick-dial trusted contacts during emergencies.
-          </CardDescription>
+          <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Users className="size-5 text-primary" />
+            <span>Emergency Contacts</span>
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Designated responders surfaced during red-flag events and available for one-tap calling.
+          </p>
         </div>
 
-        {!isAdding && (
-          <Button size="sm" onClick={() => setIsAdding(true)} className="gap-1.5 text-xs h-8">
-            <Plus className="size-3.5" />
-            Add Contact
-          </Button>
-        )}
-      </CardHeader>
+        <Button
+          size="sm"
+          onClick={() => setIsAdding(!isAdding)}
+          className="rounded-xl text-xs font-semibold gap-1.5 self-start sm:self-auto h-9"
+        >
+          {isAdding ? <X className="size-3.5" /> : <Plus className="size-3.5" />}
+          <span>{isAdding ? "Cancel" : "Add Contact"}</span>
+        </Button>
+      </div>
 
-      <CardContent className="space-y-4">
-        {isAdding && (
-          <form
-            onSubmit={handleSubmit(onAddContact)}
-            className="p-4 rounded-lg border bg-muted/30 space-y-3"
-          >
-            <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
-              New Emergency Contact
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-medium">Full Name</label>
-                <Input placeholder="e.g. Jane Doe" {...register("name")} className="text-sm h-9" />
-                {errors.name && (
-                  <span className="text-[11px] text-destructive">{errors.name.message}</span>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-medium">Relationship</label>
-                <Input
-                  placeholder="e.g. Spouse, Parent, Doctor"
-                  {...register("relationship")}
-                  className="text-sm h-9"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium">Phone Number</label>
-              <Input
-                placeholder="e.g. +1 555-0199 or 08012345678"
-                {...register("phone_number")}
-                className="text-sm h-9"
-              />
-              {errors.phone_number && (
-                <span className="text-[11px] text-destructive">{errors.phone_number.message}</span>
-              )}
-            </div>
-
-            <div className="flex gap-2 justify-end pt-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsAdding(false)}
-                className="text-xs h-8"
-              >
-                Cancel
-              </Button>
-              <Button type="submit" size="sm" disabled={isSubmitting} className="text-xs h-8 gap-1.5">
-                {isSubmitting && <Spinner size="sm" />}
-                Save Contact
-              </Button>
-            </div>
-          </form>
-        )}
-
-        {contacts.length === 0 ? (
-          <div className="py-8 text-center text-xs text-muted-foreground">
-            No emergency contacts saved. Add an emergency contact for quick access during urgent situations.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {contacts.map((contact) => (
-              <div
-                key={contact.id}
-                className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
-              >
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">{contact.name}</span>
-                    {contact.relationship && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
-                        {contact.relationship}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground font-mono">{contact.phone_number}</p>
+      {/* Add Contact Card Form */}
+      {isAdding && (
+        <Card className="rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:p-5 shadow-xs animate-in fade-in-50 duration-150">
+          <CardHeader className="p-0 pb-3">
+            <CardTitle className="text-sm font-bold text-foreground">
+              Add New Emergency Contact
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Provide contact name and direct phone number.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <form onSubmit={handleSubmit(onAddContact)} className="space-y-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-foreground">Full Name</label>
+                  <Input
+                    placeholder="e.g. Dr. Adaeze Okafor"
+                    className="rounded-xl h-9 text-xs"
+                    {...register("name")}
+                  />
+                  {errors.name && (
+                    <span className="text-[11px] text-destructive">{errors.name.message}</span>
+                  )}
                 </div>
 
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-foreground">Relationship</label>
+                  <Input
+                    placeholder="e.g. Spouse, Physician, Parent"
+                    className="rounded-xl h-9 text-xs"
+                    {...register("relationship")}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-foreground">Phone Number</label>
+                  <Input
+                    type="tel"
+                    placeholder="e.g. +234 803 123 4567"
+                    className="rounded-xl h-9 text-xs"
+                    {...register("phone_number")}
+                  />
+                  {errors.phone_number && (
+                    <span className="text-[11px] text-destructive">
+                      {errors.phone_number.message}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isSubmitting}
+                  className="rounded-xl text-xs font-bold h-9 px-4 gap-1.5"
+                >
+                  <Plus className="size-3.5" />
+                  <span>{isSubmitting ? "Saving Contact..." : "Save Contact"}</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsAdding(false)}
+                  className="rounded-xl text-xs h-9 px-3"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Empty State */}
+      {contacts.length === 0 && !isAdding && (
+        <EmptyState
+          icon={PhoneCall}
+          title="No Emergency Contacts Configured"
+          description="Add trusted family members or your primary care physician to enable rapid one-tap dialing during urgent health events."
+          actionLabel="Add Emergency Contact"
+          onAction={() => setIsAdding(true)}
+        />
+      )}
+
+      {/* Contact Cards Grid */}
+      {contacts.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          {contacts.map((contact) => (
+            <div
+              key={contact.id}
+              className="rounded-2xl border border-border/80 bg-card p-4 flex items-center justify-between gap-3 shadow-xs hover:border-primary/40 transition-all group"
+            >
+              <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <a
-                    href={`tel:${contact.phone_number}`}
-                    className="inline-flex size-8 items-center justify-center rounded-md bg-emerald-600 text-white hover:bg-emerald-500 shadow-sm"
-                    title={`Call ${contact.name}`}
-                  >
-                    <PhoneCall className="size-4" />
-                  </a>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDeleteContact(contact.id)}
-                    className="size-8 text-muted-foreground hover:text-destructive"
-                    title="Delete contact"
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
+                  <h4 className="text-sm font-bold text-foreground truncate">{contact.name}</h4>
+                  {contact.relationship && (
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                    >
+                      {contact.relationship}
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                  <Phone className="size-3 text-primary" />
+                  <span className="truncate">{contact.phone_number}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <a
+                  href={`tel:${contact.phone_number}`}
+                  className="inline-flex items-center justify-center size-8 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-colors"
+                  title={`Call ${contact.name}`}
+                >
+                  <PhoneCall className="size-3.5" />
+                </a>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onDeleteContact(contact.id)}
+                  className="size-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  title="Remove contact"
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

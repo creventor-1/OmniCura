@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { HealthcareFacility } from "@/types/hospital";
 import { DEFAULT_FALLBACK_COORDINATES } from "@/services/hospitals/fallback-data";
 import type {
@@ -378,7 +379,23 @@ export function HospitalMap() {
           </div>
 
           <div className="overflow-y-auto space-y-2.5 pr-1 flex-1">
-            {facilities.length === 0 && !isLoadingFacilities ? (
+            {isLoadingFacilities && facilities.length === 0 ? (
+              <div className="space-y-2.5">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="p-3.5 rounded-xl border border-border/70 bg-card space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-4 w-3/4 rounded-md" />
+                      <Skeleton className="h-4 w-12 rounded-full" />
+                    </div>
+                    <Skeleton className="h-3 w-1/2 rounded-md" />
+                    <div className="flex justify-between items-center pt-1">
+                      <Skeleton className="h-4 w-20 rounded-md" />
+                      <Skeleton className="h-7 w-24 rounded-md" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : facilities.length === 0 ? (
               <div className="p-6 text-center rounded-xl border border-dashed bg-card space-y-2">
                 <MapPin className="size-6 mx-auto text-muted-foreground" />
                 <p className="text-xs font-medium text-muted-foreground">

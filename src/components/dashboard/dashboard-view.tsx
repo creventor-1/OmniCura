@@ -23,8 +23,9 @@ import { EmergencyContactsManager } from "@/features/safety/components/emergency
 import { HospitalMap } from "@/components/map/hospital-map";
 import { ImageSymptomAnalyzer } from "@/features/vision/components/image-symptom-analyzer";
 import { MedicationScanner } from "@/features/vision/components/medication-scanner";
+import { DashboardSummaryCards } from "./dashboard-summary-cards";
 
-type ActiveTab =
+export type ActiveTab =
   | "triage"
   | "vision"
   | "medication"
@@ -33,10 +34,26 @@ type ActiveTab =
   | "profile"
   | "contacts";
 
-export function DashboardView() {
+export interface DashboardViewProps {
+  activeTab?: ActiveTab;
+  onTabChange?: (tab: ActiveTab) => void;
+  showTabsHeader?: boolean;
+}
+
+export function DashboardView({
+  activeTab: controlledTab,
+  onTabChange,
+  showTabsHeader = true,
+}: DashboardViewProps) {
   const { user, signOut } = useAuth();
-  const [activeTab, setActiveTab] = React.useState<ActiveTab>("triage");
+  const [internalTab, setInternalTab] = React.useState<ActiveTab>("triage");
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
+
+  const activeTab = controlledTab ?? internalTab;
+  const handleTabChange = (tab: ActiveTab) => {
+    setInternalTab(tab);
+    onTabChange?.(tab);
+  };
 
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col flex-1">
@@ -46,112 +63,117 @@ export function DashboardView() {
       />
 
       {/* Top Navigation & User State Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-4 mb-4 border-b border-border/50">
-        {/* Navigation Tabs */}
-        <nav className="flex items-center gap-1.5 p-1 rounded-xl bg-muted/60 border border-border/60 text-xs overflow-x-auto max-w-full">
-          <Button
-            size="sm"
-            variant={activeTab === "triage" ? "default" : "ghost"}
-            onClick={() => setActiveTab("triage")}
-            className="h-8 gap-1.5 rounded-lg text-xs"
-          >
-            <Activity className="size-3.5" />
-            Triage Chat
-          </Button>
+      {showTabsHeader && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-4 mb-4 border-b border-border/50">
+          {/* Navigation Tabs */}
+          <nav className="flex items-center gap-1.5 p-1 rounded-xl bg-muted/60 border border-border/60 text-xs overflow-x-auto max-w-full">
+            <Button
+              size="sm"
+              variant={activeTab === "triage" ? "default" : "ghost"}
+              onClick={() => handleTabChange("triage")}
+              className="h-8 gap-1.5 rounded-lg text-xs"
+            >
+              <Activity className="size-3.5" />
+              Triage Chat
+            </Button>
 
-          <Button
-            size="sm"
-            variant={activeTab === "vision" ? "default" : "ghost"}
-            onClick={() => setActiveTab("vision")}
-            className="h-8 gap-1.5 rounded-lg text-xs"
-          >
-            <Camera className="size-3.5" />
-            Symptom Vision
-          </Button>
+            <Button
+              size="sm"
+              variant={activeTab === "vision" ? "default" : "ghost"}
+              onClick={() => handleTabChange("vision")}
+              className="h-8 gap-1.5 rounded-lg text-xs"
+            >
+              <Camera className="size-3.5" />
+              Symptom Vision
+            </Button>
 
-          <Button
-            size="sm"
-            variant={activeTab === "medication" ? "default" : "ghost"}
-            onClick={() => setActiveTab("medication")}
-            className="h-8 gap-1.5 rounded-lg text-xs"
-          >
-            <Pill className="size-3.5" />
-            Medication Scan
-          </Button>
+            <Button
+              size="sm"
+              variant={activeTab === "medication" ? "default" : "ghost"}
+              onClick={() => handleTabChange("medication")}
+              className="h-8 gap-1.5 rounded-lg text-xs"
+            >
+              <Pill className="size-3.5" />
+              Medication Scan
+            </Button>
 
-          <Button
-            size="sm"
-            variant={activeTab === "hospitals" ? "default" : "ghost"}
-            onClick={() => setActiveTab("hospitals")}
-            className="h-8 gap-1.5 rounded-lg text-xs"
-          >
-            <MapPin className="size-3.5" />
-            Hospitals &amp; Clinics
-          </Button>
+            <Button
+              size="sm"
+              variant={activeTab === "hospitals" ? "default" : "ghost"}
+              onClick={() => handleTabChange("hospitals")}
+              className="h-8 gap-1.5 rounded-lg text-xs"
+            >
+              <MapPin className="size-3.5" />
+              Hospitals &amp; Clinics
+            </Button>
 
-          <Button
-            size="sm"
-            variant={activeTab === "history" ? "default" : "ghost"}
-            onClick={() => setActiveTab("history")}
-            className="h-8 gap-1.5 rounded-lg text-xs"
-          >
-            <History className="size-3.5" />
-            History
-          </Button>
+            <Button
+              size="sm"
+              variant={activeTab === "history" ? "default" : "ghost"}
+              onClick={() => handleTabChange("history")}
+              className="h-8 gap-1.5 rounded-lg text-xs"
+            >
+              <History className="size-3.5" />
+              History
+            </Button>
 
-          <Button
-            size="sm"
-            variant={activeTab === "profile" ? "default" : "ghost"}
-            onClick={() => setActiveTab("profile")}
-            className="h-8 gap-1.5 rounded-lg text-xs"
-          >
-            <UserCheck className="size-3.5" />
-            Health Profile
-          </Button>
+            <Button
+              size="sm"
+              variant={activeTab === "profile" ? "default" : "ghost"}
+              onClick={() => handleTabChange("profile")}
+              className="h-8 gap-1.5 rounded-lg text-xs"
+            >
+              <UserCheck className="size-3.5" />
+              Health Profile
+            </Button>
 
-          <Button
-            size="sm"
-            variant={activeTab === "contacts" ? "default" : "ghost"}
-            onClick={() => setActiveTab("contacts")}
-            className="h-8 gap-1.5 rounded-lg text-xs"
-          >
-            <PhoneCall className="size-3.5" />
-            Contacts
-          </Button>
-        </nav>
+            <Button
+              size="sm"
+              variant={activeTab === "contacts" ? "default" : "ghost"}
+              onClick={() => handleTabChange("contacts")}
+              className="h-8 gap-1.5 rounded-lg text-xs"
+            >
+              <PhoneCall className="size-3.5" />
+              Contacts
+            </Button>
+          </nav>
 
-        {/* User Account State Controls */}
-        <div className="flex items-center gap-2">
-          {user ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground hidden sm:inline-flex items-center gap-1">
-                <User className="size-3" />
-                {user.email}
-              </span>
+          {/* User Account State Controls */}
+          <div className="flex items-center gap-2">
+            {user ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground hidden sm:inline-flex items-center gap-1">
+                  <User className="size-3" />
+                  {user.email}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => signOut()}
+                  className="h-8 text-xs gap-1.5"
+                  title="Sign out of account"
+                >
+                  <LogOut className="size-3" />
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => signOut()}
+                onClick={() => setIsAuthModalOpen(true)}
                 className="h-8 text-xs gap-1.5"
-                title="Sign out of account"
               >
-                <LogOut className="size-3" />
-                Sign Out
+                <LogIn className="size-3" />
+                Sign In / Register
               </Button>
-            </div>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsAuthModalOpen(true)}
-              className="h-8 text-xs gap-1.5"
-            >
-              <LogIn className="size-3" />
-              Sign In / Register
-            </Button>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Quick Summary Cards (Dashboard Overview) */}
+      {showTabsHeader && <DashboardSummaryCards onSelectTab={handleTabChange} />}
 
       {/* Tab Content Rendering */}
       <div className="flex-1 w-full">
@@ -166,20 +188,22 @@ export function DashboardView() {
               </p>
             </div>
             <SymptomChat
-              onLocateFacilities={() => setActiveTab("hospitals")}
-              onOpenVision={() => setActiveTab("vision")}
+              onLocateFacilities={() => handleTabChange("hospitals")}
+              onOpenVision={() => handleTabChange("vision")}
             />
           </div>
         )}
 
         {activeTab === "vision" && (
           <ImageSymptomAnalyzer
-            onLocateFacilities={() => setActiveTab("hospitals")}
+            onLocateFacilities={() => handleTabChange("hospitals")}
           />
         )}
         {activeTab === "medication" && <MedicationScanner />}
         {activeTab === "hospitals" && <HospitalMap />}
-        {activeTab === "history" && <AssessmentHistoryView />}
+        {activeTab === "history" && (
+          <AssessmentHistoryView onStartAssessment={() => handleTabChange("triage")} />
+        )}
         {activeTab === "profile" && <HealthProfileForm />}
         {activeTab === "contacts" && <EmergencyContactsManager />}
       </div>

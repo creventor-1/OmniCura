@@ -1,18 +1,34 @@
 "use client";
 
 import * as React from "react";
-import { Clock, ShieldAlert, Trash2, ChevronDown, ChevronUp, FileText, FileDown } from "lucide-react";
-import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
+import {
+  Clock,
+  ShieldAlert,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  FileDown,
+  Calendar,
+  Activity,
+  HeartPulse,
+  Sparkles,
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/shared/empty-state";
 import { useAuth } from "@/features/authentication/context/auth-context";
 import { createClient } from "@/services/database/supabase/client";
 import { StoredAssessment } from "@/types/database";
 import { AssessmentResponse } from "@/schemas/triage";
 import { generateTriagePdfReport } from "@/services/pdf/generate-report";
 
-export function AssessmentHistoryView() {
+interface AssessmentHistoryViewProps {
+  onStartAssessment?: () => void;
+}
+
+export function AssessmentHistoryView({ onStartAssessment }: AssessmentHistoryViewProps) {
   const { user } = useAuth();
   const supabase = React.useMemo(() => createClient(), []);
 
@@ -65,151 +81,236 @@ export function AssessmentHistoryView() {
 
   const formatDateString = (iso: string) => {
     try {
-      return new Date(iso).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      });
+      const d = new Date(iso);
+      return {
+        date: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        time: d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+      };
     } catch {
-      return iso;
+      return { date: iso, time: "" };
     }
   };
 
   if (!user) {
     return (
-      <Card className="max-w-xl mx-auto my-6 text-center p-6">
-        <FileText className="size-10 text-muted-foreground mx-auto mb-2" />
-        <CardTitle className="text-lg">Sign in to view History</CardTitle>
-        <CardDescription className="text-xs mt-1">
-          Registered users can securely review their past symptom assessments and clinical recommendations.
-        </CardDescription>
-      </Card>
+      <EmptyState
+        icon={Activity}
+        title="Sign In to View Assessment History"
+        description="Registered users can securely review their past symptom assessments, view clinical reasoning, and download verified PDF triage reports."
+        actionLabel="Start New Assessment"
+        onAction={onStartAssessment}
+      />
     );
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <Spinner size="lg" />
+      <div className="max-w-2xl mx-auto space-y-4">
+        <div className="flex items-center justify-between pb-2">
+          <Skeleton className="h-6 w-48 rounded-lg" />
+          <Skeleton className="h-8 w-24 rounded-lg" />
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-2xl border border-border/70 p-4 space-y-3 bg-card">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-5 w-24 rounded-full" />
+                <Skeleton className="h-4 w-32 rounded-md" />
+              </div>
+              <Skeleton className="h-4 w-full rounded-md" />
+              <Skeleton className="h-4 w-3/4 rounded-md" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (assessments.length === 0) {
     return (
-      <Card className="max-w-2xl mx-auto my-6 text-center p-8">
-        <Clock className="size-10 text-muted-foreground mx-auto mb-2" />
-        <CardTitle className="text-base">No previous assessments found</CardTitle>
-        <CardDescription className="text-xs mt-1">
-          Your previous symptom assessments and triage reports will appear here.
-        </CardDescription>
-      </Card>
+      <EmptyState
+        icon={Clock}
+        title="No Previous Assessments Found"
+        description="You haven't completed a symptom assessment yet. Run a triage session to get educational first-aid steps and record history."
+        actionLabel="Start Assessment"
+        onAction={onStartAssessment}
+      />
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold">Assessment History ({assessments.length})</h3>
+    <div className="max-w-3xl mx-auto space-y-6">
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-3">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Clock className="size-5 text-primary" />
+            <span>Clinical Assessment History</span>
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Timeline of past triage sessions, urgency categorizations, and supportive care plans.
+          </p>
+        </div>
+
+        <Badge variant="outline" className="text-xs font-semibold px-3 py-1 rounded-full self-start sm:self-auto">
+          {assessments.length} {assessments.length === 1 ? "Record" : "Records"}
+        </Badge>
       </div>
 
-      <div className="space-y-3">
+      {/* Vertical Timeline */}
+      <div className="relative pl-6 sm:pl-8 space-y-6 before:absolute before:left-2 sm:before:left-3 before:top-3 before:bottom-3 before:w-0.5 before:bg-gradient-to-b before:from-primary/40 before:via-border before:to-transparent">
         {assessments.map((item) => {
           const isExpanded = expandedId === item.id;
           const result = item.assessment_result as unknown as AssessmentResponse;
+          const { date, time } = formatDateString(item.created_at);
 
-          const badgeStyles = {
-            "non-urgent": "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
-            urgent: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30",
-            emergency: "bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/30",
-          }[item.severity];
+          const badgeConfig = {
+            "non-urgent": {
+              style: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+              dot: "bg-emerald-500",
+            },
+            urgent: {
+              style: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30",
+              dot: "bg-amber-500",
+            },
+            emergency: {
+              style: "bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/30",
+              dot: "bg-red-500 animate-ping",
+            },
+          }[item.severity] || {
+            style: "bg-muted text-muted-foreground border-border",
+            dot: "bg-primary",
+          };
 
           return (
-            <Card key={item.id} className="overflow-hidden transition-all">
+            <div key={item.id} className="relative group">
+              {/* Timeline Marker Dot */}
               <div
-                onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={`text-[11px] font-semibold uppercase ${badgeStyles}`}>
-                      {item.severity}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDateString(item.created_at)}
-                    </span>
+                className={`absolute -left-6 sm:-left-8 top-4 size-4 sm:size-5 rounded-full border-2 border-background shadow-xs flex items-center justify-center transition-transform group-hover:scale-125 ${badgeConfig.dot}`}
+              />
+
+              {/* Assessment Timeline Card */}
+              <Card className="rounded-2xl border border-border/80 bg-card overflow-hidden transition-all duration-200 hover:border-primary/40 hover:shadow-sm">
+                <div
+                  onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                  className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:bg-muted/30 transition-colors"
+                >
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider ${badgeConfig.style}`}
+                      >
+                        {item.severity}
+                      </Badge>
+
+                      <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                        <Calendar className="size-3" />
+                        {date} • {time}
+                      </span>
+                    </div>
+
+                    <p className="text-sm font-semibold text-foreground line-clamp-2 leading-snug">
+                      &ldquo;{item.symptoms}&rdquo;
+                    </p>
                   </div>
-                  <p className="text-sm font-medium line-clamp-1 text-foreground">
-                    &ldquo;{item.symptoms}&rdquo;
-                  </p>
+
+                  {/* Actions & Expand Chevron */}
+                  <div className="flex items-center gap-1 shrink-0 self-end sm:self-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        generateTriagePdfReport({
+                          assessment: result,
+                          symptoms: item.symptoms,
+                          date: item.created_at,
+                          userEmail: user?.email,
+                        });
+                      }}
+                      className="h-8 text-xs gap-1.5 rounded-lg border-border/80 text-foreground hover:bg-primary/10 hover:text-primary"
+                      title="Download PDF Summary Report"
+                    >
+                      <FileDown className="size-3.5" />
+                      <span className="hidden sm:inline">PDF Report</span>
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(item.id);
+                      }}
+                      className="size-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      title="Delete record"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 rounded-lg text-muted-foreground"
+                      aria-label={isExpanded ? "Collapse details" : "Expand details"}
+                    >
+                      {isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                    </Button>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      generateTriagePdfReport({
-                        assessment: result,
-                        symptoms: item.symptoms,
-                        date: item.created_at,
-                        userEmail: user?.email,
-                      });
-                    }}
-                    className="size-8 text-muted-foreground hover:text-primary"
-                    title="Export PDF Report"
-                  >
-                    <FileDown className="size-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(item.id);
-                    }}
-                    className="size-8 text-muted-foreground hover:text-destructive"
-                    title="Delete record"
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="size-8 text-muted-foreground">
-                    {isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-                  </Button>
-                </div>
-              </div>
+                {/* Expanded Details View */}
+                {isExpanded && result && (
+                  <CardContent className="pt-3 pb-5 px-4 sm:px-5 border-t border-border/50 bg-muted/20 space-y-4 text-xs leading-relaxed animate-in fade-in-50 duration-150">
+                    {/* Recommended Action (Highlighted First) */}
+                    <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/20 space-y-1">
+                      <div className="flex items-center gap-1.5 text-primary font-bold">
+                        <Sparkles className="size-3.5" />
+                        <span>Recommended Clinical Action</span>
+                      </div>
+                      <p className="text-foreground text-xs leading-relaxed pl-5 font-medium">
+                        {result.recommendedAction}
+                      </p>
+                    </div>
 
-              {isExpanded && result && (
-                <CardContent className="pt-2 pb-4 border-t bg-muted/10 space-y-3 text-xs leading-relaxed">
-                  <div>
-                    <h5 className="font-semibold text-foreground">Possible Considerations</h5>
-                    <ul className="list-disc list-inside text-muted-foreground mt-1 space-y-0.5">
-                      {result.possibleConditions?.map((c, i) => (
-                        <li key={i}>{c}</li>
-                      ))}
-                    </ul>
-                  </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      {/* Clinical Rationale */}
+                      <div className="p-3 rounded-xl bg-card border border-border/60 space-y-1">
+                        <h5 className="font-bold text-foreground flex items-center gap-1.5">
+                          <HeartPulse className="size-3.5 text-primary" />
+                          <span>Triage Rationale</span>
+                        </h5>
+                        <p className="text-muted-foreground text-xs leading-relaxed">
+                          {result.severityReasoning}
+                        </p>
+                      </div>
 
-                  <div>
-                    <h5 className="font-semibold text-foreground">Triage Rationale</h5>
-                    <p className="text-muted-foreground mt-0.5">{result.severityReasoning}</p>
-                  </div>
+                      {/* Possible Considerations */}
+                      {result.possibleConditions && result.possibleConditions.length > 0 && (
+                        <div className="p-3 rounded-xl bg-card border border-border/60 space-y-1">
+                          <h5 className="font-bold text-foreground flex items-center gap-1.5">
+                            <Activity className="size-3.5 text-primary" />
+                            <span>Possible Considerations (Non-Diagnostic)</span>
+                          </h5>
+                          <ul className="list-disc list-inside text-muted-foreground text-xs space-y-0.5">
+                            {result.possibleConditions.map((cond, i) => (
+                              <li key={i}>{cond}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
 
-                  <div>
-                    <h5 className="font-semibold text-foreground">Recommended Action</h5>
-                    <p className="text-primary font-medium mt-0.5">{result.recommendedAction}</p>
-                  </div>
-
-                  <div className="pt-2 border-t border-border/50 text-[11px] text-muted-foreground flex items-center gap-1.5">
-                    <ShieldAlert className="size-3.5 shrink-0 text-amber-500" />
-                    <span>{item.disclaimer}</span>
-                  </div>
-                </CardContent>
-              )}
-            </Card>
+                    {/* Disclaimer Note */}
+                    <div className="pt-2 border-t border-border/40 text-[11px] text-muted-foreground flex items-center gap-1.5">
+                      <ShieldAlert className="size-3.5 shrink-0 text-amber-500" />
+                      <span>{item.disclaimer || "Educational triage summary. Consult a certified medical doctor for diagnosis."}</span>
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            </div>
           );
         })}
       </div>

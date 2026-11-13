@@ -1,10 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Send, Mic, MicOff, Bot, User, RefreshCw, Camera } from "lucide-react";
+import { Send, Mic, MicOff, Bot, User, RefreshCw, Camera, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
 import { checkRedFlags } from "@/lib/red-flags";
 import { EmergencyAlertModal } from "@/features/safety/components/emergency-alert-modal";
 import { DisclaimerModal } from "./disclaimer-modal";
@@ -19,6 +18,11 @@ let messageCounter = 0;
 function createMessageId(prefix: string): string {
   messageCounter += 1;
   return `${prefix}-${messageCounter}`;
+}
+
+function getFormattedTimestamp(): string {
+  if (typeof window === "undefined") return "";
+  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 interface SpeechRecognitionAlternative {
@@ -62,6 +66,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
       role: "assistant",
       content:
         'Hello, I am TriageAI. Please describe your symptoms naturally (for example: "I have had a mild headache and sore throat for two days"). How can I help you today?',
+      timestamp: "Just now",
     },
   ]);
 
@@ -168,12 +173,14 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
         id: createMessageId("user"),
         role: "user",
         content: text,
+        timestamp: getFormattedTimestamp(),
       };
 
       const emergencyResponseMsg: TriageMessage = {
         id: createMessageId("assistant"),
         role: "assistant",
         content: `🚨 **EMERGENCY WARNING**: ${clientCheck.description || "Critical symptoms detected."} ${clientCheck.immediateAction || "Please call emergency services immediately."}`,
+        timestamp: getFormattedTimestamp(),
       };
 
       setMessages((prev) => [...prev, userMsg, emergencyResponseMsg]);
@@ -185,6 +192,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
       id: createMessageId("user"),
       role: "user",
       content: text,
+      timestamp: getFormattedTimestamp(),
     };
 
     const updatedMessages = [...messages, userMessage];
@@ -242,6 +250,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
             id: createMessageId("assistant"),
             role: "assistant",
             content: `🚨 **EMERGENCY WARNING**: ${data.emergencyResult.immediateAction}`,
+            timestamp: getFormattedTimestamp(),
           },
         ]);
         return;
@@ -282,6 +291,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
             role: "assistant",
             content:
               "I have gathered sufficient context and prepared your structured triage assessment below.",
+            timestamp: getFormattedTimestamp(),
           },
         ]);
       } else if (turnData.nextQuestion) {
@@ -291,6 +301,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
             id: createMessageId("assistant"),
             role: "assistant",
             content: turnData.nextQuestion as string,
+            timestamp: getFormattedTimestamp(),
           },
         ]);
         if (turnData.quickOptions && turnData.quickOptions.length > 0) {
@@ -306,6 +317,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
           role: "assistant",
           content:
             "The triage service is currently busy or experiencing high demand. Please try again in a moment. If you are worried or symptoms are worsening, please contact a healthcare provider or call emergency services directly.",
+          timestamp: getFormattedTimestamp(),
         },
       ]);
     } finally {
@@ -377,48 +389,66 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
           </div>
 
           {/* Messages Scroll Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
             {messages.map((message) => {
               const isAssistant = message.role === "assistant";
               return (
                 <div
                   key={message.id}
-                  className={`flex items-start gap-3 ${isAssistant ? "justify-start" : "justify-end"}`}
+                  className={`flex items-start gap-3 ${isAssistant ? "justify-start" : "justify-end"} animate-in fade-in-50 duration-200`}
                 >
                   {isAssistant && (
-                    <div className="flex size-7 shrink-0 select-none items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold mt-0.5">
-                      <Bot className="size-3.5" />
+                    <div className="flex size-8 shrink-0 select-none items-center justify-center rounded-xl bg-gradient-to-tr from-sky-600 to-teal-600 text-white shadow-xs text-xs font-bold mt-0.5">
+                      <Bot className="size-4" />
                     </div>
                   )}
 
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                    className={`max-w-[85%] sm:max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-xs ${
                       isAssistant
-                        ? "bg-muted text-foreground rounded-tl-sm border border-border/50"
-                        : "bg-primary text-primary-foreground rounded-tr-sm shadow-sm"
+                        ? "bg-card text-foreground rounded-tl-xs border border-border/70"
+                        : "bg-primary text-primary-foreground rounded-tr-xs"
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{message.content}</p>
+                    {message.timestamp && (
+                      <div
+                        className={`flex items-center justify-end gap-1 mt-1.5 text-[10px] ${
+                          isAssistant ? "text-muted-foreground" : "text-primary-foreground/75"
+                        }`}
+                      >
+                        <span>{message.timestamp}</span>
+                      </div>
+                    )}
                   </div>
 
                   {!isAssistant && (
-                    <div className="flex size-7 shrink-0 select-none items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold mt-0.5">
-                      <User className="size-3.5" />
+                    <div className="flex size-8 shrink-0 select-none items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs text-xs font-bold mt-0.5">
+                      <User className="size-4" />
                     </div>
                   )}
                 </div>
               );
             })}
 
-            {/* Loading Indicator */}
+            {/* Pulsing 3-Dot Shimmer Loading Indicator */}
             {isLoading && (
-              <div className="flex items-start gap-3">
-                <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary mt-0.5">
-                  <Bot className="size-3.5" />
+              <div className="flex items-start gap-3 animate-in fade-in-50 duration-200">
+                <div className="flex size-8 shrink-0 select-none items-center justify-center rounded-xl bg-gradient-to-tr from-sky-600 to-teal-600 text-white shadow-xs text-xs font-bold mt-0.5">
+                  <Bot className="size-4" />
                 </div>
-                <div className="flex items-center gap-2 rounded-2xl bg-muted px-4 py-2.5 text-xs text-muted-foreground rounded-tl-sm border border-border/50">
-                  <Spinner size="sm" />
-                  <span>Analyzing symptoms &amp; clinical urgency...</span>
+                <div className="rounded-2xl rounded-tl-xs bg-card border border-border/70 px-4 py-3 shadow-xs space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="size-2 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
+                    <span className="size-2 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
+                    <span className="size-2 rounded-full bg-primary animate-bounce" />
+                    <span className="text-xs font-semibold text-foreground ml-2">
+                      TriageAI is analyzing symptoms...
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Screening duration, clinical urgency factors &amp; safety red-flags.
+                  </p>
                 </div>
               </div>
             )}
@@ -426,11 +456,12 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Option Pills */}
+          {/* Quick Option Choice Chips */}
           {currentQuickOptions.length > 0 && !isLoading && (
-            <div className="px-4 py-2 bg-muted/20 border-t flex flex-wrap gap-2 animate-in fade-in-50">
-              <span className="text-[11px] text-muted-foreground w-full font-medium">
-                Quick responses:
+            <div className="px-4 py-3 bg-muted/30 border-t flex flex-wrap items-center gap-2 animate-in fade-in-50">
+              <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1 w-full sm:w-auto mr-1">
+                <Sparkles className="size-3 text-primary" />
+                Suggested responses:
               </span>
               {currentQuickOptions.map((option, idx) => (
                 <Button
@@ -439,7 +470,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
                   size="sm"
                   variant="outline"
                   onClick={() => handleSendMessage(option)}
-                  className="text-xs h-7 rounded-full bg-background hover:bg-primary/10 hover:text-primary hover:border-primary/40 transition-colors"
+                  className="text-xs h-8 px-3.5 rounded-full bg-background hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all font-medium border-border/80 shadow-2xs active:scale-95"
                 >
                   {option}
                 </Button>

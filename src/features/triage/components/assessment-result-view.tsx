@@ -8,11 +8,12 @@ import {
   Clock,
   HeartPulse,
   Info,
-  MapPin,
   RotateCcw,
   BookmarkPlus,
   Check,
   FileDown,
+  ArrowRight,
+  MapPin,
 } from "lucide-react";
 import { AssessmentResponse } from "@/schemas/triage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/features/authentication/context/auth-context";
 import { AuthModal } from "@/features/authentication/components/auth-modal";
 import { generateTriagePdfReport } from "@/services/pdf/generate-report";
+import { HospitalMap } from "@/components/map/hospital-map";
 
 interface AssessmentResultViewProps {
   assessment: AssessmentResponse;
@@ -31,7 +33,6 @@ interface AssessmentResultViewProps {
 export function AssessmentResultView({
   assessment,
   onReset,
-  onLocateFacilities,
 }: AssessmentResultViewProps) {
   const { user } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
@@ -42,30 +43,33 @@ export function AssessmentResultView({
     "non-urgent": {
       label: "Non-Urgent Guidance",
       badgeClass: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
-      borderClass: "border-emerald-500/30",
+      accentBorder: "border-emerald-500/40",
+      bannerBg: "from-emerald-500/10 via-emerald-500/5 to-transparent",
       icon: CheckCircle2,
       subtitle: "Symptoms may be monitored with appropriate self-care and supportive guidance.",
     },
     urgent: {
       label: "Urgent Medical Attention Recommended",
       badgeClass: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
-      borderClass: "border-amber-500/30",
+      accentBorder: "border-amber-500/40",
+      bannerBg: "from-amber-500/10 via-amber-500/5 to-transparent",
       icon: Clock,
       subtitle: "Evaluation by a healthcare professional is advised within 12–24 hours.",
     },
     emergency: {
       label: "Immediate Emergency Care Required",
       badgeClass: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30",
-      borderClass: "border-red-500/30",
+      accentBorder: "border-red-500/40",
+      bannerBg: "from-red-500/10 via-red-500/5 to-transparent",
       icon: AlertTriangle,
-      subtitle: "Immediate emergency medical attention is strongly advised. Do not delay.",
+      subtitle: "Immediate professional emergency medical attention is strongly advised. Do not delay.",
     },
   }[severity];
 
   const SeverityIcon = severityConfig.icon;
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-6 animate-in fade-in-50 duration-500 pb-12">
+    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in-50 duration-500 pb-16">
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
@@ -73,13 +77,13 @@ export function AssessmentResultView({
         promptMessage="Create an account to save this assessment, review history, and export PDF reports."
       />
 
-      {/* Guest Save Banner */}
+      {/* Guest Save / Account Banner */}
       {!user ? (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-xl border border-primary/30 bg-primary/10">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl border border-primary/30 bg-primary/5 shadow-xs">
           <div className="space-y-0.5 text-center sm:text-left">
             <h4 className="text-sm font-bold text-foreground flex items-center gap-1.5 justify-center sm:justify-start">
               <BookmarkPlus className="size-4 text-primary" />
-              Save this Assessment
+              <span>Save this Clinical Assessment</span>
             </h4>
             <p className="text-xs text-muted-foreground">
               Sign up or log in to preserve this triage record in your private assessment history.
@@ -88,121 +92,151 @@ export function AssessmentResultView({
           <Button
             size="sm"
             onClick={() => setIsAuthModalOpen(true)}
-            className="shrink-0 text-xs h-9 font-medium"
+            className="shrink-0 text-xs h-9 px-4 font-semibold rounded-xl shadow-xs"
           >
-            Save Assessment
+            Save to Account
           </Button>
         </div>
       ) : (
-        <div className="flex items-center gap-2 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-xs text-emerald-800 dark:text-emerald-300 font-medium">
+        <div className="flex items-center gap-2 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-xs text-emerald-800 dark:text-emerald-300 font-medium">
           <Check className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <span>Saved to your personal account assessment history.</span>
         </div>
       )}
 
-      {/* Urgency Summary Banner */}
-      <Card className={`border-2 ${severityConfig.borderClass} shadow-md overflow-hidden`}>
-        <div className={`p-6 bg-muted/30 border-b ${severityConfig.borderClass}`}>
-          <div className="flex items-start gap-4">
-            <div className={`p-3 rounded-full ${severityConfig.badgeClass}`}>
-              <SeverityIcon className="size-7" />
+      {/* 1. SEVERITY CLASSIFICATION CARD (Visual Anchor) */}
+      <Card className={`border-2 ${severityConfig.accentBorder} shadow-sm overflow-hidden bg-gradient-to-b ${severityConfig.bannerBg}`}>
+        <div className="p-5 sm:p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className={`p-3 rounded-2xl ${severityConfig.badgeClass}`}>
+                <SeverityIcon className="size-7" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">
+                  Clinical Urgency Classification
+                </span>
+                <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
+                  {severityConfig.label}
+                </h2>
+              </div>
             </div>
-            <div className="space-y-1">
-              <Badge
-                variant="outline"
-                className={`px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider ${severityConfig.badgeClass}`}
-              >
-                {severity}
-              </Badge>
-              <h2 className="text-xl font-bold tracking-tight">{severityConfig.label}</h2>
-              <p className="text-sm text-muted-foreground">{severityConfig.subtitle}</p>
-            </div>
+
+            <Badge
+              variant="outline"
+              className={`self-start sm:self-center px-3 py-1 text-xs font-bold uppercase tracking-wider ${severityConfig.badgeClass}`}
+            >
+              {severity}
+            </Badge>
+          </div>
+
+          <p className="text-xs sm:text-sm text-foreground/80 font-medium">
+            {severityConfig.subtitle}
+          </p>
+
+          <div className="pt-3 border-t border-border/50 text-xs sm:text-sm space-y-1">
+            <span className="font-bold text-foreground flex items-center gap-1.5">
+              <Info className="size-3.5 text-primary" />
+              <span>Clinical Triage Reasoning:</span>
+            </span>
+            <p className="text-muted-foreground leading-relaxed">
+              {assessment.severityReasoning}
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      {/* 2. RECOMMENDED ACTION CARD (Prominently Highlighted Centerpiece) */}
+      <div className="rounded-2xl border-2 border-primary/50 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-5 sm:p-6 shadow-sm space-y-2 relative overflow-hidden">
+        <div className="flex items-center gap-2">
+          <div className="size-7 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs shadow-xs">
+            <ArrowRight className="size-4" />
+          </div>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+              Immediate Primary Takeaway
+            </span>
+            <h3 className="text-base sm:text-lg font-bold text-foreground">
+              What Should You Do Next?
+            </h3>
           </div>
         </div>
 
-        <CardContent className="pt-5 space-y-4 text-sm">
-          <div>
-            <h4 className="font-semibold text-foreground mb-1 flex items-center gap-1.5">
-              <Info className="size-4 text-primary" />
-              Triage Rationale
-            </h4>
-            <p className="text-muted-foreground leading-relaxed">{assessment.severityReasoning}</p>
-          </div>
+        <p className="text-sm sm:text-base font-semibold text-foreground leading-relaxed pl-9">
+          {assessment.recommendedAction}
+        </p>
+      </div>
 
-          <div className="rounded-lg bg-primary/5 p-4 border border-primary/10">
-            <h4 className="font-semibold text-primary mb-1">Recommended Action</h4>
-            <p className="font-medium text-foreground">{assessment.recommendedAction}</p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* 3. TWO-COLUMN GRID: Possible Conditions & Safe First-Aid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Possible Considerations */}
+        <Card className="border border-border/70 shadow-xs">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <HeartPulse className="size-4 text-primary" />
+              <span>Possible Explanations (Educational)</span>
+            </CardTitle>
+            <CardDescription className="text-xs">
+              These are educational possibilities based on reported symptoms, not a definitive diagnosis.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <ul className="space-y-2">
+              {assessment.possibleConditions.map((condition, idx) => (
+                <li
+                  key={idx}
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/40 border border-border/50 text-xs font-semibold text-foreground"
+                >
+                  <span className="size-2 rounded-full bg-primary shrink-0" />
+                  <span>{condition}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
 
-      {/* Possible Considerations */}
-      <Card>
+        {/* First Aid & Supportive Steps */}
+        <Card className="border border-border/70 shadow-xs">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <CheckCircle2 className="size-4 text-emerald-600" />
+              <span>Safe Supportive Care Checklist</span>
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Actionable, safe supportive steps you can follow while monitoring symptoms.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {assessment.firstAidSteps.map((step, idx) => (
+                <li key={idx} className="flex items-start gap-2.5 text-xs text-muted-foreground leading-relaxed">
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold text-[10px] mt-0.5">
+                    {idx + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 4. WARNING SIGNS & ESCALATION RED-FLAGS */}
+      <Card className="border border-amber-500/30 bg-amber-500/5 shadow-xs">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <HeartPulse className="size-4 text-primary" />
-            Possible Considerations
-          </CardTitle>
-          <CardDescription className="text-xs">
-            These are educational possibilities based on reported symptoms, not a clinical diagnosis.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2">
-            {assessment.possibleConditions.map((condition, idx) => (
-              <li
-                key={idx}
-                className="flex items-center gap-2.5 p-2.5 rounded-md bg-muted/40 border border-border/60 text-sm font-medium"
-              >
-                <div className="size-1.5 rounded-full bg-primary" />
-                <span>{condition}</span>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
-
-      {/* First Aid & Supportive Steps */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
-            Safe First-Aid &amp; Home Care Steps
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Safe supportive actions you can take while monitoring or waiting for medical care.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2.5">
-            {assessment.firstAidSteps.map((step, idx) => (
-              <li key={idx} className="flex items-start gap-3 text-sm text-muted-foreground">
-                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold mt-0.5">
-                  {idx + 1}
-                </span>
-                <span className="leading-snug">{step}</span>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
-
-      {/* Warning Signs & Red Flags */}
-      <Card className="border-amber-500/30 bg-amber-500/5">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2 text-amber-900 dark:text-amber-200">
-            <ShieldAlert className="size-4 text-amber-600 dark:text-amber-400" />
-            Warning Signs (When to Escalate Immediately)
+          <CardTitle className="text-sm font-bold flex items-center gap-2 text-amber-900 dark:text-amber-200">
+            <ShieldAlert className="size-4 text-amber-600 shrink-0" />
+            <span>Escalation Warning Signs (Seek Immediate Medical Care)</span>
           </CardTitle>
           <CardDescription className="text-xs text-amber-800/80 dark:text-amber-300/80">
-            Seek emergency medical care immediately if any of these symptoms develop:
+            If you or the patient experience any of the following symptoms, escalate immediately to emergency services or an urgent care center:
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-2 text-sm text-amber-950 dark:text-amber-100">
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-amber-950 dark:text-amber-100 font-medium">
             {assessment.warningSigns.map((sign, idx) => (
-              <li key={idx} className="flex items-start gap-2">
-                <span className="text-amber-600 dark:text-amber-400 font-bold">•</span>
+              <li key={idx} className="flex items-start gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <span className="text-amber-600 dark:text-amber-400 font-bold shrink-0">•</span>
                 <span>{sign}</span>
               </li>
             ))}
@@ -210,8 +244,8 @@ export function AssessmentResultView({
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-3 pt-2">
+      {/* 5. ACTION CONTROLS */}
+      <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
         <Button
           onClick={() =>
             generateTriagePdfReport({
@@ -221,28 +255,43 @@ export function AssessmentResultView({
             })
           }
           variant="outline"
-          className="gap-2 py-5 text-xs font-semibold border-primary/30 hover:bg-primary/5"
+          className="flex-1 h-11 text-xs font-semibold gap-2 rounded-xl border-border/80 hover:bg-muted/60"
         >
           <FileDown className="size-4 text-primary" />
-          Export Medical PDF Report
+          <span>Download PDF Medical Report</span>
         </Button>
 
-        {onLocateFacilities && (
-          <Button onClick={onLocateFacilities} className="flex-1 gap-2 py-5 text-xs font-semibold">
-            <MapPin className="size-4" />
-            Find Nearby Facilities
-          </Button>
-        )}
-        <Button onClick={onReset} variant="outline" className="gap-2 py-5 text-xs font-semibold">
+        <Button
+          onClick={onReset}
+          className="flex-1 h-11 text-xs font-semibold gap-2 rounded-xl shadow-xs"
+        >
           <RotateCcw className="size-4" />
-          New Triage
+          <span>Start New Assessment</span>
         </Button>
       </div>
 
-      {/* Mandatory Disclaimer Footer */}
-      <p className="text-center text-xs text-muted-foreground leading-relaxed px-4 pt-2">
+      {/* 6. EMBEDDED NEARBY HEALTHCARE LOCATOR (Per Redesign Spec) */}
+      <div className="space-y-3 pt-4 border-t border-border/60">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-2 text-primary font-bold text-sm">
+            <MapPin className="size-4" />
+            <span>Nearby Healthcare Facilities</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Interactive map centered on active coordinates with verified hospitals, clinics, and emergency contact details.
+          </p>
+        </div>
+
+        {/* Embedded Live Leaflet Map */}
+        <div className="rounded-2xl overflow-hidden border border-border/70 shadow-xs">
+          <HospitalMap />
+        </div>
+      </div>
+
+      {/* 7. MANDATORY DISCLAIMER FOOTER */}
+      <div className="text-[11px] text-muted-foreground bg-muted/30 p-3 rounded-xl border text-center leading-relaxed">
         {assessment.disclaimer}
-      </p>
+      </div>
     </div>
   );
 }
