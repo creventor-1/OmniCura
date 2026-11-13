@@ -75,19 +75,17 @@ export default function Home() {
         <div className="w-full space-y-12 animate-in fade-in-50 duration-180">
           <HeroSection
             onStartAssessment={() => handleNavSelect("triage")}
-            onExploreFeatures={() => {
-              const el = document.getElementById("metrics-summary");
-              el?.scrollIntoView({ behavior: "smooth" });
-            }}
+            onExploreFeatures={() => handleNavSelect("hospitals")}
+            onSelectTool={handleNavSelect}
           />
 
           <section id="metrics-summary" className="w-full space-y-4 pt-4 border-t border-border">
             <div>
               <h2 className="text-lg font-semibold tracking-tight text-foreground">
-                Clinical Overview
+                Session Overview
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Real-time metrics, safety screening, and facility access.
+                Real-time metrics, patient profile context, and emergency contacts.
               </p>
             </div>
 
