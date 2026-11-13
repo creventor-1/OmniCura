@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { TriageAILogo } from "./brand-logo";
+import { OmnicuraLogo } from "./brand-logo";
 import { useAuth } from "@/features/authentication/context/auth-context";
 import { AuthModal } from "@/features/authentication/components/auth-modal";
 
@@ -132,9 +132,9 @@ export function Navbar({ activeSection, onNavigate }: NavbarProps) {
             type="button"
             onClick={() => handleNavClick("home")}
             className="flex items-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl transition-transform active:scale-95"
-            aria-label="TriageAI Home"
+            aria-label="Omnicura Home"
           >
-            <TriageAILogo size="md" showWordmark />
+            <OmnicuraLogo size="md" showWordmark />
           </button>
 
           {/* Desktop Navigation Links */}

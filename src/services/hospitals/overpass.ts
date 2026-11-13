@@ -67,7 +67,7 @@ async function fetchFromNominatim(
 
     const res = await fetch(url, {
       headers: {
-        "User-Agent": "TriageAI-Healthcare-Assistant/1.0 (https://triageai.org; contact@triageai.org)",
+        "User-Agent": "Omnicura-Healthcare-Platform/2.0 (https://omnicura.health; contact@omnicura.health)",
         Accept: "application/json",
       },
       signal: controller.signal,
@@ -140,7 +140,7 @@ async function fetchFromOverpass(
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          "User-Agent": "TriageAI-Healthcare-Assistant/1.0",
+          "User-Agent": "Omnicura-Healthcare-Platform/2.0",
         },
         body: `data=${encodeURIComponent(query)}`,
         signal: controller.signal,

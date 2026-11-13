@@ -1,10 +1,10 @@
-# TriageAI
+# Omnicura
 
-> **AI-Powered Emergency Triage & First-Aid Assistant**
+> **Autonomous Clinical Emergency Triage & Decision-Support Intelligence**
 
-TriageAI is an intelligent healthcare triage and first-aid assistant developed for hackathon presentation. It helps users quickly evaluate the urgency of their symptoms and receive supportive first-aid guidance before consulting professional healthcare providers.
+Omnicura is an intelligent healthcare triage and first-aid platform. It enables patients to evaluate symptom urgency with deterministic client-side safety screening, multimodal vision analysis, medication scanning, and real-time hospital geolocation routing.
 
-> **IMPORTANT MEDICAL DISCLAIMER**: TriageAI provides educational guidance only. It does not diagnose medical conditions, prescribe treatments, or replace certified healthcare professionals. In life-threatening emergencies, always dial your local emergency services immediately.
+> **IMPORTANT MEDICAL DISCLAIMER**: Omnicura provides educational guidance and preliminary urgency classification for general reference only. It does not formulate definitive diagnoses, prescribe medication, or replace evaluation by licensed physicians. In life-threatening emergencies, always dial your local emergency services (112 / 911) immediately.
 
 ---
 

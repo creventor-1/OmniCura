@@ -12,6 +12,8 @@ import {
   FileText,
   CheckCircle2,
   Compass,
+  Cpu,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,33 +28,33 @@ export function HeroSection({
   onExploreFeatures,
 }: HeroSectionProps) {
   return (
-    <div className="w-full space-y-10">
-      {/* 1. Main Hero Block: Restrained, Linear/Stripe-Calm Clinical Presentation */}
-      <section className="relative overflow-hidden rounded-xl border border-border bg-card p-6 sm:p-8 lg:p-10">
+    <div className="w-full space-y-12">
+      {/* 1. Main Hero Command Surface: Senior-Designer SaaS Presentation */}
+      <section className="relative overflow-hidden rounded-xl border border-border bg-card p-6 sm:p-8 lg:p-10 shadow-none">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Left Column: Headlines & Call to Actions */}
           <div className="lg:col-span-7 space-y-5 text-left">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-accent/30 bg-accent/5 text-accent text-xs font-medium">
-              <span className="size-1.5 rounded-full bg-accent" />
-              <span>Clinical Decision Support System</span>
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-accent/25 bg-accent/5 text-accent text-xs font-semibold">
+              <span className="size-1.5 rounded-full bg-accent animate-pulse" />
+              <span>Omnicura 2.0 • Autonomous Clinical Decision Support</span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-foreground leading-snug">
-              AI-Assisted Emergency Triage &amp; Supportive First-Aid Guidance
+              Deterministic Emergency Triage &amp; Supportive Care Intelligence
             </h1>
 
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
-              Describe symptoms naturally or upload photos of visible injuries. Receive deterministic safety screening, adaptive clinical follow-ups, and evidence-based supportive first-aid before reaching professional care.
+              Describe symptoms naturally or upload photos of visible injuries. Omnicura evaluates deterministic safety red-flags client-side, conducts targeted clinical follow-ups, and routes patients to verified nearby emergency departments.
             </p>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
               <Button
                 size="lg"
                 onClick={onStartAssessment}
-                className="gap-2"
+                className="gap-2 text-sm font-semibold h-11 px-5 shadow-none"
               >
-                <span>Start Symptom Assessment</span>
+                <span>Launch Triage Intake</span>
                 <ArrowRight className="size-4" />
               </Button>
 
@@ -60,6 +62,7 @@ export function HeroSection({
                 variant="outline"
                 size="lg"
                 onClick={onExploreFeatures}
+                className="text-sm font-medium h-11 px-5"
               >
                 <span>Clinical Protocol</span>
               </Button>
@@ -68,59 +71,85 @@ export function HeroSection({
             {/* Micro Trust Points */}
             <div className="pt-4 border-t border-border grid grid-cols-3 gap-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="truncate">Deterministic Safety</span>
+                <CheckCircle2 className="size-3.5 text-accent shrink-0" />
+                <span className="truncate">Deterministic Rules</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="truncate">GPS Facility Locator</span>
+                <CheckCircle2 className="size-3.5 text-accent shrink-0" />
+                <span className="truncate">GPS Facility Routing</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="truncate">PDF Medical Export</span>
+                <CheckCircle2 className="size-3.5 text-accent shrink-0" />
+                <span className="truncate">Exportable PDF EHR</span>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Realistic Interface Previews */}
+          {/* Right Column: High-Density Clinical Telemetry Artifact */}
           <div className="lg:col-span-5 space-y-3">
-            {/* Mockup Card 1: Clinical AI Assessment Output */}
-            <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-2.5">
-              <div className="flex items-center justify-between border-b border-border/60 pb-2">
+            <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3 shadow-none">
+              {/* Telemetry Header */}
+              <div className="flex items-center justify-between border-b border-border pb-2.5">
                 <div className="flex items-center gap-2">
-                  <div className="size-6 rounded-md bg-muted text-accent flex items-center justify-center border border-border/80">
-                    <Activity className="size-3.5" />
-                  </div>
-                  <span className="text-xs font-semibold text-foreground">
-                    Triage Assessment
+                  <span className="size-2 rounded-full bg-emerald-500" />
+                  <span className="text-xs font-semibold text-foreground tracking-tight">
+                    Encounter Session #4829
                   </span>
                 </div>
-                <Badge variant="success">Non-Urgent</Badge>
+                <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium tabular-nums">
+                  <Clock className="size-3 text-muted-foreground" />
+                  <span>00:04:12</span>
+                </div>
               </div>
 
-              <div className="space-y-1.5 text-xs">
-                <div className="text-muted-foreground font-medium">Recommended Action:</div>
-                <p className="text-foreground leading-relaxed bg-card p-2.5 rounded-lg border border-border/70 text-xs font-normal">
-                  Monitor symptoms with supportive hydration and oral rest. Seek evaluation if fever persists beyond 72 hours.
+              {/* Patient Chief Complaint Box */}
+              <div className="bg-card rounded-lg border border-border p-3 space-y-1">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span className="uppercase tracking-wider font-semibold">Chief Complaint</span>
+                  <span className="text-accent font-medium">Adult / Age 34</span>
+                </div>
+                <p className="text-xs font-medium text-foreground leading-snug">
+                  Sudden lower right quadrant pain with low-grade fever and nausea for 6 hours.
                 </p>
               </div>
-            </div>
 
-            {/* Mockup Card 2: Nearby Hospital Coordinate Result */}
-            <div className="rounded-xl border border-border bg-card p-3.5 space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-foreground flex items-center gap-1.5 truncate">
-                  <MapPin className="size-3.5 text-accent shrink-0" />
-                  <span className="truncate">ESUT Teaching Hospital Parklane</span>
-                </span>
-                <span className="text-xs font-medium tabular-nums text-muted-foreground shrink-0">
-                  5.0 km
-                </span>
+              {/* Red-Flag Deterministic Rule Bar */}
+              <div className="rounded-lg border border-border bg-card p-2.5 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-[11px] font-medium text-foreground">
+                    Deterministic Red-Flag Check
+                  </span>
+                </div>
+                <Badge variant="outline" className="text-[10px] uppercase font-semibold text-emerald-700 dark:text-emerald-300 border-emerald-500/30 bg-emerald-500/10">
+                  Passed Client-Side
+                </Badge>
               </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5">
-                <span>Enugu, Nigeria</span>
-                <span className="text-emerald-700 dark:text-emerald-400 font-medium text-[11px]">
-                  Emergency 24/7
+
+              {/* Clinical Classification Result */}
+              <div className="rounded-lg border border-border border-l-3 border-l-amber-500 bg-card p-3 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+                    Clinical Urgency Classification
+                  </span>
+                  <Badge variant="warning" className="text-[10px]">Urgent Care</Badge>
+                </div>
+                <p className="text-xs text-foreground/90 font-medium">
+                  Appendicitis cannot be ruled out. Clinical physical exam advised within 6 hours.
+                </p>
+              </div>
+
+              {/* Destination Facility Dispatch Route */}
+              <div className="rounded-lg border border-border bg-card p-2.5 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-[11px] font-semibold text-foreground truncate flex items-center gap-1">
+                    <MapPin className="size-3 text-accent shrink-0" />
+                    <span className="truncate">ESUT Teaching Hospital Parklane</span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">Enugu, Nigeria • Emergency 24/7</div>
+                </div>
+                <span className="text-xs font-semibold tabular-nums text-foreground bg-muted px-2 py-0.5 rounded border border-border shrink-0">
+                  2.8 km
                 </span>
               </div>
             </div>
@@ -141,8 +170,8 @@ export function HeroSection({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
           {/* Trust Card 1 */}
-          <div className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-border-strong transition-colors">
-            <div className="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border/60">
+          <div className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-accent/40 transition-colors">
+            <div className="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border">
               <Activity className="size-4 text-accent" />
             </div>
             <h3 className="text-sm font-semibold text-foreground">
@@ -154,8 +183,8 @@ export function HeroSection({
           </div>
 
           {/* Trust Card 2 */}
-          <div className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-border-strong transition-colors">
-            <div className="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border/60">
+          <div className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-accent/40 transition-colors">
+            <div className="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border">
               <Lock className="size-4 text-accent" />
             </div>
             <h3 className="text-sm font-semibold text-foreground">
@@ -167,8 +196,8 @@ export function HeroSection({
           </div>
 
           {/* Trust Card 3 */}
-          <div className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-border-strong transition-colors">
-            <div className="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border/60">
+          <div className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-accent/40 transition-colors">
+            <div className="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border">
               <AlertOctagon className="size-4 text-destructive" />
             </div>
             <h3 className="text-sm font-semibold text-foreground">
@@ -180,8 +209,8 @@ export function HeroSection({
           </div>
 
           {/* Trust Card 4 */}
-          <div className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-border-strong transition-colors">
-            <div className="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border/60">
+          <div className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-accent/40 transition-colors">
+            <div className="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border">
               <Compass className="size-4 text-accent" />
             </div>
             <h3 className="text-sm font-semibold text-foreground">
@@ -193,8 +222,8 @@ export function HeroSection({
           </div>
 
           {/* Trust Card 5 */}
-          <div className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-border-strong transition-colors">
-            <div className="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border/60">
+          <div className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-accent/40 transition-colors">
+            <div className="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border">
               <FileText className="size-4 text-accent" />
             </div>
             <h3 className="text-sm font-semibold text-foreground">
@@ -210,8 +239,8 @@ export function HeroSection({
       {/* 3. Clinical Protocol Steps */}
       <section id="how-it-works" className="space-y-4 pt-4 border-t border-border">
         <div className="text-left space-y-1">
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Workflow Structure
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Workflow Architecture
           </div>
           <h2 className="text-lg font-semibold tracking-tight text-foreground">
             Six-Stage Clinical Guidance Protocol
@@ -236,7 +265,7 @@ export function HeroSection({
               step: "03",
               title: "Adaptive Clinical Follow-Ups",
               desc: "Targeted follow-up queries clarify duration, onset, and specific risk factors.",
-              icon: Activity,
+              icon: Cpu,
             },
             {
               step: "04",
@@ -261,13 +290,13 @@ export function HeroSection({
             return (
               <div
                 key={idx}
-                className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-border-strong transition-colors"
+                className="rounded-xl border border-border bg-card p-4 space-y-2 hover:border-accent/40 transition-colors"
               >
                 <div className="flex items-center justify-between">
-                  <div className="size-7 rounded-md bg-muted text-accent flex items-center justify-center border border-border/60">
+                  <div className="size-7 rounded-md bg-muted text-accent flex items-center justify-center border border-border">
                     <Icon className="size-3.5" />
                   </div>
-                  <span className="text-xs font-medium tabular-nums text-muted-foreground">
+                  <span className="text-xs font-semibold tabular-nums text-muted-foreground">
                     Stage {item.step}
                   </span>
                 </div>

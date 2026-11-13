@@ -18,44 +18,45 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#0284c7" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
+    { media: "(prefers-color-scheme: light)", color: "#F6F8FA" },
+    { media: "(prefers-color-scheme: dark)", color: "#0A1120" },
   ],
 };
 
 export const metadata: Metadata = {
-  title: "TriageAI • Clinical Emergency & First-Aid Intelligence",
+  title: "Omnicura • Autonomous Clinical Triage & Emergency Intelligence",
   description:
-    "Intelligent emergency triage, deterministic safety screening, symptom vision analysis, and verified hospital locator. Educational guidance and supportive care.",
+    "Clinical-grade autonomous triage platform featuring deterministic red-flag emergency screening, multimodal symptom vision, medication analysis, and verified hospital routing.",
   keywords: [
-    "triage",
-    "emergency medicine",
-    "first aid",
-    "hospital locator",
-    "symptom checker",
-    "healthcare AI",
+    "Omnicura",
     "clinical triage",
+    "emergency medicine",
+    "symptom triage",
+    "hospital locator",
+    "first aid guidance",
+    "healthcare AI",
+    "medical decision support",
   ],
-  authors: [{ name: "TriageAI Team" }],
+  authors: [{ name: "Omnicura Clinical Intelligence Team" }],
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-    apple: "/favicon.svg",
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
   },
   openGraph: {
-    title: "TriageAI • Clinical Emergency & First-Aid Intelligence",
+    title: "Omnicura • Autonomous Clinical Triage & Emergency Intelligence",
     description:
-      "Deterministic emergency screening, adaptive clinical follow-ups, and verified hospital locator with real-time directions.",
+      "Deterministic emergency screening, adaptive clinical follow-ups, and verified hospital locator with real-time routing.",
     url: "https://triage-ai-flame.vercel.app",
-    siteName: "TriageAI",
+    siteName: "Omnicura",
     type: "website",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "TriageAI • Clinical Emergency & First-Aid Intelligence",
+    title: "Omnicura • Autonomous Clinical Triage & Emergency Intelligence",
     description:
-      "Intelligent emergency triage, deterministic safety screening, and hospital discovery.",
+      "Clinical-grade autonomous triage platform with deterministic safety screening and hospital discovery.",
   },
 };
 

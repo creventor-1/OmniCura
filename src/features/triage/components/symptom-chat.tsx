@@ -65,7 +65,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
       id: "initial-assistant-msg",
       role: "assistant",
       content:
-        'Hello, I am TriageAI. Please describe your symptoms naturally (for example: "I have had a mild headache and sore throat for two days"). How can I help you today?',
+        'Hello, I am Omnicura. Please describe your symptoms naturally (for example: "I have had a mild headache and sore throat for two days"). How can I help you today?',
       timestamp: "Just now",
     },
   ]);
@@ -333,7 +333,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
         id: "initial-assistant-msg",
         role: "assistant",
         content:
-          "Hello, I am TriageAI. Please describe your symptoms naturally. How can I help you today?",
+          "Hello, I am Omnicura. Please describe your symptoms naturally. How can I help you today?",
       },
     ]);
   };
@@ -370,7 +370,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
                 <Bot className="size-4 stroke-[1.75]" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-foreground leading-none">TriageAI Assistant</h3>
+                <h3 className="text-sm font-semibold text-foreground leading-none">Omnicura Assistant</h3>
                 <span className="text-[11px] text-muted-foreground">
                   Adaptive Clinical Screening &amp; Guidance
                 </span>

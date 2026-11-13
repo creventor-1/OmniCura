@@ -17,11 +17,10 @@ import {
   LogOut,
   LogIn,
   User as UserIcon,
-  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { TriageAILogo } from "@/components/shared/brand-logo";
+import { OmnicuraLogo } from "@/components/shared/brand-logo";
 import { useAuth } from "@/features/authentication/context/auth-context";
 import { AuthModal } from "@/features/authentication/components/auth-modal";
 import { NavSection } from "@/components/shared/navbar";
@@ -145,9 +144,9 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
             type="button"
             onClick={() => handleNavClick("home")}
             className="flex items-center gap-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg overflow-hidden"
-            title="TriageAI Home"
+            title="Omnicura Home"
           >
-            <TriageAILogo size="sm" showWordmark={!isCollapsed} />
+            <OmnicuraLogo size="sm" showWordmark={!isCollapsed} />
           </button>
 
           {!isCollapsed && (
@@ -295,7 +294,7 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
 
             <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground min-w-0">
               <span className="font-semibold text-foreground hidden sm:inline">
-                TriageAI
+                Omnicura
               </span>
               <span className="hidden sm:inline text-muted-foreground/60">/</span>
               <span className="text-muted-foreground truncate">
@@ -312,8 +311,8 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
           <div className="flex items-center gap-2.5 shrink-0">
             {/* Restrained Clinical Disclaimer Chip */}
             <div className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border/80 bg-muted/40 text-[11px] text-muted-foreground">
-              <ShieldAlert className="size-3 text-amber-600 dark:text-amber-400" />
-              <span>Educational Guidance • Non-Diagnostic</span>
+              <span className="size-1.5 rounded-full bg-emerald-500" />
+              <span>Clinical Decision Support • Non-Diagnostic</span>
             </div>
 
             {/* Discrete SOS 112 Dial */}
@@ -424,7 +423,7 @@ export function AppShell({ activeSection, onNavigate, children }: AppShellProps)
           >
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-border">
-                <TriageAILogo size="sm" showWordmark />
+                <OmnicuraLogo size="sm" showWordmark />
                 <button
                   type="button"
                   onClick={() => setIsMobileDrawerOpen(false)}

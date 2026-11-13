@@ -11,7 +11,7 @@ import {
   Activity,
   Lock,
 } from "lucide-react";
-import { TriageAILogo } from "./brand-logo";
+import { OmnicuraLogo } from "./brand-logo";
 import { NavSection } from "./navbar";
 
 interface FooterProps {
@@ -32,9 +32,9 @@ export function Footer({ onNavigate }: FooterProps) {
               type="button"
               onClick={() => onNavigate?.("home")}
               className="flex items-center gap-2.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
-              aria-label="TriageAI Home"
+              aria-label="Omnicura Home"
             >
-              <TriageAILogo size="md" showWordmark />
+              <OmnicuraLogo size="md" showWordmark />
             </button>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-sm">
               Clinical-grade intelligent emergency triage and supportive first-aid guidance.
@@ -158,7 +158,7 @@ export function Footer({ onNavigate }: FooterProps) {
           <div className="rounded-xl bg-card border border-border/70 p-4 text-xs leading-relaxed text-muted-foreground space-y-1">
             <span className="font-bold text-foreground">Important Medical Disclaimer: </span>
             <span>
-              TriageAI provides educational guidance and preliminary urgency classification for general reference only.
+              Omnicura provides educational guidance and preliminary urgency classification for general reference only.
               It does not formulate definitive diagnoses, prescribe medication, or replace evaluation by licensed physicians.
               Always consult qualified healthcare professionals for diagnosis and treatment.
             </span>
@@ -166,7 +166,7 @@ export function Footer({ onNavigate }: FooterProps) {
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs pt-2 text-muted-foreground">
             <div>
-              &copy; 2026 TriageAI Platform. Clinical Decision Support System.
+              &copy; 2026 Omnicura Platform. Clinical Decision Support System.
             </div>
             <div className="flex items-center gap-4 text-xs">
               <button

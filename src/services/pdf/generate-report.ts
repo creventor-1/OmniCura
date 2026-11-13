@@ -35,7 +35,7 @@ export function generateTriagePdfReport({
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
-  doc.text("TriageAI - Clinical Urgency & First-Aid Summary", 14, 12);
+  doc.text("Omnicura - Clinical Urgency & First-Aid Summary", 14, 12);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
@@ -168,11 +168,11 @@ export function generateTriagePdfReport({
   doc.setFontSize(6.8);
   doc.setTextColor(100, 116, 139);
   const disclaimerText =
-    "TriageAI is an educational decision-support prototype. It does not provide medical diagnoses, treatment plans, or emergency dispatch. If symptoms worsen, change, or indicate life-threatening distress, seek immediate care at an accredited hospital or dial emergency medical services (112 / 911) right away.";
+    "Omnicura is an educational decision-support platform. It does not provide medical diagnoses, treatment plans, or emergency dispatch. If symptoms worsen, change, or indicate life-threatening distress, seek immediate care at an accredited hospital or dial emergency medical services (112 / 911) right away.";
   const wrappedDisclaimer = doc.splitTextToSize(disclaimerText, pageWidth - 36);
   doc.text(wrappedDisclaimer, 18, disclaimerBoxY + 9);
 
   // Trigger browser download
-  const filename = `TriageAI_Assessment_${new Date().toISOString().slice(0, 10)}.pdf`;
+  const filename = `Omnicura_Assessment_${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(filename);
 }

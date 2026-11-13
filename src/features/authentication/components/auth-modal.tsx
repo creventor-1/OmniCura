@@ -134,7 +134,7 @@ export function AuthModal({
             <HeartPulse className="size-6" />
           </div>
           <DialogTitle className="text-xl font-bold">
-            {mode === "signin" ? "Welcome Back to TriageAI" : "Create Your TriageAI Account"}
+            {mode === "signin" ? "Welcome Back to Omnicura" : "Create Your Omnicura Account"}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             {promptMessage ||

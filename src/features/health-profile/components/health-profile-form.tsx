@@ -400,7 +400,7 @@ export function HealthProfileForm() {
                   htmlFor="allow_ai_use"
                   className="text-sm font-medium text-foreground cursor-pointer block"
                 >
-                  Allow TriageAI to personalize triage assessments using this profile
+                  Allow Omnicura to personalize triage assessments using this profile
                 </label>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   When enabled, reported age, allergies, and chronic conditions are sent in the prompt to the AI triage model to tailor questions and first-aid instructions. When disabled, triage operates with standard baseline logic.
