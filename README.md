@@ -76,8 +76,8 @@ src/
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/creventor-1/Triage-AI.git
-   cd Triage-AI
+   git clone https://github.com/creventor-1/OmniCura.git
+   cd OmniCura
    ```
 
 2. **Install dependencies**:
