@@ -3,22 +3,22 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
 const alertVariants = cva(
-  "group/alert relative flex w-full items-start gap-3 rounded-xl border p-4 text-left text-sm transition-colors",
+  "group/alert relative flex w-full items-start gap-3 rounded-2xl border p-4 text-left text-sm transition-colors [&>svg]:mt-0.5 [&>svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
           "border-border-subtle bg-surface text-foreground",
         info:
-          "border-accent/30 bg-accent/10 text-foreground",
+          "border-info/20 bg-info-muted text-info",
         success:
-          "border-success/30 bg-success-muted text-success",
+          "border-success/20 bg-success-muted text-success",
         warning:
-          "border-warning/30 bg-warning-muted text-warning-text",
+          "border-warning/25 bg-warning-muted text-warning-text",
         destructive:
-          "border-danger/30 bg-danger-muted text-danger",
+          "border-danger/20 bg-danger-muted text-danger",
         danger:
-          "border-danger/30 bg-danger-muted text-danger",
+          "border-danger/20 bg-danger-muted text-danger",
       },
     },
     defaultVariants: {
@@ -62,7 +62,7 @@ function AlertDescription({
   return (
     <div
       data-slot="alert-description"
-      className={cn("text-xs leading-relaxed text-text-secondary mt-1", className)}
+      className={cn("text-[13px] leading-relaxed text-text-secondary mt-0.5", className)}
       {...props}
     />
   )

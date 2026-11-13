@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Sparkles, Info, Activity } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Info } from "lucide-react";
 import { cn } from "cn";
 
 export interface ParsedCondition {
@@ -25,7 +24,6 @@ export function parseCondition(raw: string, index: number): ParsedCondition {
     percentage = fallbacks[index] ?? Math.max(15, 35 - index * 6);
   }
 
-  // Soft likelihood classification
   let likelihood: "Likely" | "Possible" | "Less likely";
   let tier: "high" | "medium" | "low";
 
@@ -40,7 +38,6 @@ export function parseCondition(raw: string, index: number): ParsedCondition {
     tier = "low";
   }
 
-  // Clean raw condition name
   let cleanName = raw
     .replace(/\s*[-—–:]\s*\d{1,3}\s*%/g, "")
     .replace(/\(\s*\d{1,3}\s*%\s*\)/g, "")
@@ -53,12 +50,7 @@ export function parseCondition(raw: string, index: number): ParsedCondition {
     cleanName = raw;
   }
 
-  return {
-    name: cleanName,
-    percentage,
-    likelihood,
-    tier,
-  };
+  return { name: cleanName, percentage, likelihood, tier };
 }
 
 interface ConfidenceMeterProps {
@@ -66,99 +58,68 @@ interface ConfidenceMeterProps {
   className?: string;
 }
 
+/**
+ * Differential likelihood — single-hue meters (magnitude, not status).
+ * Likelihood is carried by text, never by colour alone.
+ */
 export function ConfidenceMeter({ conditions, className = "" }: ConfidenceMeterProps) {
   if (!conditions || conditions.length === 0) return null;
 
-  const parsedConditions: ParsedCondition[] = conditions.map((cond, idx) =>
-    parseCondition(cond, idx)
-  );
+  const parsed = conditions.map((cond, idx) => parseCondition(cond, idx));
 
   return (
-    <Card className={cn("border border-border-subtle bg-surface shadow-xs p-4 sm:p-5 space-y-4", className)}>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-1 border-b border-border-subtle/60">
-        <div className="flex items-center gap-2">
-          <div className="size-6 rounded-md bg-accent/10 text-accent flex items-center justify-center shrink-0">
-            <Activity className="size-3.5 stroke-[2]" />
-          </div>
-          <div>
-            <h3 className="text-xs sm:text-sm font-semibold text-foreground tracking-tight">
-              Condition Likelihood &amp; AI Confidence
-            </h3>
-            <p className="text-[11px] text-text-tertiary">
-              Heuristic pattern matching against reported clinical presentation
-            </p>
-          </div>
+    <section
+      aria-labelledby="differential-title"
+      className={cn("rounded-2xl border border-border-subtle bg-surface p-5 shadow-xs", className)}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 id="differential-title" className="type-heading text-foreground">
+            Differential considerations
+          </h3>
+          <p className="text-[13px] text-text-tertiary mt-0.5">Pattern match against reported symptoms</p>
         </div>
-
-        <div className="inline-flex items-center gap-1 self-start sm:self-auto text-[10px] font-medium text-text-tertiary">
-          <Sparkles className="size-3 text-accent" />
-          <span>Non-Diagnostic Evaluation</span>
-        </div>
+        <span className="shrink-0 whitespace-nowrap rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-text-secondary">
+          Non-diagnostic
+        </span>
       </div>
 
-      {/* Condition List with Confidence Bars */}
-      <div className="space-y-3.5">
-        {parsedConditions.map((condition, idx) => {
-          const tierStyles = {
-            high: {
-              bar: "bg-emerald-500 dark:bg-emerald-400",
-              badge: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800",
-              pctText: "text-emerald-700 dark:text-emerald-300",
-            },
-            medium: {
-              bar: "bg-amber-500 dark:bg-amber-400",
-              badge: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800",
-              pctText: "text-amber-700 dark:text-amber-300",
-            },
-            low: {
-              bar: "bg-sky-500 dark:bg-sky-400",
-              badge: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800",
-              pctText: "text-sky-700 dark:text-sky-300",
-            },
-          }[condition.tier];
-
-          return (
-            <div key={idx} className="space-y-1.5 group">
-              <div className="flex items-center justify-between text-xs gap-2">
-                <span className="font-semibold text-foreground truncate">
-                  {condition.name}
+      <ul className="mt-5 space-y-4">
+        {parsed.map((c, idx) => (
+          <li key={idx} className="space-y-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-sm font-medium text-foreground">{c.name}</span>
+              <span className="flex items-baseline gap-2 shrink-0">
+                <span className="text-xs text-text-tertiary">{c.likelihood}</span>
+                <span className="text-sm font-semibold tabular-nums text-foreground w-10 text-right">
+                  {c.percentage}%
                 </span>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <span
-                    className={cn(
-                      "px-2 py-0.5 rounded-full text-[10px] font-semibold border",
-                      tierStyles.badge
-                    )}
-                  >
-                    {condition.likelihood}
-                  </span>
-                  <span className={cn("font-bold text-xs tabular-nums", tierStyles.pctText)}>
-                    {condition.percentage}%
-                  </span>
-                </div>
-              </div>
-
-              {/* Confidence Progress Bar */}
-              <div className="h-2 w-full rounded-full bg-muted/60 overflow-hidden relative">
-                <div
-                  className={cn("h-full rounded-full transition-all duration-500 ease-out", tierStyles.bar)}
-                  style={{ width: `${condition.percentage}%` }}
-                />
-              </div>
+              </span>
             </div>
-          );
-        })}
-      </div>
+            <div
+              className="h-2 w-full overflow-hidden rounded-full bg-brand-soft/60"
+              role="meter"
+              aria-valuenow={c.percentage}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`${c.name}: ${c.likelihood}, ${c.percentage}%`}
+            >
+              <div
+                className={cn(
+                  "h-full rounded-full origin-left animate-grow-x",
+                  c.tier === "high" ? "bg-brand" : c.tier === "medium" ? "bg-brand/70" : "bg-brand/45"
+                )}
+                style={{ width: `${c.percentage}%`, animationDelay: `${idx * 90}ms` }}
+              />
+            </div>
+          </li>
+        ))}
+      </ul>
 
-      {/* Clear Disclaimer Footer */}
-      <div className="flex items-start gap-2 pt-2 border-t border-border-subtle/60 text-[11px] text-text-tertiary">
-        <Info className="size-3.5 text-accent shrink-0 mt-0.5" />
-        <p className="leading-relaxed">
-          Confidence reflects statistical AI pattern matching against reported symptoms, not a definitive medical diagnosis or laboratory confirmation. Always seek evaluation from a licensed clinician.
-        </p>
-      </div>
-    </Card>
+      <p className="mt-5 flex items-start gap-2 border-t border-border-subtle pt-4 text-xs leading-relaxed text-text-tertiary">
+        <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+        Confidence reflects AI pattern matching, not a diagnosis or lab confirmation. Seek evaluation from a licensed clinician.
+      </p>
+    </section>
   );
 }

@@ -4,23 +4,25 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Phone, PhoneCall, Plus, Trash2, Users, X } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { PhoneCall, Plus, Trash2, UsersRound, Siren, Lock, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/features/authentication/context/auth-context";
 import { createClient } from "@/services/database/supabase/client";
 import { EmergencyContact } from "@/types/database";
+import { requestAuth } from "@/components/shell/nav-config";
+import { DEFAULT_EMERGENCY_NUMBER } from "@/lib/constants";
 
 const ContactSchema = z.object({
   name: z.string().min(1, "Contact name is required."),
@@ -29,6 +31,42 @@ const ContactSchema = z.object({
 });
 
 type ContactFormData = z.infer<typeof ContactSchema>;
+
+function initialsOf(name: string) {
+  return name
+    .replace(/^(dr|mr|mrs|ms)\.?\s+/i, "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+}
+
+function EmergencyServicesCard() {
+  return (
+    <section className="flex flex-col gap-4 rounded-[20px] border border-danger/25 bg-surface p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-4">
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-danger text-white dark:text-[#2a0605]">
+          <Siren className="size-6" aria-hidden="true" />
+        </span>
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-[15px] font-semibold text-foreground">Emergency services</h2>
+            <span className="rounded-full bg-danger-muted px-2 py-0.5 text-[11px] font-semibold text-danger">Always available</span>
+          </div>
+          <p className="text-[13px] text-text-secondary">Ambulance, fire and police · dial {DEFAULT_EMERGENCY_NUMBER}</p>
+        </div>
+      </div>
+      <a
+        href={`tel:${DEFAULT_EMERGENCY_NUMBER}`}
+        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-danger px-5 text-sm font-semibold text-white transition-colors hover:bg-danger-strong dark:text-[#2a0605]"
+      >
+        <PhoneCall className="size-4" aria-hidden="true" />
+        Call {DEFAULT_EMERGENCY_NUMBER}
+      </a>
+    </section>
+  );
+}
 
 export function EmergencyContactsManager() {
   const { user } = useAuth();
@@ -129,21 +167,27 @@ export function EmergencyContactsManager() {
 
   if (!user) {
     return (
-      <EmptyState
-        icon={Users}
-        title="Sign In to Manage Emergency Contacts"
-        description="Register or sign in to configure trusted family members, physicians, or emergency responders for instant one-tap dialing during critical events."
-      />
+      <div className="space-y-6">
+        <EmergencyServicesCard />
+        <EmptyState
+          icon={UsersRound}
+          title="Sign in to manage emergency contacts"
+          description="Save trusted family members, caregivers or your physician for one-tap calling during an urgent health event. Contacts sync securely to your account."
+          actionLabel="Sign in or create account"
+          onAction={() => requestAuth("signin")}
+        />
+      </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto space-y-4">
-        <Skeleton className="h-8 w-48 rounded-lg" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-          <Skeleton className="h-28 rounded-xl" />
-          <Skeleton className="h-28 rounded-xl" />
+      <div className="space-y-5">
+        <Skeleton className="h-[88px] w-full rounded-[20px]" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-40 rounded-[20px]" />
+          ))}
         </div>
       </div>
     );
@@ -152,197 +196,132 @@ export function EmergencyContactsManager() {
   const targetContact = contacts.find((c) => c.id === contactToDelete);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      {/* Delete Confirmation Accessible Dialog (Replaces native confirm) */}
+    <div className="space-y-6">
       <ConfirmDialog
         isOpen={!!contactToDelete}
         onClose={() => setContactToDelete(null)}
         onConfirm={handleConfirmDelete}
-        title="Delete Emergency Contact"
+        title="Remove this contact?"
         description={
           targetContact
-            ? `Are you sure you want to remove "${targetContact.name}" from your designated emergency contacts? You can re-add them at any time.`
-            : "Are you sure you want to remove this designated emergency contact? You can re-add them at any time."
+            ? `${targetContact.name} will be removed from your emergency contacts. You can add them again at any time.`
+            : "This contact will be removed from your emergency contacts. You can add them again at any time."
         }
-        confirmLabel="Delete Contact"
+        confirmLabel="Remove contact"
       />
 
-      {/* Top Action Bar */}
-      <div className="flex items-center justify-between gap-3 pb-1">
-        <span className="text-xs font-medium text-text-secondary">
-          {contacts.length} {contacts.length === 1 ? "contact" : "contacts"} saved
-        </span>
+      <Dialog
+        open={isAdding}
+        onOpenChange={(open) => {
+          setIsAdding(open);
+          if (!open) reset();
+        }}
+      >
+        <DialogContent className="sm:max-w-[460px]">
+          <DialogHeader className="gap-3">
+            <span className="flex size-11 items-center justify-center rounded-2xl border border-brand/15 bg-brand-muted text-accent">
+              <Phone className="size-5" aria-hidden="true" />
+            </span>
+            <DialogTitle>Add emergency contact</DialogTitle>
+            <DialogDescription>They&apos;ll be available for one-tap calling from anywhere in Omnicura.</DialogDescription>
+          </DialogHeader>
 
-        <Button
-          size="sm"
-          onClick={() => setIsAdding(!isAdding)}
-          className="rounded-lg text-xs font-semibold gap-1.5 h-9 px-3"
-        >
-          {isAdding ? <X className="size-3.5" /> : <Plus className="size-3.5" />}
-          <span>{isAdding ? "Cancel" : "Add Contact"}</span>
+          <form id="add-contact-form" onSubmit={handleSubmit(onAddContact)} className="space-y-4">
+            <Input id="contact-name" label="Full name" placeholder="e.g. Dr. Adaeze Okafor" autoComplete="name" error={errors.name?.message} {...register("name")} />
+            <Input id="contact-relationship" label="Relationship" placeholder="e.g. Spouse, Physician, Parent" {...register("relationship")} />
+            <Input
+              id="contact-phone"
+              label="Phone number"
+              type="tel"
+              autoComplete="tel"
+              placeholder="e.g. +234 803 123 4567"
+              className="tabular-nums"
+              error={errors.phone_number?.message}
+              {...register("phone_number")}
+            />
+          </form>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsAdding(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" form="add-contact-form" isLoading={isSubmitting}>
+              {isSubmitting ? "Saving…" : "Save contact"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <EmergencyServicesCard />
+
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h2 className="type-heading text-foreground">Your contacts</h2>
+          <p className="text-[13px] text-text-tertiary">
+            {contacts.length} {contacts.length === 1 ? "person" : "people"} ready for one-tap calling
+          </p>
+        </div>
+        <Button onClick={() => setIsAdding(true)}>
+          <Plus className="stroke-[2.5]" />
+          Add contact
         </Button>
       </div>
 
-      {/* Add Contact Card Form */}
-      {isAdding && (
-        <Card className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-none animate-in fade-in-50 duration-150">
-          <CardHeader className="p-0 pb-3">
-            <CardTitle className="text-sm sm:text-base font-semibold text-foreground">
-              Add New Emergency Contact
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Provide contact name and direct phone number.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <form onSubmit={handleSubmit(onAddContact)} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="contact-name"
-                    className="text-xs font-medium text-foreground cursor-pointer block"
-                  >
-                    Full Name
-                  </label>
-                  <Input
-                    id="contact-name"
-                    placeholder="e.g. Dr. Adaeze Okafor"
-                    className="rounded-lg h-9 text-sm"
-                    {...register("name")}
-                  />
-                  {errors.name && (
-                    <span className="text-xs font-medium text-destructive">
-                      {errors.name.message}
-                    </span>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="contact-relationship"
-                    className="text-xs font-medium text-foreground cursor-pointer block"
-                  >
-                    Relationship
-                  </label>
-                  <Input
-                    id="contact-relationship"
-                    placeholder="e.g. Spouse, Physician, Parent"
-                    className="rounded-lg h-9 text-sm"
-                    {...register("relationship")}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="contact-phone"
-                    className="text-xs font-medium text-foreground cursor-pointer block"
-                  >
-                    Phone Number
-                  </label>
-                  <Input
-                    id="contact-phone"
-                    type="tel"
-                    placeholder="e.g. +234 803 123 4567"
-                    className="rounded-lg h-9 text-sm tabular-nums"
-                    {...register("phone_number")}
-                  />
-                  {errors.phone_number && (
-                    <span className="text-xs font-medium text-destructive">
-                      {errors.phone_number.message}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={isSubmitting}
-                  className="rounded-lg text-xs font-semibold h-9 px-4 gap-1.5"
-                >
-                  <Plus className="size-3.5" />
-                  <span>{isSubmitting ? "Saving Contact..." : "Save Contact"}</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsAdding(false)}
-                  className="rounded-lg text-xs h-9 px-3"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Empty State */}
-      {contacts.length === 0 && !isAdding && (
+      {contacts.length === 0 ? (
         <EmptyState
           icon={PhoneCall}
-          title="No Emergency Contacts Configured"
-          description="Add trusted family members or your primary care physician to enable rapid one-tap dialing during urgent health events."
-          actionLabel="Add Emergency Contact"
+          title="No contacts added yet"
+          description="Add a family member, caregiver or your primary care physician so help is one tap away."
+          actionLabel="Add emergency contact"
           onAction={() => setIsAdding(true)}
         />
-      )}
-
-      {/* Contact Cards Grid */}
-      {contacts.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-          {contacts.map((contact) => (
-            <div
+      ) : (
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {contacts.map((contact, i) => (
+            <li
               key={contact.id}
-              className="rounded-xl border border-border bg-card p-4 flex items-center justify-between gap-3 shadow-none hover:border-accent/40 transition-colors group"
+              className="group flex flex-col rounded-[20px] border border-border-subtle bg-surface p-5 shadow-xs transition-all hover:border-border-strong hover:shadow-card-hover animate-rise"
+              style={{ animationDelay: `${i * 40}ms` }}
             >
-              <div className="space-y-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-semibold text-foreground truncate">
-                    {contact.name}
-                  </h4>
-                  {contact.relationship && (
-                    <Badge
-                      variant="secondary"
-                      className="text-[11px] font-medium px-2 py-0.5 rounded-full"
-                    >
-                      {contact.relationship}
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium tabular-nums">
-                  <Phone className="size-3.5 text-accent shrink-0" />
-                  <span className="truncate">{contact.phone_number}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <a
-                  href={`tel:${contact.phone_number}`}
-                  className="inline-flex items-center justify-center size-9 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-colors"
-                  title={`Call ${contact.name}`}
-                  aria-label={`Call ${contact.name} at ${contact.phone_number}`}
-                >
-                  <PhoneCall className="size-4" />
-                </a>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
+              <div className="flex items-start justify-between gap-3">
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-brand-soft font-heading text-base font-bold text-accent-text">
+                  {initialsOf(contact.name) || <UsersRound className="size-5" aria-hidden="true" />}
+                </span>
+                <button
+                  type="button"
                   onClick={() => setContactToDelete(contact.id)}
-                  className="size-9 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  className="flex size-9 items-center justify-center rounded-lg text-text-tertiary opacity-100 transition-all hover:bg-danger-muted hover:text-danger sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 cursor-pointer"
                   title="Remove contact"
                   aria-label={`Delete emergency contact ${contact.name}`}
                 >
                   <Trash2 className="size-4" />
-                </Button>
+                </button>
               </div>
-            </div>
+              <div className="mt-4 min-w-0">
+                <h3 className="truncate text-[15px] font-semibold text-foreground">{contact.name}</h3>
+                <p className="mt-0.5 text-[13px] text-text-tertiary">{contact.relationship || "Emergency contact"}</p>
+              </div>
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-border-subtle pt-4">
+                <span className="truncate text-sm font-medium tabular-nums text-text-secondary">{contact.phone_number}</span>
+                <a
+                  href={`tel:${contact.phone_number}`}
+                  className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-brand-hover"
+                  title={`Call ${contact.name}`}
+                  aria-label={`Call ${contact.name} at ${contact.phone_number}`}
+                >
+                  <PhoneCall className="size-3.5" />
+                  Call
+                </a>
+              </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
+
+      <p className="flex items-center gap-2 text-xs text-text-tertiary">
+        <Lock className="size-3.5" aria-hidden="true" />
+        Contacts are stored in your account with row-level security.
+      </p>
     </div>
   );
 }

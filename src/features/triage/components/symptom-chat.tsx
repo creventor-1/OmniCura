@@ -1,9 +1,24 @@
 "use client";
 
 import * as React from "react";
-import { Send, Mic, MicOff, Bot, User, RefreshCw, Camera, Sparkles, Undo2 } from "lucide-react";
+import {
+  ArrowUp,
+  Mic,
+  MicOff,
+  Sparkles,
+  RotateCcw,
+  Camera,
+  Undo2,
+  Siren,
+  ShieldCheck,
+  UserRound,
+  Check,
+  Lock,
+  ArrowRight,
+  PhoneCall,
+} from "lucide-react";
+import { cn } from "cn";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { checkRedFlags } from "@/lib/red-flags";
 import { EmergencyAlertModal } from "@/features/safety/components/emergency-alert-modal";
 import { DisclaimerModal } from "./disclaimer-modal";
@@ -15,6 +30,9 @@ import { TriageMessage, AssessmentResponse, TriageTurnResponse } from "@/schemas
 import { RedFlagCheckResult } from "@/types";
 import { useAuth } from "@/features/authentication/context/auth-context";
 import { createClient } from "@/services/database/supabase/client";
+import { TRIAGE_DRAFT_KEY, requestNavigate } from "@/components/shell/nav-config";
+import { OmnicuraLogo } from "@/components/shared/brand-logo";
+import { DEFAULT_EMERGENCY_NUMBER } from "@/lib/constants";
 
 let messageCounter = 0;
 function createMessageId(prefix: string): string {
@@ -68,6 +86,13 @@ const DEFAULT_INITIAL_MESSAGES: TriageMessage[] = [
   },
 ];
 
+const STAGES = [
+  { title: "Presentation", detail: "What you're feeling" },
+  { title: "Duration & severity", detail: "Onset, intensity, progression" },
+  { title: "Location & context", detail: "Where, triggers, history" },
+  { title: "Clinical synthesis", detail: "Acuity and care plan" },
+];
+
 function getInitialChatSession(): {
   messages: TriageMessage[];
   currentQuickOptions: string[];
@@ -113,6 +138,20 @@ function createStoredAssessment(
   };
 }
 
+/** Minimal **bold** renderer for assistant content. */
+function renderRichText(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={i} className="font-semibold">
+        {part.slice(2, -2)}
+      </strong>
+    ) : (
+      <React.Fragment key={i}>{part}</React.Fragment>
+    )
+  );
+}
+
 export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatProps) {
   const { user, setGuestAssessment } = useAuth();
   const supabase = React.useMemo(() => createClient(), []);
@@ -147,17 +186,42 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
 
   // Voice recognition state
   const [isListening, setIsListening] = React.useState(false);
+  const [voiceNotice, setVoiceNotice] = React.useState<string | null>(null);
   const speechRecognitionRef = React.useRef<SpeechRecognitionLike | null>(null);
 
-  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
+  // Keep the newest message in view (scroll the log, not the page)
   React.useEffect(() => {
-    scrollToBottom();
+    const el = scrollAreaRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading]);
+
+  // Auto-grow composer
+  React.useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [inputValue]);
+
+  // Prefill from the Overview quick-start composer
+  React.useEffect(() => {
+    try {
+      const draft = sessionStorage.getItem(TRIAGE_DRAFT_KEY);
+      if (draft) {
+        sessionStorage.removeItem(TRIAGE_DRAFT_KEY);
+        const t = setTimeout(() => {
+          setInputValue(draft);
+          textareaRef.current?.focus();
+        }, 0);
+        return () => clearTimeout(t);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Sync active chat session into sessionStorage
   React.useEffect(() => {
@@ -198,6 +262,8 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
   }, [messages]);
 
   const canUndo = !isLoading && !assessment && userTurnCount > 0;
+  const stageIndex = Math.min(userTurnCount, STAGES.length - 1);
+  const progressPct = Math.min(Math.round(((userTurnCount + 1) / 4) * 100), 100);
 
   // Check one-time disclaimer asynchronously after initial mount
   React.useEffect(() => {
@@ -296,7 +362,8 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
     const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      alert("Speech recognition is not supported in this browser. Please use text input.");
+      setVoiceNotice("Voice input isn't supported in this browser. Please type your symptoms instead.");
+      setTimeout(() => setVoiceNotice(null), 4000);
       return;
     }
 
@@ -512,6 +579,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
     }
     setAssessment(null);
     setCurrentQuickOptions([]);
+    setEmergencyResult(null);
     setMessages([
       {
         id: "initial-assistant-msg",
@@ -523,15 +591,12 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
     ]);
   };
 
-  return (
-    <div className="flex flex-col flex-1 w-full max-w-2xl mx-auto h-full min-h-[500px]">
-      {/* Disclaimer Acknowledgement Dialog */}
-      <DisclaimerModal
-        isOpen={isDisclaimerOpen}
-        onAcknowledge={handleAcknowledgeDisclaimer}
-      />
+  const emergencyNumber = emergencyResult?.emergencyNumber || DEFAULT_EMERGENCY_NUMBER;
 
-      {/* Emergency Alert Dialog */}
+  return (
+    <div className="w-full">
+      <DisclaimerModal isOpen={isDisclaimerOpen} onAcknowledge={handleAcknowledgeDisclaimer} />
+
       <EmergencyAlertModal
         isOpen={isEmergencyModalOpen}
         onClose={() => setIsEmergencyModalOpen(false)}
@@ -539,13 +604,8 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
         onLocateFacilities={onLocateFacilities}
       />
 
-      {/* Synchronous Deterministic RedFlagBanner (Top of View, Solid Surface) */}
-      <RedFlagBanner
-        result={emergencyResult}
-        onLocateFacilities={onLocateFacilities}
-      />
+      <RedFlagBanner result={emergencyResult} onLocateFacilities={onLocateFacilities} />
 
-      {/* When completed, show structured assessment view */}
       {assessment ? (
         <AssessmentResultView
           assessment={assessment}
@@ -553,257 +613,367 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
           onLocateFacilities={onLocateFacilities}
         />
       ) : (
-        <div className="flex flex-col flex-1 border border-border rounded-xl bg-card shadow-none overflow-hidden min-h-[580px]">
-          {/* Clinical Chat Header */}
-          <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/20 gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex size-7 items-center justify-center rounded-lg bg-accent/10 text-accent border border-accent/20 shrink-0">
-                <Bot className="size-4 stroke-[1.75]" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-foreground leading-none">Omnicura Assistant</h3>
-                  {activeProfile?.summaryText && (
-                    <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-accent/30 bg-accent/10 text-accent text-[10px] font-medium max-w-[220px] truncate" title={`Active Profile: ${activeProfile.summaryText}`}>
-                      <span className="size-1.5 rounded-full bg-accent shrink-0" />
-                      <span className="truncate">Context: {activeProfile.summaryText}</span>
-                    </span>
-                  )}
-                </div>
-                <span className="text-[11px] text-muted-foreground block truncate">
-                  Clinical Decision Support
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5">
-              {canUndo && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleUndoLastTurn}
-                  className="text-xs text-muted-foreground gap-1 h-8 px-2 rounded-lg hover:text-foreground"
-                  title="Undo last response and edit"
-                >
-                  <Undo2 className="size-3" />
-                  <span className="hidden sm:inline">Undo</span>
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleReset}
-                className="text-xs text-muted-foreground gap-1.5 h-8 px-2.5 rounded-lg hover:text-foreground"
-                title="Reset conversation"
-              >
-                <RefreshCw className="size-3" />
-                Reset
-              </Button>
-            </div>
-          </div>
-
-          {/* Consultation Progress Indicator Bar */}
-          <div className="border-b border-border/70 bg-muted/15 px-4 py-2 flex items-center justify-between text-[11px]">
-            <div className="flex items-center gap-2">
-              <span className="size-2 rounded-full bg-accent shrink-0" />
-              <span className="font-semibold text-foreground">
-                Consultation Stage {Math.min(userTurnCount + 1, 4)} of ~4
-              </span>
-              <span className="text-muted-foreground hidden sm:inline">•</span>
-              <span className="text-muted-foreground hidden sm:inline">
-                {userTurnCount === 0
-                  ? "Symptom Presentation"
-                  : userTurnCount === 1
-                  ? "Duration & Severity"
-                  : userTurnCount === 2
-                  ? "Location & Context"
-                  : "Clinical Synthesis"}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="w-20 sm:w-28 h-1.5 rounded-full bg-muted/80 overflow-hidden">
-                <div
-                  className="h-full bg-accent transition-all duration-300 rounded-full"
-                  style={{ width: `${Math.min(((userTurnCount + 1) / 4) * 100, 100)}%` }}
-                />
-              </div>
-              <span className="text-muted-foreground font-mono tabular-nums text-[10px]">
-                {Math.min(Math.round(((userTurnCount + 1) / 4) * 100), 100)}%
-              </span>
-            </div>
-          </div>
-
-          {/* Messages Scroll Area with Accessible aria-live Log */}
-          <div
-            role="log"
-            aria-live="polite"
-            aria-atomic="false"
-            aria-label="Clinical consultation history"
-            className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4"
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+          {/* ================= Conversation ================= */}
+          <section
+            aria-label="Symptom consultation"
+            className="flex flex-col overflow-hidden rounded-[20px] border border-border-subtle bg-surface shadow-xs h-[min(780px,calc(100dvh-200px))] min-h-[580px]"
           >
-            {messages.map((message) => {
-              const isAssistant = message.role === "assistant";
-              return (
-                <div
-                  key={message.id}
-                  className={`flex ${isAssistant ? "justify-start" : "justify-end"} animate-in fade-in-50 duration-180`}
-                >
-                  <div
-                    className={`max-w-[88%] sm:max-w-[80%] rounded-xl p-4 text-sm leading-relaxed border ${
-                      isAssistant
-                        ? "bg-card text-foreground border-border border-l-2 border-l-accent shadow-none"
-                        : "bg-muted/60 text-foreground border-border/80"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-2 pb-1 border-b border-border/50 text-[11px]">
-                      <div className="flex items-center gap-1.5 font-semibold">
-                        {isAssistant ? (
-                          <>
-                            <span className="size-1.5 rounded-full bg-accent" />
-                            <span className="text-accent uppercase tracking-wider">Clinical Note</span>
-                          </>
-                        ) : (
-                          <>
-                            <User className="size-3 text-muted-foreground" />
-                            <span className="text-muted-foreground uppercase tracking-wider">Patient Note</span>
-                          </>
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3 border-b border-border-subtle px-5 py-3.5">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="relative">
+                  <OmnicuraLogo size="md" />
+                  <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-surface bg-success-strong" aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-foreground">Omnicura Assistant</div>
+                  <div className="truncate text-xs text-text-tertiary">
+                    {isLoading ? "Reviewing your answer…" : `Step ${stageIndex + 1} of 4 · ${STAGES[stageIndex].title}`}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                {canUndo && (
+                  <Button variant="ghost" size="sm" onClick={handleUndoLastTurn} title="Undo last response and edit">
+                    <Undo2 />
+                    <span className="hidden sm:inline">Undo</span>
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={handleReset} title="Start over">
+                  <RotateCcw />
+                  <span className="hidden sm:inline">Start over</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Progress */}
+            <div className="h-1 w-full bg-muted" aria-hidden="true">
+              <div
+                className="h-full bg-brand transition-[width] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+
+            {/* Messages */}
+            <div
+              ref={scrollAreaRef}
+              role="log"
+              aria-live="polite"
+              aria-atomic="false"
+              aria-label="Clinical consultation history"
+              className="flex-1 space-y-5 overflow-y-auto px-4 py-6 sm:px-6"
+            >
+              {messages.map((message) => {
+                const isAssistant = message.role === "assistant";
+                const isEmergency = isAssistant && message.content.startsWith("🚨");
+                const content = isEmergency ? message.content.replace(/^🚨\s*/, "") : message.content;
+
+                if (!isAssistant) {
+                  return (
+                    <div key={message.id} className="flex justify-end animate-rise">
+                      <div className="max-w-[85%] sm:max-w-[72%]">
+                        <div className="rounded-[18px] rounded-br-md bg-brand px-4 py-3 text-[15px] leading-relaxed text-brand-fg shadow-xs">
+                          <p className="whitespace-pre-wrap">{content}</p>
+                        </div>
+                        {message.timestamp && (
+                          <div className="mt-1.5 pr-1 text-right text-[11px] text-text-tertiary tabular-nums">
+                            You · {message.timestamp}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={message.id} className="flex items-start gap-3 animate-rise">
+                    <span
+                      className={cn(
+                        "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border",
+                        isEmergency
+                          ? "border-danger/25 bg-danger-muted text-danger"
+                          : "border-brand/15 bg-brand-muted text-accent"
+                      )}
+                      aria-hidden="true"
+                    >
+                      {isEmergency ? <Siren className="size-4" /> : <Sparkles className="size-4" />}
+                    </span>
+                    <div className="max-w-[85%] sm:max-w-[78%]">
+                      <div
+                        className={cn(
+                          "rounded-[18px] rounded-tl-md border px-4 py-3 text-[15px] leading-relaxed",
+                          isEmergency
+                            ? "border-danger/25 bg-danger-muted text-foreground"
+                            : "border-border-subtle bg-subtle text-foreground"
+                        )}
+                      >
+                        <p className="whitespace-pre-wrap">{renderRichText(content)}</p>
+                        {isEmergency && (
+                          <a
+                            href={`tel:${emergencyNumber}`}
+                            className="mt-3 inline-flex h-9 items-center gap-2 rounded-lg bg-danger px-3.5 text-[13px] font-semibold text-white dark:text-[#2a0605]"
+                          >
+                            <PhoneCall className="size-4" />
+                            Call {emergencyNumber} now
+                          </a>
                         )}
                       </div>
                       {message.timestamp && (
-                        <span className="text-muted-foreground tabular-nums text-[10px]">
-                          {message.timestamp}
-                        </span>
+                        <div className="mt-1.5 pl-1 text-[11px] text-text-tertiary tabular-nums">
+                          Omnicura · {message.timestamp}
+                        </div>
                       )}
                     </div>
-                    <p className="whitespace-pre-wrap text-foreground/90 font-normal">{message.content}</p>
+                  </div>
+                );
+              })}
+
+              {userTurnCount === 0 && !isLoading && (
+                <div className="ml-11 max-w-xl space-y-4 animate-rise [animation-delay:120ms]">
+                  <div className="rounded-2xl border border-dashed border-border-strong/70 p-4">
+                    <p className="text-xs font-semibold text-text-secondary">For a faster, more accurate assessment, mention:</p>
+                    <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      {[
+                        { title: "What", body: "Main symptom and where" },
+                        { title: "When", body: "Onset and how it's changed" },
+                        { title: "How bad", body: "Severity from 1 to 10" },
+                      ].map((tip) => (
+                        <li key={tip.title} className="rounded-xl bg-subtle px-3 py-2.5">
+                          <div className="text-[13px] font-semibold text-foreground">{tip.title}</div>
+                          <div className="text-xs text-text-tertiary">{tip.body}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      "Headache and fever since yesterday, about 6/10",
+                      "Sore throat and cough for three days",
+                      "Burn on my hand from a hot pan",
+                    ].map((example) => (
+                      <button
+                        key={example}
+                        type="button"
+                        onClick={() => {
+                          setInputValue(example);
+                          textareaRef.current?.focus();
+                        }}
+                        className="rounded-full border border-border-subtle bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-brand/30 hover:bg-brand-muted hover:text-accent-text cursor-pointer"
+                      >
+                        {example}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              );
-            })}
+              )}
 
-            {/* Staged Clinical Evaluation Progress State */}
-            {isLoading && (
-              <div
-                role="status"
-                aria-live="polite"
-                className="max-w-[88%] sm:max-w-[80%] rounded-xl border border-border border-l-2 border-l-accent bg-card p-4 space-y-2.5 animate-in fade-in-50 duration-180"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-accent">
-                    <div className="flex items-center gap-1 py-0.5">
-                      <span className="size-1.5 rounded-full bg-accent animate-bounce [animation-delay:-0.3s]" />
-                      <span className="size-1.5 rounded-full bg-accent animate-bounce [animation-delay:-0.15s]" />
-                      <span className="size-1.5 rounded-full bg-accent animate-bounce" />
-                    </div>
-                    <span>Omnicura is evaluating clinical presentation...</span>
-                  </div>
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                    Screening
+              {isLoading && (
+                <div role="status" aria-live="polite" className="flex items-start gap-3 animate-rise">
+                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border border-brand/15 bg-brand-muted text-accent" aria-hidden="true">
+                    <Sparkles className="size-4 animate-pulse" />
                   </span>
+                  <div className="rounded-[18px] rounded-tl-md border border-border-subtle bg-subtle px-4 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1" aria-hidden="true">
+                        <span className="size-1.5 rounded-full bg-accent animate-bounce [animation-delay:-0.3s]" />
+                        <span className="size-1.5 rounded-full bg-accent animate-bounce [animation-delay:-0.15s]" />
+                        <span className="size-1.5 rounded-full bg-accent animate-bounce" />
+                      </span>
+                      <span className="text-[13px] font-medium text-text-secondary">
+                        Screening red flags and reviewing your answer…
+                      </span>
+                    </div>
+                  </div>
                 </div>
+              )}
+            </div>
 
-                <div className="space-y-1.5 py-1">
-                  <div className="h-2.5 w-5/6 rounded bg-muted animate-pulse" />
-                  <div className="h-2.5 w-3/5 rounded bg-muted animate-pulse" />
+            {/* Quick replies */}
+            {currentQuickOptions.length > 0 && !isLoading && (
+              <div className="border-t border-border-subtle px-4 pt-3 sm:px-6 animate-rise">
+                <div className="mb-2 text-xs font-medium text-text-tertiary">Suggested replies</div>
+                <div className="flex flex-wrap gap-2">
+                  {currentQuickOptions.map((option, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleSendMessage(option)}
+                      className="rounded-full border border-brand/25 bg-surface px-3.5 py-1.5 text-[13px] font-medium text-accent-text transition-colors hover:bg-brand-muted cursor-pointer"
+                    >
+                      {option}
+                    </button>
+                  ))}
                 </div>
-
-                <p className="text-[11px] text-muted-foreground border-t border-border/50 pt-2">
-                  Evaluating red-flag indicators, symptom duration, and supportive care protocols.
-                </p>
               </div>
             )}
 
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Quick Option Choice Chips */}
-          {currentQuickOptions.length > 0 && !isLoading && (
-            <div className="px-4 py-3 bg-muted/20 border-t border-border flex flex-wrap items-center gap-2 animate-in fade-in-50">
-              <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 w-full sm:w-auto mr-1">
-                <Sparkles className="size-3 text-accent" />
-                Suggested responses:
-              </span>
-              {currentQuickOptions.map((option, idx) => (
-                <Button
-                  key={idx}
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleSendMessage(option)}
-                  className="text-xs h-7 px-3 rounded-full bg-background hover:bg-muted hover:text-foreground transition-colors font-medium border-border"
-                >
-                  {option}
-                </Button>
-              ))}
-            </div>
-          )}
-
-          {/* Hackathon Demo Presets */}
-          <div className="px-4 py-2.5 bg-muted/10 border-t border-border">
-            <DemoScenarios onSelectScenario={(text) => handleSendMessage(text)} />
-          </div>
-
-          {/* Input Bar */}
-          <div className="p-3 border-t border-border bg-card">
-            {/* Real-time Audio Waveform Visualizer */}
-            <AudioWaveformVisualizer
-              isListening={isListening}
-              onStop={toggleSpeechRecognition}
-              className="mb-2.5"
-            />
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSendMessage();
-              }}
-              className="flex items-center gap-2"
-            >
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={toggleSpeechRecognition}
-                className={`size-9 rounded-lg shrink-0 ${isListening ? "bg-destructive/10 text-destructive border-destructive/40" : ""}`}
-                title={isListening ? "Listening... click to stop" : "Speak your symptoms"}
-              >
-                {isListening ? <MicOff className="size-4" /> : <Mic className="size-4" />}
-                <span className="sr-only">Voice input</span>
-              </Button>
-
-              {onOpenVision && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={onOpenVision}
-                  className="size-9 rounded-lg shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                  title="Upload visible symptom photo (rash, cut, burn)"
-                >
-                  <Camera className="size-4" />
-                  <span className="sr-only">Upload symptom image</span>
-                </Button>
+            {/* Composer */}
+            <div className="p-3 sm:p-4">
+              <AudioWaveformVisualizer isListening={isListening} onStop={toggleSpeechRecognition} className="mb-2.5" />
+              {voiceNotice && (
+                <p role="status" className="mb-2 rounded-lg bg-info-muted px-3 py-2 text-xs text-info">{voiceNotice}</p>
               )}
 
-              <Input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder={isListening ? "Listening... speak now" : "Describe symptoms or answer question..."}
-                disabled={isLoading}
-                className="flex-1 text-sm h-9 rounded-lg"
-              />
-
-              <Button
-                type="submit"
-                disabled={isLoading || !inputValue.trim()}
-                className="h-9 px-3 rounded-lg shrink-0 gap-1.5"
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendMessage();
+                }}
+                className="rounded-2xl border border-border-strong/70 bg-surface shadow-sm transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-[4px] focus-within:ring-ring/15"
               >
-                <Send className="size-3.5" />
-                <span className="text-xs font-semibold hidden sm:inline">Send</span>
-                <span className="sr-only">Send message</span>
-              </Button>
-            </form>
-          </div>
+                <label htmlFor="triage-composer" className="sr-only">
+                  Describe your symptoms or answer the question
+                </label>
+                <textarea
+                  id="triage-composer"
+                  ref={textareaRef}
+                  rows={1}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder={isListening ? "Listening… speak now" : "Describe symptoms or answer the question…"}
+                  disabled={isLoading}
+                  className="block w-full resize-none bg-transparent px-4 pt-3.5 pb-1 text-base sm:text-[15px] leading-relaxed text-foreground placeholder:text-text-tertiary outline-none disabled:opacity-60"
+                />
+                <div className="flex items-center justify-between gap-2 px-2.5 pb-2.5">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={toggleSpeechRecognition}
+                      className={cn(
+                        "flex size-9 items-center justify-center rounded-xl transition-colors cursor-pointer",
+                        isListening ? "bg-danger-muted text-danger" : "text-text-tertiary hover:bg-muted hover:text-foreground"
+                      )}
+                      title={isListening ? "Listening… click to stop" : "Speak your symptoms"}
+                      aria-label={isListening ? "Stop voice input" : "Start voice input"}
+                      aria-pressed={isListening}
+                    >
+                      {isListening ? <MicOff className="size-[18px]" /> : <Mic className="size-[18px]" />}
+                    </button>
+                    {onOpenVision && (
+                      <button
+                        type="button"
+                        onClick={onOpenVision}
+                        className="flex size-9 items-center justify-center rounded-xl text-text-tertiary transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+                        title="Analyze a photo of a visible symptom"
+                        aria-label="Upload a symptom photo"
+                      >
+                        <Camera className="size-[18px]" />
+                      </button>
+                    )}
+                    <span className="hidden sm:inline ml-2 text-[11px] text-text-tertiary">
+                      Enter to send · Shift + Enter for a new line
+                    </span>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isLoading || !inputValue.trim()}
+                    className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs transition-all hover:bg-brand-hover active:scale-95 disabled:bg-muted disabled:text-text-tertiary disabled:shadow-none cursor-pointer disabled:cursor-not-allowed"
+                    aria-label="Send message"
+                  >
+                    <ArrowUp className="size-[18px] stroke-[2.5]" />
+                  </button>
+                </div>
+              </form>
+
+              <div className="mt-2.5 flex items-center justify-between gap-3 xl:hidden">
+                <DemoScenarios onSelectScenario={(text) => handleSendMessage(text)} disabled={isLoading} />
+              </div>
+            </div>
+          </section>
+
+          {/* ================= Context rail ================= */}
+          <aside className="space-y-5" aria-label="Consultation context">
+            {/* Stages */}
+            <section className="rounded-[20px] border border-border-subtle bg-surface p-5 shadow-xs">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-foreground">Consultation progress</h2>
+                <span className="text-xs font-semibold tabular-nums text-text-tertiary">{progressPct}%</span>
+              </div>
+              <ol className="mt-4 space-y-0">
+                {STAGES.map((stage, i) => {
+                  const done = i < stageIndex;
+                  const current = i === stageIndex;
+                  return (
+                    <li key={stage.title} className="relative flex gap-3 pb-4 last:pb-0">
+                      {i < STAGES.length - 1 && (
+                        <span
+                          className={cn("absolute left-[11px] top-7 bottom-1 w-px", done ? "bg-brand" : "bg-border-subtle")}
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span
+                        className={cn(
+                          "relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-bold transition-colors",
+                          done && "border-brand bg-brand text-brand-fg",
+                          current && "border-brand bg-surface text-accent ring-4 ring-brand/15",
+                          !done && !current && "border-border-strong bg-surface text-text-tertiary"
+                        )}
+                        aria-hidden="true"
+                      >
+                        {done ? <Check className="size-3.5 stroke-[3]" /> : i + 1}
+                      </span>
+                      <div className="min-w-0 pt-0.5">
+                        <div className={cn("text-[13px] font-semibold", current || done ? "text-foreground" : "text-text-tertiary")}>
+                          {stage.title}
+                          {current && <span className="sr-only"> (current step)</span>}
+                        </div>
+                        <div className="text-xs text-text-tertiary">{stage.detail}</div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+              <p className="mt-4 flex items-start gap-2 border-t border-border-subtle pt-4 text-xs leading-relaxed text-text-tertiary">
+                <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                Each message is screened on your device for emergency red flags before it reaches the AI.
+              </p>
+            </section>
+
+            {/* Patient context */}
+            <section className="rounded-[20px] border border-border-subtle bg-surface p-5 shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-8 items-center justify-center rounded-lg bg-brand-muted text-accent">
+                  <UserRound className="size-4" aria-hidden="true" />
+                </span>
+                <h2 className="text-sm font-semibold text-foreground">Patient context</h2>
+              </div>
+              {activeProfile?.summaryText ? (
+                <div className="mt-3.5 space-y-3">
+                  <p className="text-[13px] leading-relaxed text-text-secondary">{activeProfile.summaryText}</p>
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-success">
+                    <ShieldCheck className="size-3.5" aria-hidden="true" />
+                    Shared with this assessment
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3.5 space-y-3">
+                  <p className="text-[13px] leading-relaxed text-text-secondary">
+                    Add age, allergies and conditions so the assistant can skip routine questions and tailor advice.
+                  </p>
+                  <Button variant="secondary" size="sm" onClick={() => requestNavigate("profile")}>
+                    Add health profile
+                    <ArrowRight />
+                  </Button>
+                </div>
+              )}
+            </section>
+
+            {/* Demo scenarios (desktop) */}
+            <section className="hidden xl:block rounded-[20px] border border-border-subtle bg-surface p-5 shadow-xs">
+              <div className="mb-3 flex items-center gap-2">
+                <Sparkles className="size-4 text-accent" aria-hidden="true" />
+                <h2 className="text-sm font-semibold text-foreground">Try a scenario</h2>
+              </div>
+              <DemoScenarios variant="list" onSelectScenario={(text) => handleSendMessage(text)} disabled={isLoading} />
+            </section>
+          </aside>
         </div>
       )}
     </div>

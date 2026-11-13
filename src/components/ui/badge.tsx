@@ -4,28 +4,20 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
 const badgeVariants = cva(
-  "group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border px-2 py-0.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&>svg]:pointer-events-none [&>svg]:size-3",
+  "group/badge inline-flex h-6 w-fit shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-full border px-2.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&>svg]:pointer-events-none [&>svg]:size-3.5",
   {
     variants: {
       variant: {
-        default:
-          "border-brand/20 bg-brand/10 text-brand dark:text-brand-hover",
-        secondary:
-          "border-border-subtle bg-secondary text-foreground",
-        destructive:
-          "border-danger/30 bg-danger-muted text-danger font-semibold",
-        danger:
-          "border-danger/30 bg-danger-muted text-danger font-semibold",
-        success:
-          "border-success/30 bg-success-muted text-success font-semibold",
-        warning:
-          "border-warning/30 bg-warning-muted text-warning-text font-semibold",
-        accent:
-          "border-accent/30 bg-accent/10 text-accent font-semibold",
-        outline:
-          "border-border-subtle text-foreground bg-transparent",
-        ghost:
-          "border-transparent bg-muted text-text-secondary",
+        default: "border-brand/15 bg-brand-muted text-accent-text",
+        secondary: "border-border-subtle bg-muted text-text-secondary",
+        destructive: "border-danger/20 bg-danger-muted text-danger",
+        danger: "border-danger/20 bg-danger-muted text-danger",
+        success: "border-success/20 bg-success-muted text-success",
+        warning: "border-warning/25 bg-warning-muted text-warning-text",
+        info: "border-info/20 bg-info-muted text-info",
+        accent: "border-brand/15 bg-brand-muted text-accent-text",
+        outline: "border-border-subtle text-text-secondary bg-surface",
+        ghost: "border-transparent bg-muted text-text-secondary",
       },
     },
     defaultVariants: {

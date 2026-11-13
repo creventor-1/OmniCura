@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { AlertTriangle, Trash2 } from "lucide-react";
+import { TriangleAlert, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -48,54 +48,36 @@ export function ConfirmDialog({
   };
 
   const busy = isLoading || isProcessing;
+  const isDestructive = variant === "destructive";
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && !busy && onClose()}>
-      <DialogContent className="sm:max-w-md rounded-2xl border border-border/80 bg-card p-6 shadow-lg">
-        <DialogHeader className="gap-2">
-          <div className="flex items-center gap-3">
-            <div
-              className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
-                variant === "destructive"
-                  ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                  : "bg-primary/10 text-primary"
-              }`}
-            >
-              {variant === "destructive" ? (
-                <Trash2 className="size-5" />
-              ) : (
-                <AlertTriangle className="size-5" />
-              )}
-            </div>
-            <div>
-              <DialogTitle className="text-base sm:text-lg font-bold text-foreground">
-                {title}
-              </DialogTitle>
-            </div>
-          </div>
-          <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-1">
-            {description}
-          </DialogDescription>
+      <DialogContent className="sm:max-w-[420px]" showCloseButton={false}>
+        <DialogHeader className="gap-3">
+          <span
+            className={
+              isDestructive
+                ? "flex size-11 items-center justify-center rounded-2xl border border-danger/20 bg-danger-muted text-danger"
+                : "flex size-11 items-center justify-center rounded-2xl border border-brand/15 bg-brand-muted text-accent"
+            }
+          >
+            {isDestructive ? <Trash2 className="size-5" /> : <TriangleAlert className="size-5" />}
+          </span>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className="flex flex-row justify-end gap-2.5 pt-4 border-t border-border/50">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={busy}
-            onClick={onClose}
-            className="rounded-xl text-xs sm:text-sm h-9 px-4"
-          >
+        <DialogFooter>
+          <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
             {cancelLabel}
           </Button>
           <Button
             type="button"
-            variant={variant === "destructive" ? "destructive" : "default"}
-            disabled={busy}
+            variant={isDestructive ? "danger" : "default"}
+            isLoading={busy}
             onClick={handleConfirm}
-            className="rounded-xl text-xs sm:text-sm font-bold h-9 px-4 gap-1.5 shadow-xs"
           >
-            {busy ? "Processing..." : confirmLabel}
+            {confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

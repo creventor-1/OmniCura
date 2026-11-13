@@ -2,24 +2,20 @@
 
 import * as React from "react";
 import {
-  Clock,
+  ClipboardList,
   Trash2,
   ChevronDown,
-  ChevronUp,
   FileDown,
-  Calendar,
-  Activity,
-  Sparkles,
   Search,
   Share2,
   Check,
   Eye,
-  Filter,
+  Plus,
   ArrowRight,
+  X,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "cn";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -30,11 +26,15 @@ import { AssessmentResponse } from "@/schemas/triage";
 import { generateTriagePdfReport } from "@/services/pdf/generate-report";
 import { SeverityBadge } from "@/components/shared/severity-badge";
 import { AIResultPanel } from "@/components/assessment/ai-result-panel";
+import { SegmentedShare } from "@/components/system/charts";
+import { ACUITY, ACUITY_ORDER, getAcuity } from "@/lib/acuity";
+import { getDayGroup } from "@/lib/format";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 
 interface AssessmentHistoryViewProps {
@@ -215,26 +215,31 @@ Educational summary provided by Omnicura Decision Support.`;
   const displayedAssessments = filteredAssessments.slice(0, displayCount);
   const hasMore = displayCount < filteredAssessments.length;
 
+  const exportPdf = (item: StoredAssessment) => {
+    const result = item.assessment_result as AssessmentResponse | null;
+    generateTriagePdfReport({
+      assessment: result ?? {
+        severity: item.severity,
+        severityReasoning: "Historical clinical assessment record",
+        recommendedAction: "Consult physician.",
+        possibleConditions: [],
+        firstAidSteps: [],
+        warningSigns: [],
+        disclaimer: item.disclaimer || "",
+      },
+      symptoms: item.symptoms,
+      userEmail: user?.email,
+    });
+  };
+
   if (isLoading) {
     return (
-      <div className="max-w-3xl mx-auto space-y-4">
-        <div className="flex items-center justify-between pb-2">
-          <Skeleton className="h-6 w-48 rounded-xl" />
-          <Skeleton className="h-8 w-24 rounded-xl" />
-        </div>
+      <div className="space-y-5">
+        <Skeleton className="h-[132px] w-full rounded-[20px]" />
+        <Skeleton className="h-12 w-full rounded-2xl" />
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="rounded-xl border border-border p-4 space-y-3 bg-card"
-            >
-              <div className="flex items-center justify-between">
-                <Skeleton className="h-5 w-24 rounded-full" />
-                <Skeleton className="h-4 w-32 rounded-md" />
-              </div>
-              <Skeleton className="h-4 w-full rounded-md" />
-              <Skeleton className="h-4 w-3/4 rounded-md" />
-            </div>
+            <Skeleton key={i} className="h-[88px] w-full rounded-2xl" />
           ))}
         </div>
       </div>
@@ -244,195 +249,201 @@ Educational summary provided by Omnicura Decision Support.`;
   if (assessments.length === 0) {
     return (
       <EmptyState
-        icon={Clock}
-        title="No Past Assessments Found"
-        description="Your historical symptom consultations, clinical acuity evaluations, and generated health reports will appear here automatically."
-        actionLabel="Start Symptom Assessment"
+        icon={ClipboardList}
+        title="No assessments yet"
+        description="Completed symptom consultations appear here with their acuity level, recommended next step and a downloadable clinical report."
+        actionLabel="Start symptom assessment"
         onAction={onStartAssessment}
-      />
+      >
+        <div className="mx-auto grid max-w-md grid-cols-3 gap-2 text-left">
+          {ACUITY_ORDER.map((id) => {
+            const a = ACUITY[id];
+            const Icon = a.icon;
+            return (
+              <div key={id} className="rounded-xl border border-border-subtle bg-subtle p-3">
+                <Icon className={cn("size-4", a.text)} aria-hidden="true" />
+                <div className="mt-2 text-xs font-semibold text-foreground">{a.label}</div>
+                <div className="text-[11px] text-text-tertiary">{a.timeframe}</div>
+              </div>
+            );
+          })}
+        </div>
+      </EmptyState>
     );
   }
 
   const targetItem = assessments.find((a) => a.id === deleteId);
+  const counts = ACUITY_ORDER.map((id) => ({ id, value: assessments.filter((a) => a.severity === id).length }));
+
+  // Group the visible page by day bucket, preserving order
+  const groups: { label: string; items: StoredAssessment[] }[] = [];
+  for (const item of displayedAssessments) {
+    const label = getDayGroup(item.created_at);
+    const last = groups[groups.length - 1];
+    if (last && last.label === label) last.items.push(item);
+    else groups.push({ label, items: [item] });
+  }
+
+  const filterTabs = [
+    { id: "all", label: "All" },
+    { id: "emergency", label: "Emergency" },
+    { id: "urgent", label: "Urgent" },
+    { id: "non-urgent", label: "Non-urgent" },
+  ];
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5">
-      {/* Accessible Confirmation Modal */}
+    <div className="space-y-6">
       <ConfirmDialog
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleConfirmDelete}
-        title="Delete Assessment Record"
+        title="Delete this record?"
         description={
           targetItem
-            ? `Are you sure you want to permanently delete the clinical assessment record for "${targetItem.symptoms.slice(0, 45)}..."? This action cannot be undone.`
-            : "Are you sure you want to permanently delete this clinical assessment from your records? This action cannot be undone."
+            ? `The assessment for "${targetItem.symptoms.slice(0, 60)}${targetItem.symptoms.length > 60 ? "…" : ""}" will be permanently removed. This cannot be undone.`
+            : "This clinical assessment will be permanently removed from your records. This cannot be undone."
         }
-        confirmLabel="Delete Record"
+        confirmLabel="Delete record"
       />
 
-      {/* Full Details Modal Dialog */}
       {detailsAssessment && (
-        <Dialog
-          open={!!detailsAssessment}
-          onOpenChange={(open) => !open && setDetailsAssessment(null)}
-        >
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-5 sm:p-6">
-            <DialogHeader className="pb-3 border-b border-border">
-              <div className="flex items-center justify-between gap-3">
-                <DialogTitle className="text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
-                  <Activity className="size-4.5 text-accent" />
-                  <span>Clinical Encounter Details</span>
-                </DialogTitle>
-                <SeverityBadge severity={detailsAssessment.severity} />
-              </div>
-              <div className="text-xs text-muted-foreground pt-1">
-                Recorded on {formatDateString(detailsAssessment.created_at).date} at {formatDateString(detailsAssessment.created_at).time}
-              </div>
+        <Dialog open={!!detailsAssessment} onOpenChange={(open) => !open && setDetailsAssessment(null)}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader className="gap-1.5 pr-8">
+              <p className="type-overline text-text-tertiary">Clinical encounter</p>
+              <DialogTitle className="text-xl">{detailsAssessment.symptoms}</DialogTitle>
+              <DialogDescription>
+                Recorded {formatDateString(detailsAssessment.created_at).date} at {formatDateString(detailsAssessment.created_at).time}
+              </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 pt-3">
-              {/* Primary Symptoms */}
-              <div className="rounded-xl border border-border bg-muted/20 p-3.5 space-y-1">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Chief Symptoms Reported
-                </span>
-                <p className="text-xs sm:text-sm text-foreground font-medium">
-                  {detailsAssessment.symptoms}
-                </p>
+            {detailsAssessment.assessment_result ? (
+              <AIResultPanel assessment={detailsAssessment.assessment_result as AssessmentResponse} layout="stack" />
+            ) : (
+              <div className="flex items-center gap-3 rounded-2xl border border-border-subtle bg-subtle p-4">
+                <SeverityBadge severity={detailsAssessment.severity} />
+                <span className="text-sm text-text-secondary">No structured result stored for this record.</span>
               </div>
+            )}
 
-              {/* Assessment Readout */}
-              {detailsAssessment.assessment_result && (
-                <AIResultPanel
-                  assessment={detailsAssessment.assessment_result as AssessmentResponse}
-                />
-              )}
-
-              {/* Modal Actions */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleShare(detailsAssessment)}
-                  className="text-xs gap-1.5 h-8"
-                >
-                  {copiedId === detailsAssessment.id ? (
-                    <>
-                      <Check className="size-3.5 text-emerald-600" />
-                      <span>Copied Summary</span>
-                    </>
-                  ) : (
-                    <>
-                      <Share2 className="size-3.5" />
-                      <span>Share Record</span>
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    generateTriagePdfReport({
-                      assessment: detailsAssessment.assessment_result as AssessmentResponse,
-                      symptoms: detailsAssessment.symptoms,
-                      userEmail: user?.email,
-                    });
-                  }}
-                  className="text-xs gap-1.5 h-8"
-                >
-                  <FileDown className="size-3.5" />
-                  <span>Export PDF</span>
-                </Button>
-              </div>
+            <div className="flex flex-col-reverse gap-2.5 border-t border-border-subtle pt-4 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={() => handleShare(detailsAssessment)}>
+                {copiedId === detailsAssessment.id ? (
+                  <>
+                    <Check className="text-success" />
+                    Summary copied
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="text-text-tertiary" />
+                    Copy summary
+                  </>
+                )}
+              </Button>
+              <Button onClick={() => exportPdf(detailsAssessment)}>
+                <FileDown />
+                Export PDF
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Top Search & Filter Control Bar */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          {/* Live Search Input */}
-          <div className="relative flex-1">
-            <Search className="size-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setDisplayCount(5); // Reset pagination on search
-              }}
-              placeholder="Search symptoms, findings, or dates..."
-              className="pl-9 h-9 text-xs sm:text-sm rounded-lg"
-            />
+      {/* Summary */}
+      <section className="grid grid-cols-1 gap-5 rounded-[20px] border border-border-subtle bg-surface p-6 shadow-xs md:grid-cols-12 md:items-center">
+        <div className="md:col-span-4">
+          <p className="text-[13px] font-medium text-text-secondary">Total records</p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="font-heading text-4xl font-semibold tracking-[-0.03em] text-foreground">{assessments.length}</span>
+            <span className="text-[13px] text-text-tertiary">{user ? "synced to your account" : "on this device"}</span>
           </div>
+        </div>
+        <div className="md:col-span-8 md:border-l md:border-border-subtle md:pl-6">
+          <SegmentedShare
+            data={counts.map(({ id, value }) => ({
+              key: id,
+              label: ACUITY[id].label,
+              value,
+              colorClass: ACUITY[id].solid,
+              icon: ACUITY[id].icon,
+              iconClass: ACUITY[id].text,
+            }))}
+            className="[&_ul]:grid [&_ul]:grid-cols-1 [&_ul]:gap-x-6 xl:[&_ul]:grid-cols-3"
+          />
+        </div>
+      </section>
 
-          {onStartAssessment && (
-            <Button
-              size="sm"
-              onClick={onStartAssessment}
-              className="rounded-lg text-xs font-semibold h-9 px-3.5 shrink-0 gap-1.5"
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative flex-1 lg:max-w-md">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-text-tertiary" aria-hidden="true" />
+          <input
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setDisplayCount(5);
+            }}
+            placeholder="Search symptoms, findings or dates…"
+            aria-label="Search assessment history"
+            className="h-10 w-full rounded-[10px] border border-border-subtle bg-surface pl-10 pr-9 text-sm text-foreground shadow-xs outline-none transition-[border-color,box-shadow] placeholder:text-text-tertiary hover:border-border-strong focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-text-tertiary hover:bg-muted hover:text-foreground cursor-pointer"
+              aria-label="Clear search"
             >
-              <Sparkles className="size-3.5" />
-              <span>New Assessment</span>
-            </Button>
+              <X className="size-3.5" />
+            </button>
           )}
         </div>
 
-        {/* Acuity Filter Pills */}
-        <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-xs text-muted-foreground font-medium mr-1 flex items-center gap-1">
-              <Filter className="size-3 text-accent" />
-              <span>Acuity:</span>
-            </span>
-            {[
-              { id: "all", label: "All" },
-              { id: "emergency", label: "Emergency" },
-              { id: "urgent", label: "Urgent" },
-              { id: "non-urgent", label: "Non-Urgent" },
-            ].map((tab) => {
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center overflow-x-auto rounded-xl bg-muted p-1" role="group" aria-label="Filter by acuity">
+            {filterTabs.map((tab) => {
               const count =
-                tab.id === "all"
-                  ? assessments.length
-                  : assessments.filter((a) => a.severity === tab.id).length;
-
+                tab.id === "all" ? assessments.length : assessments.filter((a) => a.severity === tab.id).length;
               const isSelected = selectedSeverity === tab.id;
+              const acuity = getAcuity(tab.id);
               return (
                 <button
                   key={tab.id}
                   type="button"
+                  aria-pressed={isSelected}
                   onClick={() => {
                     setSelectedSeverity(tab.id);
                     setDisplayCount(5);
                   }}
-                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors flex items-center gap-1.5 font-medium cursor-pointer ${
-                    isSelected
-                      ? "bg-accent/10 border-accent/40 text-accent font-semibold"
-                      : "bg-muted/30 border-border text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={cn(
+                    "flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-3 text-[13px] transition-all cursor-pointer",
+                    isSelected ? "bg-surface font-semibold text-foreground shadow-sm" : "font-medium text-text-secondary hover:text-foreground"
+                  )}
                 >
-                  <span>{tab.label}</span>
-                  <span className="text-[10px] tabular-nums opacity-80">({count})</span>
+                  {acuity && <span className={cn("size-2 rounded-full", acuity.solid)} aria-hidden="true" />}
+                  {tab.label}
+                  <span className="text-xs tabular-nums text-text-tertiary">{count}</span>
                 </button>
               );
             })}
           </div>
-
-          <span className="text-xs text-muted-foreground">
-            Showing {Math.min(displayCount, filteredAssessments.length)} of {filteredAssessments.length}
-          </span>
+          {onStartAssessment && (
+            <Button onClick={onStartAssessment}>
+              <Plus className="stroke-[2.5]" />
+              New assessment
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Filtered Empty State */}
+      {/* Filtered empty */}
       {filteredAssessments.length === 0 && (
-        <div className="p-8 text-center rounded-xl border border-border bg-card space-y-2">
-          <p className="text-sm font-semibold text-foreground">No matching assessments found</p>
-          <p className="text-xs text-muted-foreground">
-            Try adjusting your search query or switching the acuity filter.
-          </p>
+        <div className="flex flex-col items-center gap-3 rounded-[20px] border border-dashed border-border-strong/70 bg-surface p-10 text-center">
+          <Search className="size-6 text-text-tertiary" aria-hidden="true" />
+          <div>
+            <p className="text-sm font-semibold text-foreground">No matching records</p>
+            <p className="mt-1 text-[13px] text-text-tertiary">Try a different search term or acuity filter.</p>
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -440,195 +451,147 @@ Educational summary provided by Omnicura Decision Support.`;
               setSearchQuery("");
               setSelectedSeverity("all");
             }}
-            className="text-xs mt-2"
           >
-            Clear Filters
+            Clear filters
           </Button>
         </div>
       )}
 
-      {/* Vertical Timeline Card List */}
-      <div className="space-y-3.5">
-        {displayedAssessments.map((item) => {
-          const isExpanded = expandedId === item.id;
-          const { date, time } = formatDateString(item.created_at);
-          const result = item.assessment_result as AssessmentResponse | null;
+      {/* Grouped records */}
+      <div className="space-y-7">
+        {groups.map((group) => (
+          <section key={group.label} aria-label={group.label} className="space-y-3">
+            <h3 className="type-overline px-1 text-text-tertiary">{group.label}</h3>
+            <ul className="overflow-hidden rounded-[20px] border border-border-subtle bg-surface shadow-xs divide-y divide-border-subtle">
+              {group.items.map((item) => {
+                const isExpanded = expandedId === item.id;
+                const { date, time } = formatDateString(item.created_at);
+                const result = item.assessment_result as AssessmentResponse | null;
+                const acuity = getAcuity(item.severity);
+                const Icon = acuity?.icon ?? ClipboardList;
 
-          return (
-            <div key={item.id} className="relative pl-6 sm:pl-7 group">
-              {/* Timeline Connector Line */}
-              <div className="absolute left-2.5 sm:left-3 top-6 bottom-0 w-0.5 bg-border/70 group-last:hidden" />
+                return (
+                  <li key={item.id} className={cn("transition-colors", isExpanded && "bg-subtle")}>
+                    <div className="flex flex-col gap-3 p-4 sm:px-5 lg:flex-row lg:items-center lg:gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                        aria-expanded={isExpanded}
+                        className="flex min-w-0 flex-1 items-center gap-4 text-left cursor-pointer"
+                      >
+                        <span
+                          className={cn(
+                            "flex size-10 shrink-0 items-center justify-center rounded-xl border",
+                            acuity ? [acuity.bg, acuity.text, acuity.border] : "bg-muted text-text-secondary"
+                          )}
+                          aria-hidden="true"
+                        >
+                          <Icon className="size-[18px]" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-foreground">{item.symptoms}</span>
+                          <span className="mt-0.5 block truncate text-[13px] text-text-tertiary">
+                            {date} · {time}
+                            {result?.recommendedAction ? ` · ${result.recommendedAction}` : ""}
+                          </span>
+                        </span>
+                      </button>
 
-              {/* Timeline Node Dot */}
-              <div className="absolute left-1 sm:left-1.5 top-4 size-3 rounded-full border-2 border-background bg-accent" />
-
-              <Card className="rounded-xl border border-border shadow-none hover:border-accent/40 transition-colors overflow-hidden bg-card">
-                <div
-                  className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none"
-                  onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                >
-                  <div className="space-y-1.5 flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <SeverityBadge severity={item.severity} />
-
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground font-medium">
-                        <Calendar className="size-3 text-muted-foreground" />
-                        <span>{date}</span>
-                        <span>•</span>
-                        <span>{time}</span>
+                      <div className="flex shrink-0 items-center justify-between gap-2 pl-14 lg:justify-end lg:pl-0">
+                        <SeverityBadge severity={item.severity} />
+                        <div className="flex items-center gap-0.5">
+                          <IconAction label="View full details" onClick={() => setDetailsAssessment(item)}>
+                            <Eye />
+                          </IconAction>
+                          <IconAction
+                            label={copiedId === item.id ? "Copied" : "Copy summary to clipboard"}
+                            onClick={() => handleShare(item)}
+                          >
+                            {copiedId === item.id ? <Check className="text-success" /> : <Share2 />}
+                          </IconAction>
+                          <IconAction label="Download PDF report" onClick={() => exportPdf(item)}>
+                            <FileDown />
+                          </IconAction>
+                          <IconAction label="Delete record" tone="danger" onClick={() => setDeleteId(item.id)}>
+                            <Trash2 />
+                          </IconAction>
+                          <IconAction
+                            label={isExpanded ? "Collapse quick view" : "Expand quick view"}
+                            onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                          >
+                            <ChevronDown className={cn("transition-transform duration-200", isExpanded && "rotate-180")} />
+                          </IconAction>
+                        </div>
                       </div>
                     </div>
 
-                    <p className="text-sm font-semibold text-foreground line-clamp-2">
-                      {item.symptoms}
-                    </p>
-                  </div>
-
-                  {/* Actions Bar */}
-                  <div
-                    className="flex items-center gap-1.5 shrink-0 self-end sm:self-center"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {/* View Details Button */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDetailsAssessment(item);
-                      }}
-                      className="h-8 text-xs gap-1 rounded-lg border-border px-2.5"
-                      title="View Full Encounter Details"
-                    >
-                      <Eye className="size-3.5 text-accent" />
-                      <span className="hidden sm:inline">Details</span>
-                    </Button>
-
-                    {/* Share Button */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShare(item);
-                      }}
-                      className="h-8 text-xs gap-1 rounded-lg border-border px-2.5"
-                      title="Copy assessment summary to clipboard"
-                    >
-                      {copiedId === item.id ? (
-                        <>
-                          <Check className="size-3.5 text-emerald-600" />
-                          <span className="text-emerald-700 dark:text-emerald-300 font-semibold text-[11px]">Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Share2 className="size-3.5" />
-                          <span className="hidden sm:inline">Share</span>
-                        </>
-                      )}
-                    </Button>
-
-                    {/* PDF Export */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        generateTriagePdfReport({
-                          assessment: result ?? {
-                            severity: item.severity,
-                            severityReasoning: "Historical clinical assessment record",
-                            recommendedAction: "Consult physician.",
-                            possibleConditions: [],
-                            firstAidSteps: [],
-                            warningSigns: [],
-                            disclaimer: item.disclaimer || "",
-                          },
-                          symptoms: item.symptoms,
-                          userEmail: user?.email,
-                        });
-                      }}
-                      className="h-8 text-xs gap-1 rounded-lg border-border px-2.5"
-                      title="Download PDF Summary Report"
-                    >
-                      <FileDown className="size-3.5" />
-                      <span className="hidden sm:inline">PDF</span>
-                    </Button>
-
-                    {/* Delete */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteId(item.id);
-                      }}
-                      className="size-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      title="Delete record"
-                      aria-label="Delete assessment record"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-
-                    {/* Expand Chevron */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                      className="size-8 rounded-lg text-muted-foreground"
-                      aria-label={isExpanded ? "Collapse quick view" : "Expand quick view"}
-                    >
-                      {isExpanded ? (
-                        <ChevronUp className="size-3.5" />
-                      ) : (
-                        <ChevronDown className="size-3.5" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Inline Quick Preview */}
-                {isExpanded && result && (
-                  <CardContent className="pt-2.5 pb-4 px-4 sm:px-5 border-t border-border bg-muted/15 space-y-3 text-xs leading-relaxed animate-in fade-in-50 duration-150">
-                    <div className="rounded-lg bg-accent/5 border border-accent/20 p-3 space-y-1">
-                      <div className="flex items-center gap-1.5 text-accent font-semibold text-xs">
-                        <ArrowRight className="size-3.5" />
-                        <span>Recommended Clinical Next Step:</span>
-                      </div>
-                      <p className="text-foreground font-medium pl-5 text-xs sm:text-sm">
-                        {result.recommendedAction}
-                      </p>
-                    </div>
-
-                    {result.severityReasoning && (
-                      <div className="space-y-1">
-                        <span className="font-semibold text-text-secondary uppercase text-[10px]">Evaluation Basis:</span>
-                        <p className="text-muted-foreground text-xs leading-relaxed">
-                          {result.severityReasoning}
-                        </p>
+                    {isExpanded && result && (
+                      <div className="grid grid-cols-1 gap-3 px-4 pb-5 sm:px-5 sm:pl-[76px] md:grid-cols-2 animate-rise">
+                        <div className="rounded-2xl border border-brand/15 bg-brand-muted p-4">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-accent-text">
+                            <ArrowRight className="size-3.5" aria-hidden="true" />
+                            Recommended next step
+                          </div>
+                          <p className="mt-1.5 text-sm font-medium leading-relaxed text-foreground">{result.recommendedAction}</p>
+                        </div>
+                        {result.severityReasoning && (
+                          <div className="rounded-2xl border border-border-subtle bg-surface p-4">
+                            <div className="text-xs font-semibold text-text-secondary">Evaluation basis</div>
+                            <p className="mt-1.5 text-[13px] leading-relaxed text-text-secondary line-clamp-4">{result.severityReasoning}</p>
+                          </div>
+                        )}
                       </div>
                     )}
-                  </CardContent>
-                )}
-              </Card>
-            </div>
-          );
-        })}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
       </div>
 
-      {/* Pagination: Load More */}
-      {hasMore && (
-        <div className="text-center pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setDisplayCount((prev) => prev + 5)}
-            className="text-xs h-9 px-5 rounded-lg"
-          >
-            Load More Records ({filteredAssessments.length - displayCount} remaining)
-          </Button>
+      {(hasMore || filteredAssessments.length > 0) && (
+        <div className="flex flex-col items-center gap-3 pt-1">
+          <span className="text-xs text-text-tertiary tabular-nums">
+            Showing {Math.min(displayCount, filteredAssessments.length)} of {filteredAssessments.length}
+          </span>
+          {hasMore && (
+            <Button variant="outline" onClick={() => setDisplayCount((prev) => prev + 5)}>
+              Load more ({filteredAssessments.length - displayCount} remaining)
+            </Button>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function IconAction({
+  label,
+  onClick,
+  children,
+  tone,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  tone?: "danger";
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      title={label}
+      aria-label={label}
+      className={cn(
+        "flex size-9 items-center justify-center rounded-lg text-text-tertiary transition-colors cursor-pointer [&_svg]:size-4 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
+        tone === "danger" ? "hover:bg-danger-muted hover:text-danger" : "hover:bg-muted hover:text-foreground"
+      )}
+    >
+      {children}
+    </button>
   );
 }

@@ -8,6 +8,8 @@ import { EmergencyContactsManager } from "@/features/safety/components/emergency
 import { MapShell } from "@/components/map/map-shell";
 import { ImageSymptomAnalyzer } from "@/features/vision/components/image-symptom-analyzer";
 import { MedicationScanner } from "@/features/vision/components/medication-scanner";
+import { PageHeader } from "@/components/system/page-header";
+import { NAV_ITEMS } from "@/components/shell/nav-config";
 
 export type ActiveTab =
   | "triage"
@@ -24,40 +26,41 @@ export interface DashboardViewProps {
   showTabsHeader?: boolean;
 }
 
-const tabMeta: Record<
-  ActiveTab,
-  {
-    title: string;
-    subtitle: string;
-  }
-> = {
+const tabMeta: Record<ActiveTab, { eyebrow: string; title: string; subtitle: string }> = {
   triage: {
+    eyebrow: "Clinical tools",
     title: "Symptom Assessment",
-    subtitle: "Interactive evaluation with safety screening and care guidance.",
+    subtitle: "A guided clinical conversation with real-time red-flag screening and an acuity recommendation.",
   },
   vision: {
+    eyebrow: "Clinical tools",
     title: "Symptom Vision",
-    subtitle: "Analyze visible rashes, cuts, and burns with clinical vision.",
+    subtitle: "Upload a photo of a visible symptom for an educational visual assessment and first-aid guidance.",
   },
   medication: {
-    title: "Medication Scanner",
-    subtitle: "Extract active ingredients, indications, and safety warnings.",
+    eyebrow: "Clinical tools",
+    title: "Medication Scan",
+    subtitle: "Identify medication packaging and review its purpose, cautions and interactions.",
   },
   hospitals: {
-    title: "Nearby Hospitals",
-    subtitle: "Verified emergency facilities, direct phone lines, and routes.",
+    eyebrow: "Care network",
+    title: "Hospital Locator",
+    subtitle: "Verified emergency departments and clinics near you, with routing and one-tap calling.",
   },
   history: {
+    eyebrow: "Patient record",
     title: "Assessment History",
-    subtitle: "Past clinical consultations, triage records, and PDF exports.",
+    subtitle: "Every completed consultation with its acuity, recommendation and exportable report.",
   },
   profile: {
+    eyebrow: "Patient record",
     title: "Health Profile",
-    subtitle: "Medical background, allergies, and conditions for tailored care.",
+    subtitle: "Medical background Omnicura uses to personalise assessments and flag risks.",
   },
   contacts: {
+    eyebrow: "Patient record",
     title: "Emergency Contacts",
-    subtitle: "Designated contacts notified during emergency situations.",
+    subtitle: "Trusted people and clinicians you can reach with one tap during an emergency.",
   },
 };
 
@@ -73,25 +76,14 @@ export function DashboardView({
     onTabChange?.(tab);
   };
 
-  const currentMeta = tabMeta[activeTab] || tabMeta.triage;
+  const meta = tabMeta[activeTab] || tabMeta.triage;
+  const icon = NAV_ITEMS[activeTab]?.icon;
 
   return (
-    <div className="w-full flex flex-col flex-1 space-y-6">
-      {/* Clean Page Header per Spec (Title 24-32px semibold, Subtitle 14px regular) */}
-      <div className="border-b border-border pb-4">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          {currentMeta.title}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {currentMeta.subtitle}
-        </p>
-      </div>
+    <div className="w-full flex flex-col flex-1 gap-7">
+      <PageHeader eyebrow={meta.eyebrow} title={meta.title} description={meta.subtitle} icon={icon} />
 
-      {/* Tab Content Rendering with 180ms ease-out entrance */}
-      <div
-        key={activeTab}
-        className="flex-1 w-full animate-in fade-in-50 duration-180 motion-reduce:animate-none"
-      >
+      <div key={activeTab} className="flex-1 w-full">
         {activeTab === "triage" && (
           <SymptomChat
             onLocateFacilities={() => handleTabChange("hospitals")}
@@ -100,9 +92,7 @@ export function DashboardView({
         )}
 
         {activeTab === "vision" && (
-          <ImageSymptomAnalyzer
-            onLocateFacilities={() => handleTabChange("hospitals")}
-          />
+          <ImageSymptomAnalyzer onLocateFacilities={() => handleTabChange("hospitals")} />
         )}
 
         {activeTab === "medication" && <MedicationScanner />}
@@ -110,9 +100,7 @@ export function DashboardView({
         {activeTab === "hospitals" && <MapShell />}
 
         {activeTab === "history" && (
-          <AssessmentHistoryView
-            onStartAssessment={() => handleTabChange("triage")}
-          />
+          <AssessmentHistoryView onStartAssessment={() => handleTabChange("triage")} />
         )}
 
         {activeTab === "profile" && <HealthProfileForm />}
