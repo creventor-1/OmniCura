@@ -7,6 +7,7 @@ import {
   History,
   HeartPulse,
   PhoneCall,
+  KeyRound,
   type LucideIcon,
 } from "lucide-react";
 import type { NavSection } from "@/components/shared/navbar";
@@ -91,6 +92,14 @@ export const NAV_ITEMS: Record<NavSection, NavItem> = {
     icon: PhoneCall,
     keywords: "family doctor phone call sos",
   },
+  ownership: {
+    id: "ownership",
+    label: "Data Ownership",
+    shortLabel: "Ownership",
+    description: "Patient-controlled access grants and verifiable audit logs",
+    icon: KeyRound,
+    keywords: "privacy ownership zcash blockchain consent grant revoke audit",
+  },
 };
 
 export const NAV_GROUPS: NavGroup[] = [
@@ -104,7 +113,12 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     id: "records",
     label: "Patient record",
-    items: [NAV_ITEMS.history, NAV_ITEMS.profile, NAV_ITEMS.contacts],
+    items: [
+      NAV_ITEMS.history,
+      NAV_ITEMS.profile,
+      NAV_ITEMS.contacts,
+      NAV_ITEMS.ownership,
+    ],
   },
 ];
 
@@ -117,6 +131,7 @@ export const SECTION_GROUP_LABEL: Record<NavSection, string> = {
   history: "Patient record",
   profile: "Patient record",
   contacts: "Patient record",
+  ownership: "Patient record",
 };
 
 /** Cross-component events (no global store needed). */

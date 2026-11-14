@@ -18,17 +18,34 @@ import { generateTriagePdfReport } from "@/services/pdf/generate-report";
 import { HospitalMap } from "@/components/map/hospital-map";
 import { AIResultPanel } from "@/components/assessment/ai-result-panel";
 import { SectionHeader } from "@/components/system/page-header";
+import { ShareWithDoctorButton } from "@/components/sharing/share-with-doctor-modal";
 
 interface AssessmentResultViewProps {
   assessment: AssessmentResponse;
   onReset: () => void;
   onLocateFacilities?: () => void;
+  recordId?: string;
+  symptoms?: string;
+  recordHash?: string;
+  zcashTxid?: string;
+  zcashBlockHeight?: number;
+  verifiedAt?: string;
+  anchorState?: "requested" | "failed" | "unanchored";
+  anchorMessage?: string;
 }
 
 export function AssessmentResultView({
   assessment,
   onReset,
   onLocateFacilities,
+  recordId,
+  symptoms,
+  recordHash,
+  zcashTxid,
+  zcashBlockHeight,
+  verifiedAt,
+  anchorState,
+  anchorMessage,
 }: AssessmentResultViewProps) {
   const { user } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
@@ -41,7 +58,7 @@ export function AssessmentResultView({
     try {
       generateTriagePdfReport({
         assessment,
-        symptoms: "Reported patient symptom presentation",
+        symptoms: symptoms || "Reported patient symptom presentation",
         userEmail: user?.email,
       });
       setExportSuccess(true);
@@ -95,8 +112,25 @@ export function AssessmentResultView({
 
       <AIResultPanel
         assessment={assessment}
+        recordHash={recordHash}
+        zcashTxid={zcashTxid}
+        zcashBlockHeight={zcashBlockHeight}
+        verifiedAt={verifiedAt}
+        anchorState={anchorState}
+        anchorMessage={anchorMessage}
         actions={
           <>
+            <ShareWithDoctorButton
+              recordId={recordId || `assessment-${recordHash ? recordHash.slice(0, 10) : "current"}`}
+              symptoms={symptoms || "Clinical Assessment"}
+              assessment={assessment}
+              patientId={user?.id}
+              patientName={user?.email || "Patient"}
+              recordHash={recordHash}
+              zcashTxid={zcashTxid}
+              zcashBlockHeight={zcashBlockHeight}
+              verifiedAt={verifiedAt}
+            />
             <Button variant="outline" onClick={handleDownloadPdf} isLoading={isExportingPdf}>
               {exportSuccess ? (
                 <>
