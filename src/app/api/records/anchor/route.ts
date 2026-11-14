@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { AssessmentResponseSchema } from "@/schemas/triage";
-import { anchorAssessmentToZcash, anchorRecordHash, getAnchorStatus } from "@/services/zcash/anchor";
+import { anchorAssessmentToZcash, anchorRecordHash, checkAnchorMemo, getAnchorJobStatus, getAnchorStatus } from "@/services/zcash/anchor";
 import { computeOwnershipEventHash } from "@/services/crypto/record-hasher";
 
 /**
@@ -9,7 +9,16 @@ import { computeOwnershipEventHash } from "@/services/crypto/record-hasher";
  *   Body: { record: { user_id?, symptoms, created_at, assessment_result } }
  *      or { consentEvent: { recordId, userId, granteeEntity, accessLevel, action, timestamp } }
  *   The hash is recomputed here; any client-supplied hash/txid is ignored.
- *   Response: { status: "pending" | "unanchored" | "failed", recordHash, txid?, explorerUrl?, reason?, message? }
+ *   Response: { status: "pending" | "sending" | "unanchored" | "failed", recordHash, txid?, explorerUrl?, reason?, message? }
+ *   "sending" = the notary accepted the job and is building the transaction; poll GET ?hash=.
+ *
+ * GET /api/records/anchor?memo=<txid>&hash=<64-hex>
+ *   Decrypts the transaction's memo (via the notary wallet) and compares its fingerprint with `hash`:
+ *   { status: "match" | "mismatch" | "indexing" | "not_found" | "unavailable", memo?, memoHash?, blockHeight?, … }
+ *   "indexing" = ask again in a few seconds.
+ *
+ * GET /api/records/anchor?hash=<64-hex>
+ *   Progress of a send: same shape as POST, or { status: "not_found" } (start it again — POST is idempotent).
  *
  * GET /api/records/anchor?txid=<64-hex>
  *   Response: { status: "confirmed" | "pending" | "not_found" | "unknown", confirmations, blockHeight, blockTime, explorerUrl }
@@ -91,6 +100,25 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const hash = req.nextUrl.searchParams.get("hash");
+  const memoTxid = req.nextUrl.searchParams.get("memo");
+  if (memoTxid !== null) {
+    if (!/^[0-9a-f]{64}$/i.test(memoTxid) || !/^[0-9a-f]{64}$/i.test(hash || "")) {
+      return NextResponse.json({ error: "memo (txid) and hash must both be 64 hex characters." }, { status: 400 });
+    }
+    const result = await checkAnchorMemo(memoTxid.toLowerCase(), (hash as string).toLowerCase());
+    return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
+  }
+  if (hash !== null) {
+    if (!/^[0-9a-f]{64}$/i.test(hash)) {
+      return NextResponse.json({ error: "hash must be 64 hex characters." }, { status: 400 });
+    }
+    const job = await getAnchorJobStatus(hash.toLowerCase());
+    return NextResponse.json(job ?? { status: "not_found", recordHash: hash.toLowerCase() }, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
+
   const txid = req.nextUrl.searchParams.get("txid") || "";
   if (!/^[0-9a-f]{64}$/i.test(txid)) {
     return NextResponse.json({ error: "txid must be 64 hex characters." }, { status: 400 });

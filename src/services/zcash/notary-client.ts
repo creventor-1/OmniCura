@@ -88,13 +88,62 @@ export function getSidecarWalletStatus(): Promise<SidecarWalletStatus> {
   return call<SidecarWalletStatus>("/status", { timeoutMs: 15_000 });
 }
 
-export function sendAnchorTransaction(recordHash: string, memo: string): Promise<{ txid: string; memo: string; duplicate?: boolean }> {
-  // zingo-cli opens a Nym mixnet session, syncs and builds a zero-knowledge proof per send (typically 1–3 min).
-  return call("/anchor", {
+export type AnchorJobState =
+  | { state: "sent"; txid: string; memo: string }
+  | { state: "sending" }
+  | { state: "failed"; error: NotaryErrorCode }
+  | { state: "not_found" };
+
+/**
+ * Starts (or joins) the send for a record hash and returns at once. zingo-cli opens a
+ * Nym mixnet session, syncs and builds a zero-knowledge proof per send (1.5–5 min),
+ * which is longer than serverless functions and tunnels hold a request open, so the
+ * caller polls getAnchorJob() for the txid. Already-anchored hashes return the txid.
+ */
+export async function startAnchorTransaction(recordHash: string, memo: string): Promise<AnchorJobState> {
+  const body = await call<{ txid?: string; memo?: string }>("/anchor", {
     method: "POST",
-    body: JSON.stringify({ recordHash, memo }),
-    timeoutMs: 420_000,
+    body: JSON.stringify({ recordHash, memo, wait: false }),
+    timeoutMs: 20_000,
   });
+  return body.txid ? { state: "sent", txid: body.txid, memo: body.memo || memo } : { state: "sending" };
+}
+
+export async function getAnchorJob(recordHash: string): Promise<AnchorJobState> {
+  try {
+    const body = await call<{ status?: string; txid?: string; memo?: string; error?: NotaryErrorCode }>(
+      `/anchor/hash/${recordHash}`,
+      { timeoutMs: 10_000 }
+    );
+    if (body.status === "sent" && body.txid) return { state: "sent", txid: body.txid, memo: body.memo || "" };
+    if (body.status === "failed") return { state: "failed", error: body.error || "send_failed" };
+    return { state: "sending" };
+  } catch (err) {
+    if (err instanceof NotaryError && (err.code as string) === "not_found") return { state: "not_found" };
+    throw err;
+  }
+}
+
+export type MemoLookup =
+  | { state: "found"; memo: string; walletStatus: string; blockHeight: number | null }
+  | { state: "indexing" }
+  | { state: "not_found" };
+
+/** The memo the notary wallet decrypted from one of its transactions (zingo-cli `messages`). */
+export async function getTransactionMemo(txid: string): Promise<MemoLookup> {
+  try {
+    const body = await call<{ status?: string; memo?: string; walletStatus?: string; blockHeight?: number | null }>(
+      `/memo/${txid}`,
+      { timeoutMs: 15_000 }
+    );
+    if (body.status === "found" && body.memo) {
+      return { state: "found", memo: body.memo, walletStatus: body.walletStatus || "unknown", blockHeight: body.blockHeight ?? null };
+    }
+    return { state: "indexing" };
+  } catch (err) {
+    if (err instanceof NotaryError && (err.code as string) === "not_found") return { state: "not_found" };
+    throw err;
+  }
 }
 
 export async function getSidecarLedgerEntry(txid: string): Promise<{ txid: string; recordHash: string; memo: string; createdAt: string } | null> {

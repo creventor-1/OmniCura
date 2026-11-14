@@ -8,7 +8,8 @@
 import * as React from "react";
 
 export interface AnchorRequestResponse {
-  status: "pending" | "unanchored" | "failed";
+  /** "sending" only appears internally while polling; callers get a final state. */
+  status: "pending" | "sending" | "unanchored" | "failed";
   recordHash: string;
   memo?: string;
   txid?: string;
@@ -28,6 +29,18 @@ export interface AnchorChainStatus {
 
 export const LOCAL_ASSESSMENTS_KEY = "omnicura_guest_assessments";
 
+function toResponse(data: Partial<AnchorRequestResponse> & { error?: string }): AnchorRequestResponse {
+  return {
+    status: (data.status as AnchorRequestResponse["status"]) || "failed",
+    recordHash: data.recordHash || "",
+    memo: data.memo,
+    txid: data.txid,
+    explorerUrl: data.explorerUrl,
+    reason: data.reason,
+    message: data.message || data.error,
+  };
+}
+
 async function postAnchor(body: unknown): Promise<AnchorRequestResponse> {
   try {
     const res = await fetch("/api/records/anchor", {
@@ -36,31 +49,72 @@ async function postAnchor(body: unknown): Promise<AnchorRequestResponse> {
       body: JSON.stringify(body),
     });
     const data = (await res.json().catch(() => ({}))) as Partial<AnchorRequestResponse> & { error?: string };
-    return {
-      status: (data.status as AnchorRequestResponse["status"]) || "failed",
-      recordHash: data.recordHash || "",
-      memo: data.memo,
-      txid: data.txid,
-      explorerUrl: data.explorerUrl,
-      reason: data.reason,
-      message: data.message || data.error,
-    };
+    return toResponse(data);
   } catch {
     return { status: "failed", recordHash: "", reason: "network", message: "Could not reach the server to anchor this record." };
   }
 }
 
-/**
- * Sends are serialized by the notary, so a queued request can outlive the HTTP
- * timeout. Retrying is safe: the notary de-duplicates by hash and returns the
- * same txid instead of paying for a second transaction.
- */
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Transient failures worth retrying. Retrying is safe: the notary de-duplicates by hash. */
+const RETRYABLE = new Set(["send_timeout", "rate_limited", "sidecar_unreachable", "network"]);
+
 async function postAnchorWithRetry(body: unknown, attempts = 3): Promise<AnchorRequestResponse> {
   let res = await postAnchor(body);
   for (let i = 1; i < attempts; i++) {
-    if (res.status !== "failed" || (res.reason !== "send_timeout" && res.reason !== "rate_limited")) break;
-    await new Promise((r) => setTimeout(r, res.reason === "rate_limited" ? 20_000 : 3_000));
+    if (res.status !== "failed" || !RETRYABLE.has(res.reason || "")) break;
+    await sleep(res.reason === "rate_limited" ? 20_000 : 5_000);
     res = await postAnchor(body);
+  }
+  return res;
+}
+
+async function getAnchorJob(recordHash: string): Promise<AnchorRequestResponse | "not_found" | null> {
+  try {
+    const res = await fetch(`/api/records/anchor?hash=${recordHash}`, { cache: "no-store" });
+    const data = (await res.json().catch(() => ({}))) as Omit<Partial<AnchorRequestResponse>, "status"> & {
+      status?: AnchorRequestResponse["status"] | "not_found";
+    };
+    if (data.status === "not_found") return "not_found";
+    return res.ok ? toResponse({ ...data, status: data.status, recordHash }) : null;
+  } catch {
+    return null; // network blip: keep polling
+  }
+}
+
+const POLL_INTERVAL_MS = 8_000;
+const POLL_DEADLINE_MS = 15 * 60_000;
+
+/**
+ * Starts the anchor, then polls until the notary has broadcast the transaction.
+ * A send takes 1.5–5 minutes over the mixnet, which no single HTTP request on a
+ * hosted deployment survives, so the server answers "sending" right away.
+ */
+async function anchorAndWait(body: unknown): Promise<AnchorRequestResponse> {
+  let res = await postAnchorWithRetry(body);
+  const deadline = Date.now() + POLL_DEADLINE_MS;
+  let restarts = 2;
+  let transientFailures = 0;
+
+  while (res.status === "sending" && Date.now() < deadline) {
+    await sleep(POLL_INTERVAL_MS);
+    const polled = await getAnchorJob(res.recordHash);
+    if (polled === null) continue;
+    if (polled === "not_found") {
+      // The notary lost the job (restarted mid-send): start it again.
+      if (restarts-- <= 0) break;
+      res = await postAnchorWithRetry(body);
+      continue;
+    }
+    if (polled.status === "failed" && RETRYABLE.has(polled.reason || "") && transientFailures++ < 5) {
+      continue; // e.g. the tunnel blinked; the send itself may still be running
+    }
+    res = polled.status === "sending" ? res : polled;
+  }
+
+  if (res.status === "sending") {
+    return { ...res, status: "failed", reason: "send_timeout", message: "The notary is still working on this anchor; it will be retried." };
   }
   return res;
 }
@@ -72,7 +126,7 @@ export function requestAnchor(record: {
   created_at: string;
   assessment_result: unknown;
 }): Promise<AnchorRequestResponse> {
-  return postAnchorWithRetry({ record });
+  return anchorAndWait({ record });
 }
 
 /** Ask the server to anchor a consent event (grant, revoke, share, request, approve, deny). Never throws. */
@@ -84,7 +138,7 @@ export function requestConsentAnchor(consentEvent: {
   action: "grant" | "revoke" | "share_invite" | "request" | "approve" | "deny";
   timestamp: string;
 }): Promise<AnchorRequestResponse> {
-  return postAnchorWithRetry({ consentEvent });
+  return anchorAndWait({ consentEvent });
 }
 
 /** Persist anchor results onto the locally mirrored record (if present). */
@@ -157,4 +211,41 @@ export function useAnchorStatus(txid: string | undefined, { poll = true, interva
   }, [txid, poll, intervalMs]);
 
   return txid ? status : null;
+}
+
+// --- memo check: does the transaction really carry this fingerprint? ---
+
+export interface MemoCheckResponse {
+  status: "match" | "mismatch" | "indexing" | "not_found" | "unavailable";
+  txid: string;
+  expectedHash: string;
+  memo?: string;
+  memoKind?: "assessment" | "consent";
+  memoHash?: string;
+  memoTimestamp?: string;
+  walletStatus?: string;
+  blockHeight?: number | null;
+  message?: string;
+}
+
+/**
+ * Asks the notary to decrypt the transaction's memo and compare the fingerprint in it
+ * with `expectedHash`. The first check after a restart can take a minute or two while
+ * the notary wallet decrypts its transactions, so this polls. Never throws.
+ */
+export async function checkAnchorMemo(txid: string, expectedHash: string): Promise<MemoCheckResponse> {
+  const deadline = Date.now() + 4 * 60_000;
+  let last: MemoCheckResponse = { status: "unavailable", txid, expectedHash, message: "Could not reach the server." };
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(`/api/records/anchor?memo=${txid}&hash=${expectedHash}`, { cache: "no-store" });
+      last = (await res.json()) as MemoCheckResponse;
+      if (!res.ok) return { ...last, status: "unavailable", txid, expectedHash };
+    } catch {
+      last = { status: "unavailable", txid, expectedHash, message: "Could not reach the server." };
+    }
+    if (last.status !== "indexing") return last;
+    await sleep(5_000);
+  }
+  return { ...last, status: "unavailable", message: "The notary is still decrypting; try again in a minute." };
 }

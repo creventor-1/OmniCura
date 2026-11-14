@@ -5,6 +5,7 @@ import { ShieldCheck, ShieldAlert, ShieldQuestion, Fingerprint, ExternalLink, Ch
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { useAnchorStatus } from "@/services/zcash/anchor-client";
+import { MemoCheck } from "./memo-check";
 
 export interface VerificationBadgeProps {
   /** Stored integrity status. Only "tampered" is taken at face value; anchoring is always checked on-chain. */
@@ -231,6 +232,10 @@ export function VerificationBadge({
                 <ExternalLink className="size-3" />
               </a>
             </div>
+          )}
+
+          {zcashTxid && recordHash && state !== "tampered" && (
+            <MemoCheck key={`${zcashTxid}:${recordHash}`} txid={zcashTxid} expectedHash={recordHash} />
           )}
 
           <div className="flex items-center justify-between pt-0.5 text-[10px] text-text-tertiary">

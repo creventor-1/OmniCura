@@ -276,6 +276,41 @@ function refreshWalletStatus() {
 
 // Requests for the same record hash that arrive while a send is in progress share it.
 const inflightAnchors = new Map();
+// Last failure per hash (kept an hour) so a client polling GET /anchor/hash/:hash learns about it.
+const failedAnchors = new Map();
+const FAILURE_TTL_MS = 60 * 60_000;
+
+/** Starts (or joins) the send for one record hash. Resolves to { entry } or { error }. */
+function startAnchorJob(recordHash, memo, kind) {
+  const running = inflightAnchors.get(recordHash);
+  if (running) return running;
+  failedAnchors.delete(recordHash);
+  const job = (async () => {
+    console.log(`[notary] anchoring ${recordHash.slice(0, 12)}… (mixnet + proof, usually 1–3 min)`);
+    const sent = await quicksend([cfg.notaryAddress, String(cfg.amountZats), memo], `anchor ${recordHash.slice(0, 12)}…`);
+    if (sent.error) {
+      const now = Date.now();
+      for (const [h, f] of failedAnchors) if (now - f.at > FAILURE_TTL_MS) failedAnchors.delete(h);
+      failedAnchors.set(recordHash, { error: sent.error, at: now });
+      return { error: sent.error };
+    }
+    const entry = { txid: sent.txid, kind, recordHash, memo, createdAt: new Date().toISOString() };
+    appendLedger(entry);
+    console.log(`[notary] anchored ${recordHash.slice(0, 12)}… in tx ${entry.txid}`);
+    refreshWalletStatus(); // balance changed by the fee
+    refreshMemoIndex(); // so the new memo can be checked
+    return { entry };
+  })()
+    // Nobody may be awaiting this job (wait: false), so it must never reject.
+    .catch((err) => {
+      console.error(`[notary] anchor ${recordHash.slice(0, 12)}… crashed: ${err instanceof Error ? err.message : err}`);
+      failedAnchors.set(recordHash, { error: "send_failed", at: Date.now() });
+      return { error: "send_failed" };
+    })
+    .finally(() => inflightAnchors.delete(recordHash));
+  inflightAnchors.set(recordHash, job);
+  return job;
+}
 
 const FEE_HEADROOM_ZATS = 50_000;
 const CONFIRM_WAIT_MS = 15 * 60_000;
@@ -318,6 +353,51 @@ async function quicksend(sendArgs, label) {
     console.log(`[notary] ${label}: ${pending} zats still confirming; retrying in 45 s (POST /split avoids this wait).`);
     await sleep(45_000);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Memo index: the OmniCura memos the notary wallet decrypted from its own
+// transactions (zingo-cli `messages`), so anyone can check that a txid really
+// carries a given fingerprint without being handed the viewing key.
+// ---------------------------------------------------------------------------
+const MEMO_REFRESH_MIN_MS = 30_000;
+const memoIndex = { byTxid: new Map(), attemptedAt: 0, refreshing: null, error: null };
+
+function refreshMemoIndex() {
+  if (memoIndex.refreshing) return memoIndex.refreshing;
+  memoIndex.attemptedAt = Date.now();
+  memoIndex.refreshing = (async () => {
+    const r = await runZingo(["--nosync", "messages"], { timeoutMs: 5 * 60_000 });
+    const json = extractJson(r.stdout);
+    if (!r.ok || !Array.isArray(json?.value_transfers)) {
+      memoIndex.error = r.timedOut ? "send_timeout" : classifyError(r.stderr + r.stdout);
+      console.error(`[notary] memo index refresh failed (${memoIndex.error})`);
+      return;
+    }
+    let count = 0;
+    for (const vt of json.value_transfers) {
+      const txid = String(vt?.txid || "").toLowerCase();
+      if (!/^[0-9a-f]{64}$/.test(txid)) continue;
+      const memo = (Array.isArray(vt.memos) ? vt.memos : []).find((m) => typeof m === "string" && MEMO_RE.test(m));
+      if (!memo) continue;
+      memoIndex.byTxid.set(txid, {
+        memo,
+        walletStatus: String(vt.status || "unknown"),
+        blockHeight: typeof vt.blockheight === "number" ? vt.blockheight : null,
+      });
+      count += 1;
+    }
+    memoIndex.error = null;
+    memoIndex.attemptedAt = Date.now();
+    console.log(`[notary] memo index: ${count} OmniCura memos decrypted from the wallet's transactions`);
+  })()
+    .catch(() => {
+      memoIndex.error = "send_failed";
+    })
+    .finally(() => {
+      memoIndex.refreshing = null;
+    });
+  return memoIndex.refreshing;
 }
 
 async function initWallet() {
@@ -441,20 +521,12 @@ const server = http.createServer(async (req, res) => {
       const existing = readLedger().find((e) => e.recordHash === recordHash);
       if (existing) return send(res, 200, { txid: existing.txid, memo: existing.memo, duplicate: true });
 
-      let job = inflightAnchors.get(recordHash);
-      if (!job) {
-        job = (async () => {
-          console.log(`[notary] anchoring ${recordHash.slice(0, 12)}… (mixnet + proof, usually 1–3 min)`);
-          const sent = await quicksend([cfg.notaryAddress, String(cfg.amountZats), memo], `anchor ${recordHash.slice(0, 12)}…`);
-          if (sent.error) return { error: sent.error };
-          const entry = { txid: sent.txid, kind: m[1], recordHash, memo, createdAt: new Date().toISOString() };
-          appendLedger(entry);
-          console.log(`[notary] anchored ${recordHash.slice(0, 12)}… in tx ${entry.txid}`);
-          refreshWalletStatus(); // balance changed by the fee
-          return { entry };
-        })().finally(() => inflightAnchors.delete(recordHash));
-        inflightAnchors.set(recordHash, job);
-      }
+      const job = startAnchorJob(recordHash, memo, m[1]);
+
+      // { wait: false }: answer at once and let the caller poll GET /anchor/hash/:hash.
+      // Hosted apps need this: serverless functions and tunnels cut requests long
+      // before a send (1.5–5 min over the mixnet) finishes.
+      if (body.wait === false) return send(res, 202, { status: "sending", recordHash });
 
       const outcome = await job;
       if (outcome.error) return send(res, outcome.error === "insufficient_funds" ? 402 : 502, { error: outcome.error });
@@ -482,6 +554,37 @@ const server = http.createServer(async (req, res) => {
       console.log(`[notary] split sent in tx ${sent.txid}`);
       refreshWalletStatus();
       return send(res, 200, { txid: sent.txid, notes, zatsPerNote: each });
+    }
+
+    // The memo the notary wallet decrypted from one transaction: 200 found / 202 indexing / 404.
+    const memoMatch = url.pathname.match(/^\/memo\/([0-9a-f]{64})$/i);
+    if (req.method === "GET" && memoMatch) {
+      if (!state.ready) return send(res, 503, { error: "wallet_not_ready", reason: state.reason });
+      const txid = memoMatch[1].toLowerCase();
+      const stale = Date.now() - memoIndex.attemptedAt > MEMO_REFRESH_MIN_MS;
+      const hit = memoIndex.byTxid.get(txid);
+      if (hit) {
+        if (hit.walletStatus !== "confirmed" && stale) refreshMemoIndex();
+        return send(res, 200, { status: "found", txid, ...hit });
+      }
+      if (memoIndex.refreshing || stale) {
+        refreshMemoIndex();
+        return send(res, 202, { status: "indexing" });
+      }
+      if (memoIndex.error) return send(res, 503, { error: memoIndex.error });
+      return send(res, 404, { error: "not_found" });
+    }
+
+    // Progress of the send for one record hash: sent (with txid) / sending / failed / 404.
+    const hashMatch = url.pathname.match(/^\/anchor\/hash\/([0-9a-f]{64})$/i);
+    if (req.method === "GET" && hashMatch) {
+      const recordHash = hashMatch[1].toLowerCase();
+      const entry = readLedger().find((e) => e.recordHash === recordHash);
+      if (entry) return send(res, 200, { status: "sent", txid: entry.txid, memo: entry.memo });
+      if (inflightAnchors.has(recordHash)) return send(res, 202, { status: "sending", recordHash });
+      const failed = failedAnchors.get(recordHash);
+      if (failed) return send(res, 200, { status: "failed", error: failed.error });
+      return send(res, 404, { error: "not_found" });
     }
 
     const ledgerMatch = url.pathname.match(/^\/anchor\/([0-9a-f]{64})$/i);

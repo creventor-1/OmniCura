@@ -10,7 +10,9 @@
     "notary:sidecar": "node scripts/zcash-notary-sidecar.mjs",
     "notary:docker": "docker compose --env-file .env.local --env-file .env.notary -f notary/docker-compose.yml up -d --build",
     "notary:logs": "docker compose --env-file .env.local --env-file .env.notary -f notary/docker-compose.yml logs -f notary",
-    "notary:stop": "docker compose --env-file .env.local --env-file .env.notary -f notary/docker-compose.yml down"
+    "notary:tunnel": "docker compose --env-file .env.local --env-file .env.notary -f notary/docker-compose.yml --profile tunnel up -d tunnel",
+    "notary:vercel": "node scripts/vercel-notary-env.mjs",
+    "notary:stop": "docker compose --env-file .env.local --env-file .env.notary -f notary/docker-compose.yml --profile tunnel down"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -47,6 +49,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "tailwindcss": "4.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vercel": "^65.16.0"
   }
 }

@@ -18,6 +18,8 @@ import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { OwnershipAuditEvent } from "@/services/ownership/ownership-service";
 import { AnchorChip } from "@/components/verification/anchor-chip";
+import { MemoCheck } from "@/components/verification/memo-check";
+import { computeOwnershipEventHash } from "@/services/crypto/record-hasher";
 
 export interface AuditTimelineProps {
   events: OwnershipAuditEvent[];
@@ -200,6 +202,19 @@ export function AuditTimeline({ events, className = "" }: AuditTimelineProps) {
                     </div>
                   </div>
                 </div>
+
+                {event.zcashTxid && (
+                  <div className="flex justify-end">
+                    <MemoCheck
+                      compact
+                      key={`${event.zcashTxid}:${event.eventHash}`}
+                      txid={event.zcashTxid}
+                      // Recompute from the event's own contents when we have them, so an
+                      // edited event shows up as a mismatch rather than trusting the stored hash.
+                      expectedHash={event.anchorPayload ? computeOwnershipEventHash(event.anchorPayload) : event.eventHash}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           );

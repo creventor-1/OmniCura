@@ -164,9 +164,27 @@ columns and the access-grants table, and lets an owner record the txid on their 
 assessment (only the anchoring columns are updatable). It's safe to run more than once.
 Until then, signed-in assessments are still saved, just without anchoring fields.
 
+Then do the same with `supabase/migrations/20261115_share_invitations.sql`. It stores
+"Share with Doctor" invitations server-side so a QR code scanned on another phone can be
+found (without it, the link only opens in the browser that created it). The table can only
+be reached through its functions: lookup by exact token, the clinician can only submit a
+request, and only the patient's browser can approve, deny or revoke. No clinical data is
+stored until the patient approves, and it is deleted on revoke or deny. This works for
+guests too.
+
 ## Proving the memo to a judge
 
-The transaction is public, but the memo is encrypted. To let someone verify that a
+**In the app:** open a record's **View Proof** and click **Check the memo inside this
+transaction**, or **Verify memo** under any anchored event in the Data Ownership audit trail.
+The notary's wallet decrypts the transaction's memo (zingo-cli `messages`) and the app
+compares the fingerprint inside it with the record's fingerprint. For consent events, that
+fingerprint is first recomputed from the event's saved contents. The first check after the
+notary starts takes a minute or two while the wallet decrypts its transactions; after that
+the memos are cached. Together with the explorer link (the transaction exists, in which
+block) and the tamper check (the record still hashes to its fingerprint), this links the
+record's content to the chain.
+
+**Independently:** the transaction is public, but the memo is encrypted. To let someone verify that a
 transaction contains a specific record hash, give them the notary's **unified full viewing
 key** (UFVK). It can read the notary's transactions but cannot spend. Export it from the
 wallet (run `zingo-cli help` inside the prompt to find the export command for your build),
@@ -182,19 +200,38 @@ and list its transactions and memos from that prompt.
 The sidecar also keeps an append-only ledger of everything it anchored:
 `$ZINGO_DATA_DIR/omnicura-anchors.jsonl`.
 
-## Hosting
+## Hosting (Vercel)
 
-Vercel's serverless functions can't run zingo-cli. For a hosted demo, run the sidecar on a
-small VM (or keep it on your laptop), expose it over HTTPS (for example with a Cloudflare
-Tunnel), set `ZCASH_NOTARY_SIDECAR_URL` and `ZCASH_NOTARY_SIDECAR_TOKEN` in Vercel, and keep
-the sidecar's host bound to `127.0.0.1` behind the tunnel. The anchor endpoint is
-rate-limited (6 per minute per IP, 60 per hour overall) to protect notary funds.
+Vercel's serverless functions can't run zingo-cli, so the notary keeps running on this
+computer and Vercel reaches it through a Cloudflare quick tunnel (no account needed):
+
+```bash
+npm run notary:docker   # the notary (skip if it's already running)
+npm run notary:tunnel   # public HTTPS URL for it: https://<random>.trycloudflare.com
+npm run notary:vercel   # sets the Vercel env vars and redeploys production
+```
+
+`notary:vercel` reads the tunnel URL from its logs, checks that the notary answers through
+it, sets `ZCASH_NOTARY_SIDECAR_URL` and `ZCASH_NOTARY_SIDECAR_TOKEN` (stored as a Secret,
+read from `.env.local` and passed on stdin) for Production, and runs `vercel deploy --prod`.
+
+- **The quick-tunnel URL changes whenever the tunnel container restarts** (reboot, Docker
+  restart, `npm run notary:stop`). Run `npm run notary:vercel` again after that.
+- Keep this computer, Docker, the notary and the tunnel running while the site is in use.
+- Every notary endpoint except `/health` requires the 64-character token; the notary's port
+  itself is still bound to `127.0.0.1` on this computer.
+- Anchoring is asynchronous: the app gets "sending" back at once and polls
+  `GET /api/records/anchor?hash=…` until the txid exists, because a send (1.5–5 min over the
+  mixnet) outlasts both Vercel's function limit and Cloudflare's 100-second request limit.
+- The anchor endpoint is rate-limited (6 per minute per IP, 60 per hour overall) to protect
+  notary funds.
 
 ## Troubleshooting
 
 | Badge / card says | Meaning | Fix |
 | --- | --- | --- |
-| Not configured | `ZCASH_NOTARY_SIDECAR_URL` or token missing in `.env.local` | Set both, restart `npm run dev` |
+| Not configured | `ZCASH_NOTARY_SIDECAR_URL` or token missing in `.env.local` (locally) or in Vercel (deployed) | Locally: set both, restart `npm run dev`. Deployed: `npm run notary:tunnel` then `npm run notary:vercel` |
+| Notary service offline (deployed site only) | The tunnel URL in Vercel is stale, or this computer/tunnel is off | Start the notary and tunnel, then `npm run notary:vercel` |
 | Notary service offline | App can't reach the sidecar | Start `npm run notary:sidecar` |
 | Wallet syncing / not set up | No wallet yet, or first sync running | Set `ZINGO_SEED` + birthday; wait for "Wallet open" |
 | Awaiting testnet funds | Wallet ready, zero spendable | Fund the notary address |

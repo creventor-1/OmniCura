@@ -19,5 +19,18 @@ services:
     volumes:
       - notary-wallet:/data # the wallet survives restarts and rebuilds
     restart: unless-stopped
+
+  # Public HTTPS URL for the notary, so a hosted deployment (Vercel) can reach it.
+  # Opt-in: started only by `npm run notary:tunnel`. Cloudflare quick tunnel, no account;
+  # the URL (https://<random>.trycloudflare.com) changes whenever this container restarts,
+  # so run `npm run notary:vercel` afterwards to point Vercel at the new one.
+  # Every notary endpoint except /health requires ZCASH_NOTARY_SIDECAR_TOKEN.
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate --url http://notary:8737
+    depends_on:
+      - notary
+    restart: unless-stopped
+    profiles: ["tunnel"]
 volumes:
   notary-wallet:
