@@ -35,6 +35,7 @@ import {
   approveDoctorAccessRequest,
   denyDoctorAccessRequest,
   resumePendingConsentAnchors,
+  resumePendingRecordAnchors,
   syncInvitationsFromRelay,
   SHARING_BROADCAST_CHANNEL,
   STORAGE_KEY_ACTIVE_SYNC,
@@ -72,6 +73,7 @@ export function PatientOwnershipPanel() {
   // Finish any consent anchors interrupted by a closed or reloaded tab.
   React.useEffect(() => {
     resumePendingConsentAnchors();
+    resumePendingRecordAnchors();
   }, []);
 
   // Pick up requests from clinicians who scanned the QR code on another device.

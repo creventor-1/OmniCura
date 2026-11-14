@@ -60,11 +60,14 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** Transient failures worth retrying. Retrying is safe: the notary de-duplicates by hash. */
 const RETRYABLE = new Set(["send_timeout", "rate_limited", "sidecar_unreachable", "network"]);
 
-async function postAnchorWithRetry(body: unknown, attempts = 3): Promise<AnchorRequestResponse> {
+/** Backoff between attempts to start an anchor (about 1.5 minutes in total). */
+const START_BACKOFF_MS = [5_000, 10_000, 15_000, 20_000, 30_000];
+
+async function postAnchorWithRetry(body: unknown): Promise<AnchorRequestResponse> {
   let res = await postAnchor(body);
-  for (let i = 1; i < attempts; i++) {
+  for (const wait of START_BACKOFF_MS) {
     if (res.status !== "failed" || !RETRYABLE.has(res.reason || "")) break;
-    await sleep(res.reason === "rate_limited" ? 20_000 : 5_000);
+    await sleep(res.reason === "rate_limited" ? Math.max(wait, 20_000) : wait);
     res = await postAnchor(body);
   }
   return res;
@@ -84,15 +87,25 @@ async function getAnchorJob(recordHash: string): Promise<AnchorRequestResponse |
 }
 
 const POLL_INTERVAL_MS = 8_000;
-const POLL_DEADLINE_MS = 15 * 60_000;
+// The notary sends one transaction at a time, so a busy queue can mean a long wait.
+const POLL_DEADLINE_MS = 25 * 60_000;
+// Give up on a lost connection only after about 5 minutes without any answer.
+const MAX_CONSECUTIVE_TRANSIENT = 40;
 
 /**
  * Starts the anchor, then polls until the notary has broadcast the transaction.
  * A send takes 1.5–5 minutes over the mixnet, which no single HTTP request on a
  * hosted deployment survives, so the server answers "sending" right away.
  */
-async function anchorAndWait(body: unknown): Promise<AnchorRequestResponse> {
-  let res = await postAnchorWithRetry(body);
+async function anchorAndWait(body: unknown, knownHash?: string): Promise<AnchorRequestResponse> {
+  // When resuming, first ask whether the notary already has this hash: only start a
+  // send (and pay for one) when it has never seen it.
+  let res: AnchorRequestResponse | null = null;
+  if (knownHash) {
+    const existing = await getAnchorJob(knownHash);
+    if (existing && existing !== "not_found" && (existing.txid || existing.status === "sending")) res = existing;
+  }
+  if (!res) res = await postAnchorWithRetry(body);
   const deadline = Date.now() + POLL_DEADLINE_MS;
   let restarts = 2;
   let transientFailures = 0;
@@ -100,15 +113,24 @@ async function anchorAndWait(body: unknown): Promise<AnchorRequestResponse> {
   while (res.status === "sending" && Date.now() < deadline) {
     await sleep(POLL_INTERVAL_MS);
     const polled = await getAnchorJob(res.recordHash);
-    if (polled === null) continue;
+    if (polled === null || (polled !== "not_found" && polled.status === "failed" && RETRYABLE.has(polled.reason || ""))) {
+      // e.g. the tunnel is reconnecting; the notary keeps building the transaction meanwhile.
+      if (++transientFailures >= MAX_CONSECUTIVE_TRANSIENT) {
+        res = {
+          ...res,
+          status: "failed",
+          reason: "sidecar_unreachable",
+          message: "Lost contact with the notary; this anchor will be retried.",
+        };
+      }
+      continue;
+    }
+    transientFailures = 0;
     if (polled === "not_found") {
       // The notary lost the job (restarted mid-send): start it again.
       if (restarts-- <= 0) break;
       res = await postAnchorWithRetry(body);
       continue;
-    }
-    if (polled.status === "failed" && RETRYABLE.has(polled.reason || "") && transientFailures++ < 5) {
-      continue; // e.g. the tunnel blinked; the send itself may still be running
     }
     res = polled.status === "sending" ? res : polled;
   }
@@ -119,14 +141,20 @@ async function anchorAndWait(body: unknown): Promise<AnchorRequestResponse> {
   return res;
 }
 
-/** Ask the server to anchor a clinical record. Never throws. */
-export function requestAnchor(record: {
-  user_id?: string;
-  symptoms: string;
-  created_at: string;
-  assessment_result: unknown;
-}): Promise<AnchorRequestResponse> {
-  return anchorAndWait({ record });
+/**
+ * Ask the server to anchor a clinical record. Never throws. Pass `knownHash` when
+ * resuming an earlier attempt, so an already-anchored record is not paid for twice.
+ */
+export function requestAnchor(
+  record: {
+    user_id?: string;
+    symptoms: string;
+    created_at: string;
+    assessment_result: unknown;
+  },
+  { knownHash }: { knownHash?: string } = {}
+): Promise<AnchorRequestResponse> {
+  return anchorAndWait({ record }, knownHash);
 }
 
 /** Ask the server to anchor a consent event (grant, revoke, share, request, approve, deny). Never throws. */

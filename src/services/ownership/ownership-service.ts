@@ -10,7 +10,12 @@
 
 import { computeOwnershipEventHash, type OwnershipEventPayload } from "@/services/crypto/record-hasher";
 import { RecordAccessGrant } from "@/types/database";
-import { requestConsentAnchor } from "@/services/zcash/anchor-client";
+import {
+  LOCAL_ASSESSMENTS_KEY,
+  requestAnchor,
+  requestConsentAnchor,
+  updateLocalRecordAnchor,
+} from "@/services/zcash/anchor-client";
 import {
   relayCreateInvitation,
   relayGetInvitation,
@@ -239,6 +244,52 @@ export function resumePendingConsentAnchors() {
   }
 }
 
+const recordResumesInFlight = new Set<string>();
+
+/**
+ * Finishes anchoring for records on this device whose attempt was interrupted
+ * (verification_status "pending", no txid) — e.g. the tab closed, or the connection
+ * to the notary dropped while it was still building the transaction. Checks the
+ * notary first, so a record that already made it on-chain just gets its txid back.
+ */
+export function resumePendingRecordAnchors(onAnchored?: (recordId: string, txid: string) => void) {
+  if (typeof window === "undefined") return;
+  let records: Array<Record<string, unknown>> = [];
+  try {
+    records = JSON.parse(localStorage.getItem(LOCAL_ASSESSMENTS_KEY) || "[]");
+  } catch {
+    return;
+  }
+  for (const r of records) {
+    const id = String(r.id || "");
+    const recordHash = typeof r.record_hash === "string" ? r.record_hash : "";
+    if (!id || !recordHash || r.zcash_txid || r.verification_status !== "pending" || recordResumesInFlight.has(id)) continue;
+    recordResumesInFlight.add(id);
+    void requestAnchor(
+      {
+        user_id: typeof r.user_id === "string" ? r.user_id : undefined,
+        symptoms: String(r.symptoms || ""),
+        created_at: String(r.created_at || ""),
+        assessment_result: r.assessment_result,
+      },
+      { knownHash: recordHash }
+    )
+      .then((res) => {
+        // Only accept a txid for exactly this record's fingerprint.
+        if (!res.txid || res.recordHash !== recordHash) return;
+        updateLocalRecordAnchor(id, { zcash_txid: res.txid });
+        onAnchored?.(id, res.txid);
+        recordAssessmentAnchoredEvent({
+          recordId: id,
+          recordHash,
+          txid: res.txid,
+          userId: r.user_id === "guest" ? undefined : (r.user_id as string | undefined),
+        });
+      })
+      .finally(() => recordResumesInFlight.delete(id));
+  }
+}
+
 /** Logs a clinical record that has just been anchored on Zcash (called with the real txid). */
 export function recordAssessmentAnchoredEvent(params: {
   recordId: string;
@@ -248,6 +299,7 @@ export function recordAssessmentAnchoredEvent(params: {
   timestamp?: string;
 }) {
   if (typeof window === "undefined") return;
+  if (getAuditEvents().some((e) => e.eventType === "record_created" && e.eventHash === params.recordHash)) return;
   appendAuditEvent({
     id: newEventId("event"),
     recordId: params.recordId,

@@ -257,7 +257,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
     if (resumedAnchorRef.current) return;
     resumedAnchorRef.current = true;
     const a = activeAnchor;
-    if (!a || a.txid || a.state !== "requested" || !assessment) return;
+    if (!a || a.txid || (a.state !== "requested" && a.state !== "failed") || !assessment) return;
     if (!a.recordId || !a.symptoms || !a.verifiedAt || !a.userId) return;
     runAnchor({
       recordId: a.recordId,

@@ -71,10 +71,15 @@ async function call<T>(path: string, init: RequestInit & { timeoutMs?: number } 
     throw new NotaryError(timedOut ? "send_timeout" : "sidecar_unreachable");
   }
 
-  const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  // No JSON error from the notary itself means something in between failed — e.g. the
+  // tunnel's edge returned an HTML 502/530 page while reconnecting. That is transient,
+  // not a failed send (the notary may well still be building the transaction).
+  if (!body || (!res.ok && typeof body.error !== "string")) {
+    throw new NotaryError("sidecar_unreachable", `HTTP ${res.status} without a notary response`);
+  }
   if (!res.ok) {
-    const code = (typeof body.error === "string" ? body.error : "send_failed") as NotaryErrorCode;
-    throw new NotaryError(code, typeof body.reason === "string" ? body.reason : undefined);
+    throw new NotaryError(body.error as NotaryErrorCode, typeof body.reason === "string" ? body.reason : undefined);
   }
   return body as T;
 }

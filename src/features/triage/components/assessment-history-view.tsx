@@ -39,6 +39,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { resumePendingRecordAnchors } from "@/services/ownership/ownership-service";
 
 /**
  * Re-hashes a stored record and compares it with its registered hash.
@@ -96,6 +97,13 @@ export function AssessmentHistoryView({
   // Pagination state
   const [displayCount, setDisplayCount] = React.useState(5);
 
+  // Finish anchoring for records whose attempt was interrupted (tab closed, link
+  // dropped), and reload the list when one gets its txid so the badge updates.
+  const [reloadKey, setReloadKey] = React.useState(0);
+  React.useEffect(() => {
+    resumePendingRecordAnchors(() => setReloadKey((k) => k + 1));
+  }, []);
+
   React.useEffect(() => {
     let active = true;
 
@@ -148,7 +156,7 @@ export function AssessmentHistoryView({
     return () => {
       active = false;
     };
-  }, [user, supabase]);
+  }, [user, supabase, reloadKey]);
 
   const handleConfirmDelete = async () => {
     if (!deleteId) return;
