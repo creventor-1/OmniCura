@@ -35,6 +35,7 @@ import {
   approveDoctorAccessRequest,
   denyDoctorAccessRequest,
   resumePendingConsentAnchors,
+  syncInvitationsFromRelay,
   SHARING_BROADCAST_CHANNEL,
   STORAGE_KEY_ACTIVE_SYNC,
   RecordAccessGrant,
@@ -72,6 +73,23 @@ export function PatientOwnershipPanel() {
   React.useEffect(() => {
     resumePendingConsentAnchors();
   }, []);
+
+  // Pick up requests from clinicians who scanned the QR code on another device.
+  React.useEffect(() => {
+    let cancelled = false;
+    const tick = () => {
+      if (document.visibilityState !== "visible") return;
+      void syncInvitationsFromRelay().then((changed) => {
+        if (changed && !cancelled) refreshState();
+      });
+    };
+    tick();
+    const interval = window.setInterval(tick, 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [refreshState]);
 
   // Real-time synchronization: listen for live doctor requests or revocations
   React.useEffect(() => {

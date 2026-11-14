@@ -23,11 +23,13 @@ import {
   getShareInvitation,
   submitDoctorAccessRequest,
   recordReportViewed,
+  toClinicianView,
   SHARING_BROADCAST_CHANNEL,
   STORAGE_KEY_ACTIVE_SYNC,
-  ShareInvitation,
-  SharingSyncMessage,
+  type ClinicianInvitation,
+  type SharingSyncMessage,
 } from "@/services/ownership/ownership-service";
+import { relayGetInvitation, relayMarkViewed } from "@/services/sharing/share-relay";
 import { VerificationBadge } from "@/components/verification/verification-badge";
 import { SeverityBadge } from "@/components/shared/severity-badge";
 import { OmnicuraLogo } from "@/components/shared/brand-logo";
@@ -36,15 +38,8 @@ export default function ClinicianAccessPage() {
   const params = useParams();
   const token = typeof params.token === "string" ? params.token : "";
 
-  const isClient = React.useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
-
-  const [invitation, setInvitation] = React.useState<ShareInvitation | null>(() =>
-    typeof window !== "undefined" && token ? getShareInvitation(token) : null
-  );
+  const [invitation, setInvitation] = React.useState<ClinicianInvitation | null>(null);
+  const [loaded, setLoaded] = React.useState(false);
   const [doctorName, setDoctorName] = React.useState("");
   const [doctorFacility, setDoctorFacility] = React.useState("");
   const [doctorRole, setDoctorRole] = React.useState("Attending Clinician");
@@ -55,33 +50,62 @@ export default function ClinicianAccessPage() {
   // so without this guard the page's own listener would re-log it in a loop.)
   const viewLoggedRef = React.useRef(false);
   const logViewOnce = React.useCallback(
-    (inv: ShareInvitation | null) => {
+    (inv: ClinicianInvitation | null) => {
       if (inv?.status !== "approved") {
         viewLoggedRef.current = false;
         return;
       }
       if (viewLoggedRef.current || !token) return;
       viewLoggedRef.current = true;
-      recordReportViewed(token);
+      recordReportViewed(token); // this browser's copy, when the patient shared from here
+      void relayMarkViewed(token); // lets the patient's own device log the view
     },
     [token]
   );
 
-  // If initial load was approved, record report viewed
-  React.useEffect(() => {
-    if (!token) return;
-    logViewOnce(getShareInvitation(token));
+  // The server copy works on any device (the QR code is usually scanned on another
+  // phone). This browser's copy is the fallback when the relay is unavailable or the
+  // invitation was never registered there.
+  const refresh = React.useCallback(async () => {
+    const remote = token ? await relayGetInvitation(token) : null;
+    let next: ClinicianInvitation | null = remote?.ok ? remote.data : null;
+    if (!next && token) {
+      const local = getShareInvitation(token);
+      const serverSaysGone = remote?.ok && local?.relay === "synced";
+      if (local && !serverSaysGone) next = toClinicianView(local);
+    }
+    setInvitation(next);
+    setLoaded(true);
+    logViewOnce(next);
   }, [token, logViewOnce]);
 
-  // Real-time synchronization: listen for Patient Approval or Revocation
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => void refresh(), 0);
+    return () => window.clearTimeout(timer);
+  }, [refresh]);
+
+  // Cross-device: poll while waiting for the patient's decision, and keep checking an
+  // approved report so a revocation takes effect within seconds.
+  const status = invitation?.status;
+  React.useEffect(() => {
+    if (status !== "awaiting_approval" && status !== "approved") return;
+    const interval = window.setInterval(
+      () => {
+        if (document.visibilityState === "visible") void refresh();
+      },
+      status === "awaiting_approval" ? 3000 : 10000
+    );
+    const onFocus = () => void refresh();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [status, refresh]);
+
+  // Same browser: react instantly to the patient's tab.
   React.useEffect(() => {
     if (!token || typeof window === "undefined") return;
-
-    const syncFromStorage = () => {
-      const inv = getShareInvitation(token);
-      setInvitation(inv);
-      logViewOnce(inv);
-    };
 
     let channel: BroadcastChannel | null = null;
     try {
@@ -89,18 +113,15 @@ export default function ClinicianAccessPage() {
       channel.onmessage = (event: MessageEvent<SharingSyncMessage>) => {
         const msg = event.data;
         if (msg.token === token && msg.type !== "REPORT_VIEWED" && msg.type !== "ANCHOR_UPDATED") {
-          syncFromStorage();
+          void refresh();
         }
       };
     } catch {
       // BroadcastChannel unsupported
     }
 
-    // Storage event fallback for cross-window / cross-device sync
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY_ACTIVE_SYNC) {
-        syncFromStorage();
-      }
+      if (e.key === STORAGE_KEY_ACTIVE_SYNC) void refresh();
     };
     window.addEventListener("storage", handleStorage);
 
@@ -108,9 +129,9 @@ export default function ClinicianAccessPage() {
       channel?.close();
       window.removeEventListener("storage", handleStorage);
     };
-  }, [token, logViewOnce]);
+  }, [token, refresh]);
 
-  const handleRequestSubmit = (e: React.FormEvent) => {
+  const handleRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!doctorName.trim() || !doctorFacility.trim()) {
       setRequestError("Please provide your full name and clinical facility.");
@@ -120,7 +141,7 @@ export default function ClinicianAccessPage() {
     setIsSubmitting(true);
     setRequestError(null);
 
-    const res = submitDoctorAccessRequest({
+    const res = await submitDoctorAccessRequest({
       token,
       requesterName: doctorName.trim(),
       requesterFacility: doctorFacility.trim(),
@@ -135,7 +156,7 @@ export default function ClinicianAccessPage() {
     }
   };
 
-  if (!isClient) {
+  if (!loaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -155,7 +176,8 @@ export default function ClinicianAccessPage() {
             Invalid or Expired Invitation
           </h1>
           <p className="text-xs text-text-secondary leading-relaxed">
-            This access token does not exist or has expired. Please ask the patient to generate a new secure invitation link.
+            This access link does not exist or has expired. Unused invitations expire 7 days after they are
+            created. Please ask the patient to generate a new QR code.
           </p>
         </div>
       </div>
@@ -357,8 +379,8 @@ export default function ClinicianAccessPage() {
             </div>
 
             <Button type="submit" disabled={isSubmitting} className="w-full gap-2 mt-2">
-              <span>Send Access Request to Patient</span>
-              <ArrowRight className="size-4" />
+              <span>{isSubmitting ? "Sending request…" : "Send Access Request to Patient"}</span>
+              {!isSubmitting && <ArrowRight className="size-4" />}
             </Button>
           </form>
 
@@ -415,9 +437,16 @@ export default function ClinicianAccessPage() {
               {invitation.requesterFacility} • Authorized on {invitation.approvedAt ? new Date(invitation.approvedAt).toLocaleString() : "recently"}
             </p>
           </div>
-          <span className="text-[11px] font-medium text-text-tertiary">
-            Scope: {invitation.accessLevel === "emergency_only" ? "Emergency Care Only" : "Full Clinical History"}
-          </span>
+          <div className="sm:text-right space-y-0.5">
+            <span className="text-[11px] font-medium text-text-tertiary block">
+              Scope: {invitation.accessLevel === "emergency_only" ? "Emergency Care Only" : "Full Clinical History"}
+            </span>
+            {invitation.accessLevel === "emergency_only" && (
+              <span className="text-[10px] text-text-tertiary block">
+                Reasoning, differential and first-aid details withheld by the patient.
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Zcash Verification Badge */}

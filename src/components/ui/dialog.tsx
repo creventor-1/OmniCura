@@ -53,7 +53,9 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed z-50 grid w-full max-w-full sm:max-w-md gap-5 rounded-t-[22px] sm:rounded-[22px] bg-raised border border-border-subtle shadow-overlay p-6 text-sm text-foreground outline-none duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] max-h-[92dvh] overflow-y-auto",
+          // grid-cols-[minmax(0,1fr)]: long unbreakable content (URLs, codes) truncates
+          // instead of widening the dialog past the viewport.
+          "fixed z-50 grid grid-cols-[minmax(0,1fr)] w-full max-w-full sm:max-w-md gap-5 rounded-t-[22px] sm:rounded-[22px] bg-raised border border-border-subtle shadow-overlay p-6 text-sm text-foreground outline-none duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] max-h-[92dvh] overflow-y-auto",
           "bottom-0 sm:bottom-auto sm:top-1/2 left-1/2 -translate-x-1/2 sm:-translate-y-1/2",
           "data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom-8 sm:data-open:slide-in-from-bottom-0 sm:data-open:zoom-in-[0.97] data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom-8 sm:data-closed:slide-out-to-bottom-0 sm:data-closed:zoom-out-[0.97]",
           className

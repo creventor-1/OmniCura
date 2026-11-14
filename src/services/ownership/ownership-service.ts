@@ -11,6 +11,12 @@
 import { computeOwnershipEventHash, type OwnershipEventPayload } from "@/services/crypto/record-hasher";
 import { RecordAccessGrant } from "@/types/database";
 import { requestConsentAnchor } from "@/services/zcash/anchor-client";
+import {
+  relayCreateInvitation,
+  relayGetInvitation,
+  relayOwnerUpdate,
+  relaySubmitRequest,
+} from "@/services/sharing/share-relay";
 
 export type { RecordAccessGrant };
 
@@ -65,6 +71,14 @@ export interface ShareInvitation {
   revokedAt?: string;
   eventHash: string;
   zcashTxid?: string;
+  viewedAt?: string;
+  /** Secret proving this browser created the invitation. Never shown or put in a URL. */
+  ownerKey?: string;
+  /** Whether the invitation is registered server-side, so other devices can open the link. */
+  relay?: "registering" | "synced" | "local_only";
+  relayMessage?: string;
+  /** A patient decision saved here but not yet delivered to the server (retried on sync). */
+  relayPending?: "approved" | "denied" | "revoked";
   assessmentSnapshot?: {
     symptoms: string;
     severity: string;
@@ -85,6 +99,29 @@ export interface ShareInvitation {
   };
 }
 
+/** What the clinician's device sees: no owner key, and the snapshot only once approved. */
+export type ClinicianInvitation = Pick<
+  ShareInvitation,
+  | "token"
+  | "recordId"
+  | "patientName"
+  | "status"
+  | "accessLevel"
+  | "requesterName"
+  | "requesterFacility"
+  | "requesterRole"
+  | "createdAt"
+  | "requestedAt"
+  | "approvedAt"
+  | "deniedAt"
+  | "revokedAt"
+  | "viewedAt"
+  | "assessmentSnapshot"
+>;
+
+/** Unclaimed invitations expire after 7 days (matches the SQL default). */
+const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 export const STORAGE_KEY_GRANTS = "omnicura_access_grants";
 export const STORAGE_KEY_AUDIT = "omnicura_ownership_audit_events";
 export const STORAGE_KEY_INVITATIONS = "omnicura_share_invitations";
@@ -98,7 +135,8 @@ export type SharingSyncMessage =
   | { type: "PATIENT_DENIED"; token: string }
   | { type: "ACCESS_REVOKED"; token: string; recordId: string }
   | { type: "REPORT_VIEWED"; token: string }
-  | { type: "ANCHOR_UPDATED"; token: string };
+  | { type: "ANCHOR_UPDATED"; token: string }
+  | { type: "RELAY_UPDATED"; token: string; recordId: string };
 
 /**
  * Broadcasts sharing events across browser tabs in real time.
@@ -299,15 +337,139 @@ export function getShareInvitation(token: string): ShareInvitation | null {
  */
 export function getActiveInvitationForRecord(recordId: string): ShareInvitation | null {
   const invitations = getAllShareInvitations();
+  const now = Date.now();
   return (
     invitations.find(
       (inv) =>
         inv.recordId === recordId &&
-        (inv.status === "pending_request" ||
+        ((inv.status === "pending_request" && now - Date.parse(inv.createdAt) < INVITE_TTL_MS) ||
           inv.status === "awaiting_approval" ||
           inv.status === "approved")
     ) || null
   );
+}
+
+function saveInvitations(invitations: ShareInvitation[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY_INVITATIONS, JSON.stringify(invitations));
+  } catch {
+    // ignore storage quota
+  }
+}
+
+/** Merges a patch into one stored invitation and returns the updated copy. */
+function patchInvitation(token: string, patch: Partial<ShareInvitation>): ShareInvitation | null {
+  if (typeof window === "undefined") return null;
+  const invitations = getAllShareInvitations();
+  const index = invitations.findIndex((inv) => inv.token === token);
+  if (index === -1) return null;
+  invitations[index] = { ...invitations[index], ...patch };
+  saveInvitations(invitations);
+  return invitations[index];
+}
+
+/** URL-safe random string from the browser's CSPRNG. */
+function randomToken(bytes: number): string {
+  const buf = new Uint8Array(bytes);
+  crypto.getRandomValues(buf);
+  return btoa(String.fromCharCode(...buf)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/** Grantee label used in consent hashes and access grants for an invitation's clinician. */
+function inviteEntity(inv: Pick<ShareInvitation, "requesterName" | "requesterFacility">): string {
+  return `${inv.requesterName || "Authorized Clinician"} (${inv.requesterFacility || "Clinical Care"})`;
+}
+
+/** Emergency-only access shares severity, red flags and safety-critical background — nothing else. */
+export function snapshotForAccessLevel(
+  snap: ShareInvitation["assessmentSnapshot"],
+  level: ShareInvitation["accessLevel"]
+): ShareInvitation["assessmentSnapshot"] {
+  if (!snap || level !== "emergency_only") return snap;
+  const result = (snap.assessmentResult || {}) as Record<string, unknown>;
+  const profile = snap.patientProfile;
+  return {
+    symptoms: snap.symptoms,
+    severity: snap.severity,
+    assessmentResult: { recommendedAction: result.recommendedAction, warningSigns: result.warningSigns },
+    recordHash: snap.recordHash,
+    zcashTxid: snap.zcashTxid,
+    zcashBlockHeight: snap.zcashBlockHeight,
+    verifiedAt: snap.verifiedAt,
+    patientProfile: profile && {
+      age: profile.age,
+      sex: profile.sex,
+      bloodGroup: profile.bloodGroup,
+      allergies: profile.allergies,
+      conditions: profile.conditions,
+      medications: profile.medications,
+    },
+  };
+}
+
+/** The clinician's view of a locally stored invitation (used when the relay is unavailable). */
+export function toClinicianView(inv: ShareInvitation): ClinicianInvitation {
+  return {
+    token: inv.token,
+    recordId: inv.recordId,
+    patientName: inv.patientName,
+    status: inv.status,
+    accessLevel: inv.accessLevel,
+    requesterName: inv.requesterName,
+    requesterFacility: inv.requesterFacility,
+    requesterRole: inv.requesterRole,
+    createdAt: inv.createdAt,
+    requestedAt: inv.requestedAt,
+    approvedAt: inv.approvedAt,
+    deniedAt: inv.deniedAt,
+    revokedAt: inv.revokedAt,
+    viewedAt: inv.viewedAt,
+    assessmentSnapshot:
+      inv.status === "approved" ? snapshotForAccessLevel(inv.assessmentSnapshot, inv.accessLevel) : undefined,
+  };
+}
+
+/** Appends an audit event unless one with the same hash already exists. Returns true if added. */
+function appendAuditEventOnce(event: OwnershipAuditEvent): boolean {
+  if (getAuditEvents().some((e) => e.eventHash === event.eventHash && e.eventType === event.eventType)) return false;
+  appendAuditEvent(event);
+  return true;
+}
+
+const registrationsInFlight = new Set<string>();
+
+/** Registers a locally created invitation server-side so the QR code works on any device. */
+async function registerInvitation(token: string) {
+  const inv = getShareInvitation(token);
+  if (!inv?.ownerKey || registrationsInFlight.has(token)) return;
+  registrationsInFlight.add(token);
+  try {
+    const res = await relayCreateInvitation({
+      token: inv.token,
+      ownerKey: inv.ownerKey,
+      recordId: inv.recordId,
+      patientName: inv.patientName,
+    });
+    patchInvitation(
+      token,
+      res.ok ? { relay: "synced", relayMessage: undefined } : { relay: "local_only", relayMessage: res.message }
+    );
+  } finally {
+    registrationsInFlight.delete(token);
+  }
+  broadcastSharingEvent({ type: "RELAY_UPDATED", token, recordId: inv.recordId });
+}
+
+/**
+ * Makes sure a pending invitation is registered server-side: retries a failed or
+ * interrupted registration, and upgrades invitations created before the relay existed.
+ */
+export function ensureInvitationShareable(token: string) {
+  if (typeof window === "undefined" || registrationsInFlight.has(token)) return;
+  const inv = getShareInvitation(token);
+  if (!inv || inv.status !== "pending_request" || inv.relay === "synced") return;
+  patchInvitation(token, { ownerKey: inv.ownerKey || randomToken(32), relay: "registering", relayMessage: undefined });
+  void registerInvitation(token);
 }
 
 /**
@@ -322,7 +484,8 @@ export function createShareInvitation(params: {
 }): { invitation: ShareInvitation; shareUrl: string } {
   const patientId = params.patientId || "patient-current";
   const now = new Date().toISOString();
-  const token = `inv_${Math.random().toString(36).substring(2, 9)}_${Date.now().toString(36)}`;
+  // 128-bit random token: anyone holding it can request access, so it must be unguessable.
+  const token = `inv_${randomToken(16)}`;
 
   const consentPayload: ConsentPayload = {
     recordId: params.recordId,
@@ -344,13 +507,16 @@ export function createShareInvitation(params: {
     createdAt: now,
     eventHash,
     assessmentSnapshot: params.assessmentSnapshot,
+    ownerKey: randomToken(32),
+    relay: "registering",
   };
 
   if (typeof window !== "undefined") {
     const existing = getAllShareInvitations();
     // Replace any previous unapproved invite for this record
     const updated = [invitation, ...existing.filter((inv) => inv.recordId !== params.recordId || inv.status === "approved")];
-    localStorage.setItem(STORAGE_KEY_INVITATIONS, JSON.stringify(updated));
+    saveInvitations(updated);
+    void registerInvitation(token);
 
     // Audit log
     const auditEvent: OwnershipAuditEvent = {
@@ -383,78 +549,216 @@ export function createShareInvitation(params: {
 }
 
 /**
- * Doctor submits an access request using the invitation token.
+ * Records a clinician's access request on the patient's copy of the invitation:
+ * updates it, logs the audit event and anchors its hash. The timestamp comes from
+ * the server when the relay recorded it, so the doctor's and patient's devices
+ * compute the same event hash (the notary de-duplicates by hash, so it is paid once).
  */
-export function submitDoctorAccessRequest(params: {
+function applyDoctorRequest(
+  token: string,
+  req: { requesterName: string; requesterFacility: string; requesterRole?: string; requestedAt: string }
+): ShareInvitation | null {
+  const inv = getShareInvitation(token);
+  if (!inv || inv.status !== "pending_request") return inv;
+
+  const requester = {
+    requesterName: req.requesterName.trim(),
+    requesterFacility: req.requesterFacility.trim(),
+    requesterRole: req.requesterRole?.trim() || "Clinician",
+  };
+  const consentPayload: ConsentPayload = {
+    recordId: inv.recordId,
+    userId: inv.patientId,
+    granteeEntity: `${requester.requesterName} (${requester.requesterFacility})`,
+    accessLevel: inv.accessLevel,
+    action: "request",
+    timestamp: req.requestedAt,
+  };
+  const eventHash = computeOwnershipEventHash(consentPayload);
+
+  const updatedInv = patchInvitation(token, {
+    status: "awaiting_approval",
+    ...requester,
+    requestedAt: req.requestedAt,
+    eventHash,
+  });
+
+  const auditEntry: OwnershipAuditEvent = {
+    id: newEventId("event"),
+    recordId: inv.recordId,
+    userId: inv.patientId,
+    eventType: "doctor_requested_access",
+    title: `Access Requested: ${requester.requesterName}`,
+    description: `${requester.requesterName} (${requester.requesterFacility}) scanned invitation and requested access.`,
+    actor: `${requester.requesterName} (Clinician)`,
+    targetEntity: requester.requesterFacility,
+    timestamp: req.requestedAt,
+    eventHash,
+    status: "pending",
+    anchorState: "requested",
+  };
+  if (appendAuditEventOnce(auditEntry)) anchorConsentEvent(auditEntry.id, consentPayload);
+
+  broadcastSharingEvent({
+    type: "DOCTOR_REQUESTED",
+    token,
+    requesterName: requester.requesterName,
+    requesterFacility: requester.requesterFacility,
+    requesterRole: requester.requesterRole,
+  });
+  return updatedInv;
+}
+
+/**
+ * Doctor submits an access request using the invitation token. Works from any
+ * device: the request goes to the server-side relay, and is also applied locally
+ * when this browser holds the patient's copy (same-device demo, or relay offline).
+ */
+export async function submitDoctorAccessRequest(params: {
   token: string;
   requesterName: string;
   requesterFacility: string;
   requesterRole?: string;
-}): { success: boolean; invitation?: ShareInvitation; error?: string } {
-  const invitations = getAllShareInvitations();
-  const index = invitations.findIndex((inv) => inv.token === params.token);
+}): Promise<{ success: boolean; invitation?: ClinicianInvitation; error?: string }> {
+  const requesterName = params.requesterName.trim();
+  const requesterFacility = params.requesterFacility.trim();
+  const requesterRole = params.requesterRole?.trim() || "Clinician";
 
-  if (index === -1) {
+  const remote = await relaySubmitRequest({ token: params.token, requesterName, requesterFacility, requesterRole });
+  const local = getShareInvitation(params.token);
+
+  if (remote.ok && remote.data) {
+    const r = remote.data;
+    if (r.status === "revoked") {
+      return { success: false, error: "This share invitation has been revoked by the patient." };
+    }
+    const isOurs =
+      r.status === "awaiting_approval" && (r.requesterName || "").toLowerCase() === requesterName.toLowerCase();
+    if (!isOurs) {
+      return {
+        success: false,
+        error: "This invitation has already been used by another clinician. Ask the patient for a new QR code.",
+      };
+    }
+    applyDoctorRequest(params.token, {
+      requesterName,
+      requesterFacility,
+      requesterRole,
+      requestedAt: r.requestedAt || new Date().toISOString(),
+    });
+    return { success: true, invitation: r };
+  }
+
+  // Not on the server (or server unreachable): fall back to this browser's copy.
+  if (!local) {
+    if (!remote.ok && (remote.reason === "rejected" || remote.reason === "unavailable")) {
+      return { success: false, error: remote.message };
+    }
     return { success: false, error: "Invalid or expired invitation token." };
   }
-
-  const inv = invitations[index];
-  if (inv.status === "revoked") {
+  if (local.status === "revoked") {
     return { success: false, error: "This share invitation has been revoked by the patient." };
   }
-
-  const now = new Date().toISOString();
-  const consentPayload: ConsentPayload = {
-    recordId: inv.recordId,
-    userId: inv.patientId,
-    granteeEntity: `${params.requesterName} (${params.requesterFacility})`,
-    accessLevel: inv.accessLevel,
-    action: "request",
-    timestamp: now,
-  };
-  const eventHash = computeOwnershipEventHash(consentPayload);
-
-  const updatedInv: ShareInvitation = {
-    ...inv,
-    status: "awaiting_approval",
-    requesterName: params.requesterName.trim(),
-    requesterFacility: params.requesterFacility.trim(),
-    requesterRole: params.requesterRole?.trim() || "Clinician",
-    requestedAt: now,
-    eventHash,
-  };
-
-  invitations[index] = updatedInv;
-  if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY_INVITATIONS, JSON.stringify(invitations));
-
-    const auditEntry: OwnershipAuditEvent = {
-      id: newEventId("event"),
-      recordId: inv.recordId,
-      userId: inv.patientId,
-      eventType: "doctor_requested_access",
-      title: `Access Requested: ${updatedInv.requesterName}`,
-      description: `${updatedInv.requesterName} (${updatedInv.requesterFacility}) scanned invitation and requested access.`,
-      actor: `${updatedInv.requesterName} (Clinician)`,
-      targetEntity: updatedInv.requesterFacility,
-      timestamp: now,
-      eventHash,
-      status: "pending",
-      anchorState: "requested",
-    };
-    appendAuditEvent(auditEntry);
-    anchorConsentEvent(auditEntry.id, consentPayload);
+  if (local.status !== "pending_request") {
+    return { success: false, error: "This invitation has already been used. Ask the patient for a new QR code." };
   }
 
-  broadcastSharingEvent({
-    type: "DOCTOR_REQUESTED",
-    token: inv.token,
-    requesterName: updatedInv.requesterName || "Clinician",
-    requesterFacility: updatedInv.requesterFacility || "Healthcare Facility",
-    requesterRole: updatedInv.requesterRole,
+  const updated = applyDoctorRequest(params.token, {
+    requesterName,
+    requesterFacility,
+    requesterRole,
+    requestedAt: new Date().toISOString(),
+  });
+  return updated
+    ? { success: true, invitation: toClinicianView(updated) }
+    : { success: false, error: "Failed to submit access request." };
+}
+
+/**
+ * Patient side: pulls clinician activity (requests, first view) for this browser's
+ * invitations from the relay, and re-sends patient decisions that did not reach it.
+ * Returns true when anything changed locally.
+ */
+let syncInFlight: Promise<boolean> | null = null;
+
+export function syncInvitationsFromRelay(): Promise<boolean> {
+  if (typeof window === "undefined") return Promise.resolve(false);
+  if (syncInFlight) return syncInFlight;
+
+  syncInFlight = (async () => {
+    let changed = false;
+    const mine = getAllShareInvitations().filter(
+      (inv) =>
+        inv.ownerKey &&
+        inv.relay === "synced" &&
+        (inv.relayPending ||
+          inv.status === "pending_request" ||
+          inv.status === "awaiting_approval" ||
+          (inv.status === "approved" && !inv.viewedAt))
+    );
+
+    for (const inv of mine) {
+      if (inv.relayPending) {
+        await pushDecision(inv.token);
+        changed = true;
+        continue;
+      }
+
+      const res = await relayGetInvitation(inv.token);
+      if (!res.ok || !res.data) continue;
+      const r = res.data;
+
+      if (inv.status === "pending_request" && r.status === "awaiting_approval" && r.requestedAt) {
+        applyDoctorRequest(inv.token, {
+          requesterName: r.requesterName || "Clinician",
+          requesterFacility: r.requesterFacility || "Healthcare Facility",
+          requesterRole: r.requesterRole,
+          requestedAt: r.requestedAt,
+        });
+        changed = true;
+      } else if (inv.status === "approved" && r.status === "approved" && r.viewedAt && !inv.viewedAt) {
+        logReportViewed(inv.token, r.viewedAt);
+        changed = true;
+      }
+    }
+    return changed;
+  })().finally(() => {
+    syncInFlight = null;
   });
 
-  return { success: true, invitation: updatedInv };
+  return syncInFlight;
+}
+
+/** Sends the patient's latest decision (approve / deny / revoke) for one invitation to the relay. */
+async function pushDecision(token: string) {
+  const inv = getShareInvitation(token);
+  if (!inv?.ownerKey || !inv.relayPending || inv.relay !== "synced") return;
+  const status = inv.relayPending;
+  const res = await relayOwnerUpdate({
+    token,
+    ownerKey: inv.ownerKey,
+    status,
+    accessLevel: inv.accessLevel,
+    snapshot: status === "approved" ? snapshotForAccessLevel(inv.assessmentSnapshot, inv.accessLevel) : undefined,
+  });
+  // Clear only if no newer decision replaced this one while the request was in flight.
+  if (getShareInvitation(token)?.relayPending === status) {
+    patchInvitation(
+      token,
+      res.ok || res.reason === "rejected"
+        ? { relayPending: undefined, relayMessage: res.ok ? undefined : res.message }
+        : { relayMessage: "Saved on this device. It will reach the clinician's device once the connection returns." }
+    );
+  }
+  broadcastSharingEvent({ type: "RELAY_UPDATED", token, recordId: inv.recordId });
+}
+
+/** Queues a patient decision for the relay and sends it right away. */
+function queueDecision(token: string, status: NonNullable<ShareInvitation["relayPending"]>) {
+  const inv = getShareInvitation(token);
+  if (!inv?.ownerKey || inv.relay !== "synced") return;
+  patchInvitation(token, { relayPending: status, relayMessage: undefined });
+  void pushDecision(token);
 }
 
 /**
@@ -473,7 +777,7 @@ export function approveDoctorAccessRequest(params: {
   const inv = invitations[index];
   const now = new Date().toISOString();
   const accessLevel = params.accessLevel || inv.accessLevel;
-  const entityName = `${inv.requesterName || "Authorized Clinician"} (${inv.requesterFacility || "Clinical Care"})`;
+  const entityName = inviteEntity(inv);
 
   const consentPayload: ConsentPayload = {
     recordId: inv.recordId,
@@ -528,6 +832,8 @@ export function approveDoctorAccessRequest(params: {
     };
     appendAuditEvent(auditEntry);
     anchorConsentEvent(auditEntry.id, consentPayload, newGrant.id);
+    // Deliver the approval (and the scoped snapshot) to the clinician's device.
+    queueDecision(inv.token, "approved");
   }
 
   broadcastSharingEvent({
@@ -593,6 +899,7 @@ export function denyDoctorAccessRequest(params: {
     };
     appendAuditEvent(auditEntry);
     anchorConsentEvent(auditEntry.id, consentPayload);
+    queueDecision(inv.token, "denied");
   }
 
   broadcastSharingEvent({
@@ -619,30 +926,41 @@ export function revokeShareAccess(
   const currentUserId = userId || "patient-current";
 
   if (typeof window !== "undefined") {
-    // 1. Update invitations matching token or grant
+    const grants = getAccessGrants();
+    const targetGrant = grants.find((g) => g.id === tokenOrGrantId);
+
+    // 1. Invitations: by token, by record, or — when a grant is revoked from the
+    //    Data Ownership panel — the approved invitation that created that grant.
     const invitations = getAllShareInvitations();
-    let foundEntity = "";
-    let foundRecordId = "";
+    let foundEntity = targetGrant?.grantee_entity || "";
+    let foundRecordId = targetGrant?.record_id || "";
+    const revokedTokens: string[] = [];
 
     const updatedInvitations = invitations.map((inv) => {
-      if (inv.token === tokenOrGrantId || inv.recordId === tokenOrGrantId) {
-        foundEntity = `${inv.requesterName || "Clinician"} (${inv.requesterFacility || "Clinical Facility"})`;
-        foundRecordId = inv.recordId;
-        return {
-          ...inv,
-          status: "revoked" as const,
-          revokedAt: now,
-        };
-      }
-      return inv;
+      const matches =
+        inv.token === tokenOrGrantId ||
+        inv.recordId === tokenOrGrantId ||
+        (targetGrant !== undefined &&
+          inviteEntity(inv) === targetGrant.grantee_entity &&
+          (!targetGrant.record_id || targetGrant.record_id === inv.recordId));
+      if (!matches || inv.status === "revoked") return inv;
+      if (!foundEntity) foundEntity = inviteEntity(inv);
+      if (!foundRecordId) foundRecordId = inv.recordId;
+      revokedTokens.push(inv.token);
+      return {
+        ...inv,
+        status: "revoked" as const,
+        revokedAt: now,
+      };
     });
 
-    localStorage.setItem(STORAGE_KEY_INVITATIONS, JSON.stringify(updatedInvitations));
+    saveInvitations(updatedInvitations);
+    // Invalidate the links server-side too, so other devices lose access immediately.
+    for (const t of revokedTokens) queueDecision(t, "revoked");
 
     // 2. Also update grants table
-    const grants = getAccessGrants();
     const updatedGrants = grants.map((g) => {
-      if (g.id === tokenOrGrantId || g.grantee_entity === foundEntity) {
+      if (g.id === tokenOrGrantId || (foundEntity && g.grantee_entity === foundEntity)) {
         if (!foundEntity) foundEntity = g.grantee_entity;
         return {
           ...g,
@@ -695,13 +1013,14 @@ export function revokeShareAccess(
 }
 
 /**
- * Logs that an approved report was viewed by the authorized doctor.
+ * Logs the first time an approved report was opened by the authorized doctor —
+ * seen either on this device or, for another device, through the relay.
  */
-export function recordReportViewed(token: string) {
+function logReportViewed(token: string, now: string) {
   const inv = getShareInvitation(token);
-  if (!inv || inv.status !== "approved") return;
+  if (!inv || inv.status !== "approved" || inv.viewedAt) return;
+  patchInvitation(token, { viewedAt: now });
 
-  const now = new Date().toISOString();
   const viewPayload: OwnershipEventPayload = {
     recordId: inv.recordId,
     userId: inv.patientId,
@@ -718,7 +1037,7 @@ export function recordReportViewed(token: string) {
     userId: inv.patientId,
     eventType: "report_viewed",
     title: `Clinical Report Viewed: ${inv.requesterName || "Clinician"}`,
-    description: `Authorized report accessed and verified on ${new Date().toLocaleDateString()}.`,
+    description: `Authorized report accessed and verified on ${new Date(now).toLocaleDateString()}.`,
     actor: `${inv.requesterName || "Doctor"} (Clinician)`,
     targetEntity: inv.requesterFacility,
     timestamp: now,
@@ -732,6 +1051,11 @@ export function recordReportViewed(token: string) {
     type: "REPORT_VIEWED",
     token,
   });
+}
+
+/** Called by the clinician page when the approved report is shown in this browser. */
+export function recordReportViewed(token: string) {
+  logReportViewed(token, new Date().toISOString());
 }
 
 /**

@@ -12,6 +12,9 @@ import {
   Clock,
   XCircle,
   KeyRound,
+  Loader2,
+  AlertTriangle,
+  Smartphone,
 } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
@@ -28,6 +31,8 @@ import {
   approveDoctorAccessRequest,
   denyDoctorAccessRequest,
   revokeShareAccess,
+  ensureInvitationShareable,
+  syncInvitationsFromRelay,
   SHARING_BROADCAST_CHANNEL,
   STORAGE_KEY_ACTIVE_SYNC,
   ShareInvitation,
@@ -103,6 +108,33 @@ export function ShareWithDoctorButton(props: ShareWithDoctorProps) {
     };
   }, [props.recordId, invitation?.token, syncState]);
 
+  // Cross-device: while the dialog is open, pull the clinician's request (or the first
+  // view of an approved report) from the relay and re-send undelivered decisions.
+  const needsRelaySync =
+    isOpen &&
+    Boolean(
+      invitation &&
+        (invitation.relayPending ||
+          invitation.status === "pending_request" ||
+          invitation.status === "awaiting_approval" ||
+          (invitation.status === "approved" && !invitation.viewedAt))
+    );
+  React.useEffect(() => {
+    if (!needsRelaySync) return;
+    let cancelled = false;
+    const tick = () => {
+      void syncInvitationsFromRelay().then((changed) => {
+        if (changed && !cancelled) syncState();
+      });
+    };
+    tick();
+    const interval = window.setInterval(tick, 4000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [needsRelaySync, syncState]);
+
   const handleOpen = () => {
     let current = getActiveInvitationForRecord(props.recordId);
     if (!current) {
@@ -123,12 +155,19 @@ export function ShareWithDoctorButton(props: ShareWithDoctorProps) {
         },
       });
       current = created.invitation;
-      setInvitation(current);
+    } else if (current.status === "pending_request") {
+      // Register older or interrupted invitations with the relay so the QR works on any device.
+      ensureInvitationShareable(current.token);
+      current = getActiveInvitationForRecord(props.recordId) || current;
     }
+    setInvitation(current);
     setIsOpen(true);
   };
 
   const shareUrl = typeof window !== "undefined" && invitation ? `${window.location.origin}/access/${invitation.token}` : "";
+  const isLocalhostOrigin =
+    typeof window !== "undefined" && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+  const relayState = invitation?.relay ?? "registering";
 
   const handleCopyLink = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard && shareUrl) {
@@ -296,6 +335,17 @@ export function ShareWithDoctorButton(props: ShareWithDoctorProps) {
                   </p>
                 </div>
 
+                {(invitation.relayPending || invitation.relayMessage) && (
+                  <p className="flex items-start gap-1.5 text-[11px] text-warning-text leading-relaxed">
+                    {invitation.relayPending && !invitation.relayMessage ? (
+                      <Loader2 className="size-3.5 shrink-0 mt-px animate-spin" />
+                    ) : (
+                      <AlertTriangle className="size-3.5 shrink-0 mt-px" />
+                    )}
+                    <span>{invitation.relayMessage || "Delivering your approval to the clinician's device…"}</span>
+                  </p>
+                )}
+
                 {/* Revoke Action with Technical Notice */}
                 <div className="pt-2 border-t border-border-subtle space-y-2">
                   <Button
@@ -317,9 +367,13 @@ export function ShareWithDoctorButton(props: ShareWithDoctorProps) {
             {invitation && (invitation.status === "pending_request" || invitation.status === "awaiting_approval") && (
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl border border-border-subtle bg-subtle">
-                  <QrDisplay value={shareUrl} size={150} className="shrink-0" />
+                  <QrDisplay
+                    value={shareUrl}
+                    size={150}
+                    className={cn("shrink-0 transition-opacity", relayState === "registering" && "opacity-40")}
+                  />
 
-                  <div className="space-y-2 text-xs">
+                  <div className="w-full min-w-0 space-y-2 text-xs text-center sm:text-left">
                     <div className="space-y-0.5">
                       <span className="type-overline text-accent">Zero-Trust QR Pass</span>
                       <p className="font-semibold text-foreground">Doctor Scans to Request Access</p>
@@ -340,9 +394,38 @@ export function ShareWithDoctorButton(props: ShareWithDoctorProps) {
                   </div>
                 </div>
 
+                {/* Whether the link opens on other devices */}
+                {relayState === "registering" && (
+                  <p className="flex items-center gap-1.5 text-[11px] text-text-tertiary">
+                    <Loader2 className="size-3.5 shrink-0 animate-spin" />
+                    <span>Registering the link so it opens on any device…</span>
+                  </p>
+                )}
+                {relayState === "synced" && !isLocalhostOrigin && (
+                  <p className="flex items-center gap-1.5 text-[11px] text-success">
+                    <Smartphone className="size-3.5 shrink-0" />
+                    <span>Ready to scan on any phone or computer.</span>
+                  </p>
+                )}
+                {relayState === "local_only" && (
+                  <p className="flex items-start gap-1.5 rounded-lg border border-warning/30 bg-warning-muted px-3 py-2 text-[11px] text-warning-text leading-relaxed">
+                    <AlertTriangle className="size-3.5 shrink-0 mt-px" />
+                    <span>This link only works in this browser for now. {invitation.relayMessage}</span>
+                  </p>
+                )}
+                {isLocalhostOrigin && relayState !== "local_only" && (
+                  <p className="flex items-start gap-1.5 rounded-lg border border-warning/30 bg-warning-muted px-3 py-2 text-[11px] text-warning-text leading-relaxed">
+                    <AlertTriangle className="size-3.5 shrink-0 mt-px" />
+                    <span>
+                      This QR points to <strong>localhost</strong>, which a phone cannot open. Scan it from the deployed
+                      site, or open OmniCura via your computer&apos;s network address.
+                    </span>
+                  </p>
+                )}
+
                 {/* Copy Link Input */}
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 font-mono text-[11px] bg-background px-3 py-2 rounded-lg border border-border-subtle truncate text-foreground select-all">
+                  <code className="flex-1 min-w-0 font-mono text-[11px] bg-background px-3 py-2 rounded-lg border border-border-subtle truncate text-foreground select-all">
                     {shareUrl}
                   </code>
                   <Button variant="outline" size="sm" onClick={handleCopyLink} className="h-9 gap-1 text-xs shrink-0">
