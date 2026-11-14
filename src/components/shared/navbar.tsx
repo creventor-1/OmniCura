@@ -15,6 +15,7 @@ import {
   LogOut,
   User as UserIcon,
   Sparkles,
+  KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -30,7 +31,8 @@ export type NavSection =
   | "hospitals"
   | "history"
   | "profile"
-  | "contacts";
+  | "contacts"
+  | "ownership";
 
 interface NavbarProps {
   activeSection: NavSection;
@@ -63,6 +65,7 @@ export function Navbar({ activeSection, onNavigate }: NavbarProps) {
     { id: "medication", label: "Medication Scan", icon: Pill },
     { id: "hospitals", label: "Hospitals", icon: MapPin },
     { id: "history", label: "History", icon: History },
+    { id: "ownership", label: "Data Ownership", icon: KeyRound },
     { id: "profile", label: "Profile", icon: UserCheck },
     { id: "contacts", label: "Contacts", icon: PhoneCall },
   ];

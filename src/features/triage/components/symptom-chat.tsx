@@ -33,6 +33,10 @@ import { createClient } from "@/services/database/supabase/client";
 import { TRIAGE_DRAFT_KEY, requestNavigate } from "@/components/shell/nav-config";
 import { OmnicuraLogo } from "@/components/shared/brand-logo";
 import { DEFAULT_EMERGENCY_NUMBER } from "@/lib/constants";
+import { computeAssessmentHash } from "@/services/crypto/record-hasher";
+import { requestAnchor, updateLocalRecordAnchor } from "@/services/zcash/anchor-client";
+import { recordAssessmentAnchoredEvent } from "@/services/ownership/ownership-service";
+import { StoredAssessment } from "@/types/database";
 
 let messageCounter = 0;
 function createMessageId(prefix: string): string {
@@ -93,13 +97,27 @@ const STAGES = [
   { title: "Clinical synthesis", detail: "Acuity and care plan" },
 ];
 
+interface ActiveAnchor {
+  recordId?: string;
+  recordHash?: string;
+  symptoms?: string;
+  txid?: string;
+  verifiedAt?: string;
+  state?: "requested" | "failed" | "unanchored";
+  message?: string;
+  /** Patient id exactly as hashed ("guest" for guests) — needed to resume after a reload. */
+  userId?: string;
+  remoteRecordId?: string | null;
+}
+
 function getInitialChatSession(): {
   messages: TriageMessage[];
   currentQuickOptions: string[];
   assessment: AssessmentResponse | null;
+  anchor: ActiveAnchor | null;
 } {
   if (typeof window === "undefined") {
-    return { messages: DEFAULT_INITIAL_MESSAGES, currentQuickOptions: [], assessment: null };
+    return { messages: DEFAULT_INITIAL_MESSAGES, currentQuickOptions: [], assessment: null, anchor: null };
   }
   try {
     const saved = sessionStorage.getItem("omnicura_active_chat_session");
@@ -114,27 +132,42 @@ function getInitialChatSession(): {
           ? parsed.currentQuickOptions
           : [],
         assessment: parsed.assessment || null,
+        anchor: parsed.anchor || null,
       };
     }
   } catch {
     // ignore
   }
-  return { messages: DEFAULT_INITIAL_MESSAGES, currentQuickOptions: [], assessment: null };
+  return { messages: DEFAULT_INITIAL_MESSAGES, currentQuickOptions: [], assessment: null, anchor: null };
 }
 
 function createStoredAssessment(
   userId: string | undefined,
   symptoms: string,
-  assessment: AssessmentResponse
-) {
+  assessment: AssessmentResponse,
+  timestamp?: string
+): StoredAssessment {
+  const createdAt = timestamp || new Date().toISOString();
+  // Hash with exactly the patient id that is stored, so verification can recompute it.
+  const storedUserId = userId || "guest";
+  const recordHash = computeAssessmentHash({
+    patientId: storedUserId,
+    symptoms,
+    assessment,
+    timestamp: createdAt,
+  });
+
   return {
-    id: "assessment-" + Date.now(),
-    user_id: userId || "guest",
+    id: `assessment-${new Date(createdAt).getTime()}`,
+    user_id: storedUserId,
     symptoms,
     severity: assessment.severity,
     assessment_result: assessment,
     disclaimer: assessment.disclaimer,
-    created_at: new Date().toISOString(),
+    created_at: createdAt,
+    record_hash: recordHash,
+    verification_status: "pending",
+    verified_at: createdAt,
   };
 }
 
@@ -167,6 +200,74 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
   const [assessment, setAssessment] = React.useState<AssessmentResponse | null>(
     () => getInitialChatSession().assessment
   );
+  // Zcash anchoring for the current result (real txid only — nothing is fabricated)
+  const [activeAnchor, setActiveAnchor] = React.useState<ActiveAnchor | null>(() => getInitialChatSession().anchor);
+
+  // Sends the record to the notary and stores the real txid when it comes back.
+  // Also resumes an anchor that was in flight when the page was reloaded: the
+  // notary de-duplicates by hash, so a resume never pays for a second transaction.
+  const runAnchor = React.useCallback(
+    (a: {
+      recordId: string;
+      remoteRecordId?: string | null;
+      userId: string;
+      symptoms: string;
+      createdAt: string;
+      assessment: AssessmentResponse;
+    }) => {
+      void requestAnchor({
+        user_id: a.userId,
+        symptoms: a.symptoms,
+        created_at: a.createdAt,
+        assessment_result: a.assessment,
+      }).then(async (anchor) => {
+        if (anchor.txid) {
+          const txid = anchor.txid;
+          setActiveAnchor((prev) =>
+            prev?.recordId === a.recordId ? { ...prev, txid, state: undefined, message: undefined } : prev
+          );
+          updateLocalRecordAnchor(a.recordId, { zcash_txid: txid });
+          recordAssessmentAnchoredEvent({
+            recordId: a.remoteRecordId || a.recordId,
+            recordHash: anchor.recordHash,
+            txid,
+            userId: a.userId === "guest" ? undefined : a.userId,
+          });
+          if (a.remoteRecordId) {
+            const { error } = await supabase
+              .from("assessments")
+              .update({ zcash_txid: txid })
+              .eq("id", a.remoteRecordId);
+            if (error) console.warn("[ANCHOR_SAVE] Could not store txid on the account record:", error.message);
+          }
+        } else {
+          setActiveAnchor((prev) =>
+            prev?.recordId === a.recordId
+              ? { ...prev, state: anchor.status === "unanchored" ? "unanchored" : "failed", message: anchor.message }
+              : prev
+          );
+        }
+      });
+    },
+    [supabase]
+  );
+
+  const resumedAnchorRef = React.useRef(false);
+  React.useEffect(() => {
+    if (resumedAnchorRef.current) return;
+    resumedAnchorRef.current = true;
+    const a = activeAnchor;
+    if (!a || a.txid || a.state !== "requested" || !assessment) return;
+    if (!a.recordId || !a.symptoms || !a.verifiedAt || !a.userId) return;
+    runAnchor({
+      recordId: a.recordId,
+      remoteRecordId: a.remoteRecordId,
+      userId: a.userId,
+      symptoms: a.symptoms,
+      createdAt: a.verifiedAt,
+      assessment,
+    });
+  }, [activeAnchor, assessment, runAnchor]);
 
   // Active Health Profile context
   const [activeProfile, setActiveProfile] = React.useState<{
@@ -230,13 +331,13 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
       if (messages.length > 1 || assessment) {
         sessionStorage.setItem(
           "omnicura_active_chat_session",
-          JSON.stringify({ messages, currentQuickOptions, assessment })
+          JSON.stringify({ messages, currentQuickOptions, assessment, anchor: activeAnchor })
         );
       }
     } catch {
       // ignore storage error
     }
-  }, [messages, currentQuickOptions, assessment]);
+  }, [messages, currentQuickOptions, assessment, activeAnchor]);
 
   // Undo last response handler
   const handleUndoLastTurn = () => {
@@ -493,16 +594,52 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
         // Auto-save if logged in, or queue in guest session
         const firstSymptom =
           updatedMessages.find((m) => m.role === "user")?.content || text;
+        const now = new Date().toISOString();
+        const storedUserId = user?.id || "guest";
+        const recordHash = computeAssessmentHash({
+          patientId: storedUserId,
+          symptoms: firstSymptom,
+          assessment: turnData.assessment,
+          timestamp: now,
+        });
+        const localRecordId = `assessment-${new Date(now).getTime()}`;
+        let remoteRecordId: string | null = null;
+
+        setActiveAnchor({
+          recordId: localRecordId,
+          recordHash,
+          symptoms: firstSymptom,
+          verifiedAt: now,
+          state: "requested",
+          userId: storedUserId,
+        });
 
         if (user) {
+          const baseRow = {
+            user_id: user.id,
+            created_at: now, // must equal the hashed timestamp
+            symptoms: firstSymptom,
+            severity: turnData.assessment.severity,
+            assessment_result: turnData.assessment,
+            disclaimer: turnData.assessment.disclaimer,
+          };
           try {
-            await supabase.from("assessments").insert({
-              user_id: user.id,
-              symptoms: firstSymptom,
-              severity: turnData.assessment.severity,
-              assessment_result: turnData.assessment,
-              disclaimer: turnData.assessment.disclaimer,
-            });
+            const { data: inserted, error } = await supabase
+              .from("assessments")
+              .insert({ ...baseRow, record_hash: recordHash, verification_status: "pending", verified_at: now })
+              .select("id")
+              .single();
+            if (error) {
+              // Database not yet migrated for anchoring columns: save the clinical record anyway.
+              const missingColumn = error.code === "42703" || error.code === "PGRST204";
+              if (!missingColumn) throw error;
+              const retry = await supabase.from("assessments").insert(baseRow).select("id").single();
+              if (retry.error) throw retry.error;
+              remoteRecordId = retry.data?.id ?? null;
+              console.warn("[ASSESSMENT_SAVE] Saved without anchoring columns — apply supabase/schema.sql.");
+            } else {
+              remoteRecordId = inserted?.id ?? null;
+            }
           } catch (e) {
             console.warn("Failed to auto-save assessment:", e);
           }
@@ -519,7 +656,8 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
             const guestItem = createStoredAssessment(
               user?.id,
               firstSymptom,
-              turnData.assessment
+              turnData.assessment,
+              now
             );
             const stored = localStorage.getItem("omnicura_guest_assessments");
             const existing = stored ? JSON.parse(stored) : [];
@@ -531,6 +669,21 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
             console.warn("Failed to save local assessment history:", e);
           }
         }
+
+        if (remoteRecordId) {
+          const savedId = remoteRecordId;
+          setActiveAnchor((prev) => (prev?.recordId === localRecordId ? { ...prev, remoteRecordId: savedId } : prev));
+        }
+
+        // Anchor on Zcash in the background — never blocks the clinical result.
+        runAnchor({
+          recordId: localRecordId,
+          remoteRecordId,
+          userId: storedUserId,
+          symptoms: firstSymptom,
+          createdAt: now,
+          assessment: turnData.assessment,
+        });
 
         setMessages((prev) => [
           ...prev,
@@ -578,6 +731,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
       sessionStorage.removeItem("omnicura_active_chat_session");
     }
     setAssessment(null);
+    setActiveAnchor(null);
     setCurrentQuickOptions([]);
     setEmergencyResult(null);
     setMessages([
@@ -611,6 +765,13 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
           assessment={assessment}
           onReset={handleReset}
           onLocateFacilities={onLocateFacilities}
+          recordId={activeAnchor?.recordId}
+          symptoms={activeAnchor?.symptoms}
+          recordHash={activeAnchor?.recordHash}
+          zcashTxid={activeAnchor?.txid}
+          verifiedAt={activeAnchor?.verifiedAt}
+          anchorState={activeAnchor?.state}
+          anchorMessage={activeAnchor?.message}
         />
       ) : (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">

@@ -5,6 +5,7 @@ import { SymptomChat } from "@/features/triage/components/symptom-chat";
 import { AssessmentHistoryView } from "@/features/triage/components/assessment-history-view";
 import { HealthProfileForm } from "@/features/health-profile/components/health-profile-form";
 import { EmergencyContactsManager } from "@/features/safety/components/emergency-contacts-manager";
+import { PatientOwnershipPanel } from "@/components/ownership/patient-ownership-panel";
 import { MapShell } from "@/components/map/map-shell";
 import { ImageSymptomAnalyzer } from "@/features/vision/components/image-symptom-analyzer";
 import { MedicationScanner } from "@/features/vision/components/medication-scanner";
@@ -18,7 +19,8 @@ export type ActiveTab =
   | "hospitals"
   | "history"
   | "profile"
-  | "contacts";
+  | "contacts"
+  | "ownership";
 
 export interface DashboardViewProps {
   activeTab?: ActiveTab;
@@ -62,6 +64,11 @@ const tabMeta: Record<ActiveTab, { eyebrow: string; title: string; subtitle: str
     title: "Emergency Contacts",
     subtitle: "Trusted people and clinicians you can reach with one tap during an emergency.",
   },
+  ownership: {
+    eyebrow: "Privacy & Sovereignty",
+    title: "Patient Data Ownership",
+    subtitle: "Control who accesses your medical records and inspect the verifiable cryptographic event audit trail.",
+  },
 };
 
 export function DashboardView({
@@ -102,6 +109,8 @@ export function DashboardView({
         {activeTab === "history" && (
           <AssessmentHistoryView onStartAssessment={() => handleTabChange("triage")} />
         )}
+
+        {activeTab === "ownership" && <PatientOwnershipPanel />}
 
         {activeTab === "profile" && <HealthProfileForm />}
 

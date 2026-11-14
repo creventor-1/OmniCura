@@ -1,0 +1,252 @@
+================================================================================
+OMNICURA: PRIVACY-PRESERVING HEALTHCARE AI & ZCASH VERIFICATION PLATFORM
+Comprehensive System Architecture, Clinical Capabilities, and Blockchain Guide
+================================================================================
+
+1. EXECUTIVE OVERVIEW
+--------------------------------------------------------------------------------
+OmniCura is a production-grade, privacy-preserving clinical AI triage and healthcare
+intelligence platform. It bridges the gap between conversational AI diagnostics and
+cryptographic data integrity.
+
+Traditional medical AI systems present severe privacy and trust risks:
+1. Centralized Data Exposure: Sensitive personal health information (PHI) is
+   frequently logged, mined, or sold.
+2. Undetected Record Alteration: Intermediaries, compromised databases, or rogue
+   actors can silently modify triage urgency, diagnoses, or care plans.
+3. Lack of Patient Custody: Patients rarely own or control access to their records.
+
+OmniCura solves this by deploying a dual-layer architecture:
+- Layer 1 (Clinical AI Layer): Rapid, adaptive multi-turn symptom assessment,
+  visual symptom analysis, pharmaceutical recognition, and emergency routing.
+- Layer 2 (Trust & Integrity Layer): Cryptographic canonical fingerprinting and
+  Zcash blockchain anchoring, guaranteeing patient data privacy through zero-
+  knowledge principles while rendering medical records permanently tamper-evident.
+
+
+2. CORE CLINICAL MODULES & CAPABILITIES
+--------------------------------------------------------------------------------
+
+A. Symptom Assessment (Adaptive Clinical Triage)
+- Guided conversational interface powered by Google Gemini AI.
+- Adaptive Questioning: Instead of producing an immediate guess, OmniCura
+  dynamically asks relevant follow-up questions tailored to reported symptoms
+  (e.g., onset, pain scale, radiation, breathing triggers, travel history).
+- Red-Flag Interceptor: Real-time screening for life-threatening emergencies
+  (cardiac arrest, stroke, anaphylaxis, severe sepsis). If red flags appear,
+  it immediately halts chat and triggers high-urgency SOS dialing protocols.
+- Acuity Verdict: Classifies condition into "Emergency", "Urgent", or "Non-Urgent"
+  with a clinical reasoning breakdown and confidence scoring.
+- First Aid & Care Guidance: Immediate actionable first-aid steps and explicit
+  warning signs indicating when to escalate to an emergency room.
+
+B. Symptom Vision (Multimodal Visual Triage)
+- Direct image analysis for visible dermatological conditions, rashes, burns, cuts,
+  wound infections, and swelling.
+- Uses high-resolution computer vision models to evaluate morphological features,
+  tissue coloration, and lesion boundaries.
+
+C. Medication Scanner (Pharmaceutical Intelligence)
+- Real-time optical scanning of medicine boxes, blister packs, and pharmacy labels.
+- Extracts active pharmaceutical ingredients, recommended dosages, contraindications,
+  and potential interactions with the patient's existing medications.
+
+D. Care Network & Hospital Locator
+- Geolocation-based facility finder mapped via OpenStreetMap / Leaflet.
+- Locates nearest verified emergency departments, trauma centers, and urgent clinics.
+- Displays driving distance, direct emergency dispatch phone numbers, and turn-by-turn
+  navigation routes.
+
+E. Persistent Sovereign Health Profile
+- Securely stores patient biological sex, age, blood group, known allergies, chronic
+  conditions, and current medications.
+- The AI automatically incorporates profile context into triage assessments without
+  forcing the user to re-type repetitive medical background.
+
+F. Medical History & Encounters Timeline
+- Searchable and filterable longitudinal timeline of all past assessments.
+- Supports PDF export, clinical summaries for physicians, and record deletion.
+
+
+3. THE BLOCKCHAIN & PRIVACY VERIFICATION ARCHITECTURE (ZCASH)
+--------------------------------------------------------------------------------
+
+The critical philosophy of OmniCura is:
+"Sensitive healthcare data must remain 100% private, while authenticity, ownership,
+and record integrity must be verifiable by anyone."
+
+A. Zero Personal Health Information (PHI) On-Chain
+- At no point are patient names, symptoms, medical history, photos, or diagnoses
+  written to the blockchain.
+- All clinical data remains in the patient's private encrypted local storage or
+  secure database with Row-Level Security (RLS).
+- Only cryptographic hashes (fingerprints) and zero-knowledge attestation memos
+  interact with the Zcash network.
+
+B. Canonical JSON Fingerprinting (Universal SHA-256 Engine)
+To ensure that an assessment produces the exact same hash regardless of operating
+system, client, or JSON key order, OmniCura uses deterministic canonicalization:
+1. Normalization: Whitespace is trimmed; strings are normalized.
+2. Canonical Key Sorting: JSON keys are lexicographically sorted prior to hashing:
+   - patientId
+   - symptoms
+   - severity (emergency | urgent | non-urgent)
+   - recommendedAction
+   - possibleConditions (sorted alphabetically)
+   - firstAidSteps
+   - warningSigns
+   - timestamp (ISO-8601 UTC)
+   - schemaVersion ("omnicura-v1")
+3. Hashing: Computed through a deterministic SHA-256 digest yielding a 64-character
+   hexadecimal fingerprint (e.g., 780ddddd2b9b9f561a0e4acef8f0474ba6399a38...).
+
+C. Zcash Testnet Notary Attestation & Shielded Memo Proofs
+Once the canonical hash is generated:
+1. Shielded Memo Payload:
+   A standard zero-knowledge attestation payload is constructed:
+   "omnicura:v1:assessment:<record_sha256_hash>:<timestamp>"
+2. Dual-Proof Model:
+   - Shielded Proof: For zero-knowledge confidentiality, the attestation memo is
+     transmitted within a shielded Zcash transaction.
+   - On-Chain Transaction Anchor: The notary wallet broadcasts a real shielded
+     self-transfer carrying the memo. The txid the network returns is stored
+     with the record, and its block height is read back from the chain, never
+     assumed. Example: txid
+     18bcad373b1241c6730a6637f40e19eb329a8c74336f2bd314a0132a0fd4ea58,
+     confirmed in Zcash testnet block #4618838.
+   - Consent events (access grants, revocations, share invitations, clinician
+     requests, approvals and denials) are anchored the same way with the memo
+     "omnicura:v1:consent:<event_sha256_hash>:<timestamp>".
+3. Block Explorer Integration:
+   Each assessment displays a live verification badge linking to public block
+   explorers (SoChain / Blockchair) so judges, clinicians, or patients can verify
+   on-chain timestamping.
+
+D. Unified Address Support (ZIP 316 / Bech32m)
+OmniCura supports modern Zcash standards:
+- Modern Unified Address (UA): Starts with "utest1..." (e.g.,
+  utest19d569wa8aaggfuvmvuf26808wdhvx74c7ava3ggxqxzd43hsm4ter3zltvumx463wq5rwy4jnd89klc0pgv7rp2u8498wmanhyhc5m79).
+  Bundles Orchard and Sapling shielded pools with transparent receivers.
+- Zero-Knowledge Shielded Mode: In accordance with Zcash privacy principles,
+  shielded balances are private by design and invisible to public web scrapers,
+  verifiable only by wallets holding the viewing key (e.g., YWallet, Zashi).
+- Transparent Fallback: Also supports transparent P2PKH addresses ("tm...") for
+  direct faucet integration and transparent notary scripts.
+
+E. Cryptographic Tamper Detection
+- How it Works: Whenever an assessment is opened, OmniCura reconstructs the
+  canonical assessment payload from the current record and re-runs SHA-256.
+- Tamper Trigger: If even a single character has been changed (for example, if a
+  malicious party alters the severity from "urgent" to "non-urgent" to deny care),
+  the SHA-256 avalanche effect produces a completely different hash.
+- Instant Alert: The UI immediately switches from "Zcash Verified" to a bright red
+  alert: "TAMPERING DETECTED: Hash Mismatch".
+- Hackathon Interactive Demonstration: The UI includes a "Simulate Tampering" /
+  "Restore Original Record" toggle so judges and users can observe tamper detection
+  in real time.
+
+F. Patient Data Ownership & Access Control System
+Located in the "Data Ownership" workspace (#ownership):
+1. Sovereign Custody: The patient is recognized as the sovereign owner of the record.
+2. Granting Access: Patients can grant "Full Clinical Read" or "Emergency Only" access
+   to hospitals, specialists, or primary physicians (e.g., Dr. Sarah Chen).
+3. Instant Revocation: Patients can revoke access with one click, locking the record.
+4. Verifiable Audit Trail: Every creation, grant, and revocation generates an immutable
+   cryptographic event hash and transaction reference displayed on a chronological
+   timeline.
+
+
+4. TECHNICAL STACK & ARCHITECTURAL OVERVIEW
+--------------------------------------------------------------------------------
+
+Frontend Architecture:
+- Framework: Next.js 16.4.6 with Turbopack bundler
+- UI Engine: React 19, Tailwind CSS v4, Lucide Icons, tw-animate-css
+- Design System: Custom clinical typography, dark/light themes, WCAG AA accessible
+
+Backend & APIs:
+- Runtime: Node.js 24 with native ES modules and crypto subsystem (secp256k1, RIPEMD160)
+- Endpoints:
+  * /api/ai/triage - Multi-turn conversational triage & adaptive follow-up generator
+  * /api/ai/image - Visual dermatological symptom recognition
+  * /api/ai/medication - Drug package OCR & pharmaceutical interaction checker
+  * /api/records/anchor - Zcash transaction attestation & memo generator
+  * /api/records/verify - Server-side record integrity & tamper verification
+  * /api/records/permissions - Patient access control & grant manager
+  * /api/zcash/status - Live testnet node monitor & wallet status
+
+Database & Security:
+- Database: Supabase PostgreSQL
+- Access Control: Row-Level Security (RLS) guaranteeing user-isolated record tenancy
+- AI Model: Google Gemini Flash 2.5 via @google/genai SDK
+- Deployment: Fully configured for Vercel edge deployment with zero environment leaks
+
+
+5. END-TO-END PATIENT WORKFLOW WALKTHROUGH
+--------------------------------------------------------------------------------
+
+Step 1: Patient Encounter
+The user opens OmniCura and enters symptoms:
+"High fever 103F since yesterday, severe pounding headache, and light hurts my eyes."
+
+Step 2: AI Triage & Follow-up
+The AI checks for red flags, then asks targeted follow-ups:
+"Is your neck stiff when touching your chin to your chest? Did symptoms start suddenly?"
+
+Step 3: Synthesis & Acuity Verdict
+The AI synthesizes the encounter:
+- Urgency: "Urgent"
+- Possible Conditions: Complicated Bacterial Sinusitis (84%), Atypical Migraine (62%)
+- Recommendation: Consult an urgent care clinician within 2 hours.
+- First Aid: Rest in a dark room, hydrate, avoid bright lights.
+
+Step 4: Cryptographic Hashing
+The application instantly compiles the canonical JSON payload and computes its SHA-256
+hash: e.g. 780ddddd2b9b9f561a0e4acef8f0474ba6399a38202deb424dd31583ec8af7a9.
+
+Step 5: Zcash Blockchain Anchoring
+The server recomputes the hash itself, and the notary sidecar sends a shielded Zcash
+testnet transaction carrying it in the memo. It returns the real txid, e.g.
+18bcad373b1241c6730a6637f40e19eb329a8c74336f2bd314a0132a0fd4ea58
+(https://sochain.com/tx/ZECTEST/18bcad373b1241c6730a6637f40e19eb329a8c74336f2bd314a0132a0fd4ea58).
+
+Step 6: Patient Review & Verification Badge
+The badge reads "Anchoring on Zcash" until the transaction is mined, then
+"Anchored on Zcash · Block #N" with a direct link to the testnet block explorer.
+If the record is later edited, its recomputed hash no longer matches and the badge
+turns to "Tampered".
+
+Step 7: Physician Access Grant
+The patient visits the Data Ownership panel and clicks "Grant Provider Access" to
+authorize "Dr. Elena Rostova (Neurology)". An ownership grant event hash is generated,
+recorded on the audit timeline, and anchored in its own Zcash testnet transaction.
+
+Step 8: Independent Verification
+The physician receives the record. OmniCura verifies the clinical data against the
+Zcash anchor. The physician confirms the record is authentic and unaltered since creation.
+
+
+6. ON-CHAIN EVIDENCE (ZCASH TESTNET, 14 NOV 2026)
+--------------------------------------------------------------------------------
+Real transactions created through the app, all confirmed. Each memo is
+"omnicura:v1:<kind>:<sha256>:<timestamp>", sent as a shielded self-transfer to the
+notary address. Open any of them at https://sochain.com/tx/ZECTEST/<txid>.
+
+Block    | What was anchored                              | txid
+4618838  | Assessment (API test)                          | 18bcad373b1241c6730a6637f40e19eb329a8c74336f2bd314a0132a0fd4ea58
+4618897  | Assessment from the symptom chat               | 32bdbb009305bfa9351e27e5c558e6dbba1b5906f7fb908513ca36466d047507
+4618908  | Consent: access granted to Dr. Elena Rostova   | 0f2f14e0d925af3d44497a18396fd4171e464a2b3169f01ced1e4a2f6920070b
+4618933  | Consent: share invitation created              | 39a7f320cf7b98312424a80708213ff099a230a5ed1c01c23171cb6a8a11523e
+4618938  | Consent: patient approved Dr. Marcus Vance     | ab5d703de8f13ef43b7270ba5062e2fa72aee848e164812243fef15743d34ce7
+4618950  | Consent: Dr. Marcus Vance requested access     | 6ae0246be46d418c88bc4b9f41ce8ee3d39541ac64a677e48017fdb6902c4bd3
+4618951  | Consent: access revoked from Dr. Elena Rostova | 2f01fcc6ec6b9715a10db7add846d684defd5953c578ce1179195f8a1d064537
+4618921  | Notary maintenance: balance split into 8 notes | 35ba45e97e7b681a7012396bb0318361dcd12db6cfa5bb55057426a4516be019
+
+(The request was mined after the approval because its first send hit a transient
+network error and was retried automatically.)
+
+
+================================================================================
+OmniCura: Clinical Intelligence with Cryptographic Integrity.
+All tests verified, built with Next.js 16, React 19, Supabase, and Zcash Testnet.
+================================================================================

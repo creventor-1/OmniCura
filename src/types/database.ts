@@ -22,6 +22,25 @@ export interface StoredAssessment {
   severity: "non-urgent" | "urgent" | "emergency";
   assessment_result: Record<string, unknown>;
   disclaimer: string;
+  // Cryptographic Verification & Zcash Anchoring (Phase 2+)
+  record_hash?: string;
+  verification_status?: "unverified" | "pending" | "verified" | "tampered";
+  verified_at?: string;
+  zcash_txid?: string;
+  zcash_block_height?: number;
+}
+
+export interface RecordAccessGrant {
+  id: string;
+  user_id: string;
+  record_id?: string;
+  grantee_entity: string;
+  access_level: "read" | "emergency_only";
+  status: "granted" | "revoked";
+  event_hash: string;
+  zcash_txid?: string;
+  created_at: string;
+  revoked_at?: string;
 }
 
 export interface EmergencyContact {

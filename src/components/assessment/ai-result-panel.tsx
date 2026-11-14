@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { AssessmentResponse } from "@/schemas/triage";
 import { ConfidenceMeter } from "@/components/assessment/confidence-meter";
+import { VerificationBadge } from "@/components/verification/verification-badge";
 import { getAcuity, ACUITY } from "@/lib/acuity";
 import { cn } from "cn";
 
@@ -21,6 +22,14 @@ export interface AIResultPanelProps {
   /** "split" = two-column on large screens (results page); "stack" = single column (dialogs) */
   layout?: "split" | "stack";
   actions?: React.ReactNode;
+  recordHash?: string;
+  zcashTxid?: string;
+  zcashBlockHeight?: number;
+  verifiedAt?: string;
+  anchorState?: "requested" | "failed" | "unanchored";
+  anchorMessage?: string;
+  /** Result of re-hashing the stored record; "tampered" when content no longer matches its registered hash. */
+  integrityStatus?: "tampered" | "pending" | "unverified";
 }
 
 export function AcuityHero({
@@ -155,9 +164,32 @@ export function WarningSigns({ signs }: { signs: string[] }) {
   );
 }
 
-export function AIResultPanel({ assessment, className = "", layout = "split", actions }: AIResultPanelProps) {
+export function AIResultPanel({
+  assessment,
+  className = "",
+  layout = "split",
+  actions,
+  recordHash,
+  zcashTxid,
+  zcashBlockHeight,
+  verifiedAt,
+  anchorState,
+  anchorMessage,
+  integrityStatus,
+}: AIResultPanelProps) {
+  const [isTamperedSimulation, setIsTamperedSimulation] = React.useState(false);
   const hasConditions = Boolean(assessment.possibleConditions && assessment.possibleConditions.length > 0);
   const isSplit = layout === "split";
+
+  const displaySeverity = isTamperedSimulation
+    ? assessment.severity === "emergency"
+      ? "non-urgent"
+      : "emergency"
+    : assessment.severity;
+
+  const displayAction = isTamperedSimulation
+    ? "TAMPERED: Minor condition, monitor at home without escalation."
+    : assessment.recommendedAction;
 
   return (
     <div
@@ -165,9 +197,22 @@ export function AIResultPanel({ assessment, className = "", layout = "split", ac
       aria-label="Clinical Assessment Results"
       className={cn("w-full space-y-5 text-left", className)}
     >
+      {/* Cryptographic Verification & Tamper Detection Banner */}
+      <VerificationBadge
+        recordHash={recordHash}
+        zcashTxid={zcashTxid}
+        zcashBlockHeight={zcashBlockHeight}
+        verifiedAt={verifiedAt}
+        status={integrityStatus ?? (recordHash ? "pending" : "unverified")}
+        anchorState={anchorState}
+        anchorMessage={anchorMessage}
+        isTamperedSimulation={isTamperedSimulation}
+        onSimulateTamperToggle={() => setIsTamperedSimulation((prev) => !prev)}
+      />
+
       <AcuityHero
-        severity={assessment.severity}
-        recommendedAction={assessment.recommendedAction}
+        severity={displaySeverity}
+        recommendedAction={displayAction}
         actions={actions}
         compact={!isSplit}
       />

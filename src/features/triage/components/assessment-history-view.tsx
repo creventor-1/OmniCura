@@ -26,6 +26,9 @@ import { AssessmentResponse } from "@/schemas/triage";
 import { generateTriagePdfReport } from "@/services/pdf/generate-report";
 import { SeverityBadge } from "@/components/shared/severity-badge";
 import { AIResultPanel } from "@/components/assessment/ai-result-panel";
+import { VerificationBadge } from "@/components/verification/verification-badge";
+import { ShareWithDoctorButton } from "@/components/sharing/share-with-doctor-modal";
+import { computeAssessmentHash } from "@/services/crypto/record-hasher";
 import { SegmentedShare } from "@/components/system/charts";
 import { ACUITY, ACUITY_ORDER, getAcuity } from "@/lib/acuity";
 import { getDayGroup } from "@/lib/format";
@@ -36,6 +39,32 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+
+/**
+ * Re-hashes a stored record and compares it with its registered hash.
+ * Legacy guest records were hashed with "anonymous-patient" while stored as
+ * "guest", so both ids are accepted for guests.
+ */
+function checkRecordIntegrity(item: StoredAssessment): {
+  recordHash: string | undefined;
+  status: "tampered" | "pending" | "unverified";
+} {
+  const result = item.assessment_result as AssessmentResponse | null;
+  if (!result) return { recordHash: item.record_hash, status: "unverified" };
+  const hashFor = (patientId: string) =>
+    computeAssessmentHash({ patientId, symptoms: item.symptoms, assessment: result, timestamp: item.created_at });
+  if (!item.record_hash) return { recordHash: hashFor(item.user_id || "anonymous-patient"), status: "unverified" };
+  const candidates = [item.user_id || "anonymous-patient"];
+  if (item.user_id === "guest") candidates.push("anonymous-patient");
+  const matches = candidates.some((pid) => {
+    try {
+      return hashFor(pid) === item.record_hash;
+    } catch {
+      return false;
+    }
+  });
+  return { recordHash: item.record_hash, status: matches ? "pending" : "tampered" };
+}
 
 interface AssessmentHistoryViewProps {
   onStartAssessment?: () => void;
@@ -318,7 +347,15 @@ Educational summary provided by Omnicura Decision Support.`;
             </DialogHeader>
 
             {detailsAssessment.assessment_result ? (
-              <AIResultPanel assessment={detailsAssessment.assessment_result as AssessmentResponse} layout="stack" />
+              <AIResultPanel
+                assessment={detailsAssessment.assessment_result as AssessmentResponse}
+                layout="stack"
+                recordHash={checkRecordIntegrity(detailsAssessment).recordHash}
+                integrityStatus={checkRecordIntegrity(detailsAssessment).status}
+                zcashTxid={detailsAssessment.zcash_txid}
+                zcashBlockHeight={detailsAssessment.zcash_block_height}
+                verifiedAt={detailsAssessment.verified_at || detailsAssessment.created_at}
+              />
             ) : (
               <div className="flex items-center gap-3 rounded-2xl border border-border-subtle bg-subtle p-4">
                 <SeverityBadge severity={detailsAssessment.severity} />
@@ -327,6 +364,18 @@ Educational summary provided by Omnicura Decision Support.`;
             )}
 
             <div className="flex flex-col-reverse gap-2.5 border-t border-border-subtle pt-4 sm:flex-row sm:justify-end">
+              {detailsAssessment.assessment_result && (
+                <ShareWithDoctorButton
+                  recordId={detailsAssessment.id}
+                  symptoms={detailsAssessment.symptoms}
+                  assessment={detailsAssessment.assessment_result as AssessmentResponse}
+                  patientId={detailsAssessment.user_id}
+                  recordHash={detailsAssessment.record_hash}
+                  zcashTxid={detailsAssessment.zcash_txid}
+                  zcashBlockHeight={detailsAssessment.zcash_block_height}
+                  verifiedAt={detailsAssessment.verified_at || detailsAssessment.created_at}
+                />
+              )}
               <Button variant="outline" onClick={() => handleShare(detailsAssessment)}>
                 {copiedId === detailsAssessment.id ? (
                   <>
@@ -498,6 +547,14 @@ Educational summary provided by Omnicura Decision Support.`;
                       </button>
 
                       <div className="flex shrink-0 items-center justify-between gap-2 pl-14 lg:justify-end lg:pl-0">
+                        <VerificationBadge
+                          compact
+                          status={checkRecordIntegrity(item).status}
+                          recordHash={checkRecordIntegrity(item).recordHash}
+                          zcashTxid={item.zcash_txid}
+                          zcashBlockHeight={item.zcash_block_height}
+                          verifiedAt={item.verified_at || item.created_at}
+                        />
                         <SeverityBadge severity={item.severity} />
                         <div className="flex items-center gap-0.5">
                           <IconAction label="View full details" onClick={() => setDetailsAssessment(item)}>
@@ -527,12 +584,25 @@ Educational summary provided by Omnicura Decision Support.`;
 
                     {isExpanded && result && (
                       <div className="grid grid-cols-1 gap-3 px-4 pb-5 sm:px-5 sm:pl-[76px] md:grid-cols-2 animate-rise">
-                        <div className="rounded-2xl border border-brand/15 bg-brand-muted p-4">
-                          <div className="flex items-center gap-1.5 text-xs font-semibold text-accent-text">
-                            <ArrowRight className="size-3.5" aria-hidden="true" />
-                            Recommended next step
+                        <div className="rounded-2xl border border-brand/15 bg-brand-muted p-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 text-xs font-semibold text-accent-text">
+                              <ArrowRight className="size-3.5" aria-hidden="true" />
+                              Recommended next step
+                            </div>
+                            <ShareWithDoctorButton
+                              recordId={item.id}
+                              symptoms={item.symptoms}
+                              assessment={result}
+                              patientId={item.user_id}
+                              recordHash={item.record_hash}
+                              zcashTxid={item.zcash_txid}
+                              zcashBlockHeight={item.zcash_block_height}
+                              verifiedAt={item.verified_at || item.created_at}
+                              size="sm"
+                            />
                           </div>
-                          <p className="mt-1.5 text-sm font-medium leading-relaxed text-foreground">{result.recommendedAction}</p>
+                          <p className="text-sm font-medium leading-relaxed text-foreground">{result.recommendedAction}</p>
                         </div>
                         {result.severityReasoning && (
                           <div className="rounded-2xl border border-border-subtle bg-surface p-4">

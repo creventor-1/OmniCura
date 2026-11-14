@@ -14,6 +14,7 @@ const VALID_SECTIONS: NavSection[] = [
   "medication",
   "hospitals",
   "history",
+  "ownership",
   "profile",
   "contacts",
 ];

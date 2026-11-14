@@ -1,0 +1,23 @@
+# Run from the repo root:  npm run notary:docker
+# Only the variables listed below are passed into the container (not the rest of .env.local).
+name: omnicura-notary
+services:
+  notary:
+    build:
+      context: ..
+      dockerfile: notary/Dockerfile
+    environment:
+      ZCASH_NETWORK: ${ZCASH_NETWORK:-testnet}
+      ZCASH_LIGHTWALLETD_URL: ${ZCASH_LIGHTWALLETD_URL:-https://testnet.zec.rocks:443}
+      ZCASH_NOTARY_ADDRESS: ${ZCASH_NOTARY_ADDRESS}
+      ZCASH_NOTARY_SIDECAR_TOKEN: ${ZCASH_NOTARY_SIDECAR_TOKEN}
+      ZINGO_SEED: ${ZINGO_SEED:-}
+      ZCASH_NOTARY_BIRTHDAY: ${ZCASH_NOTARY_BIRTHDAY:-}
+      ZCASH_ANCHOR_AMOUNT_ZATS: ${ZCASH_ANCHOR_AMOUNT_ZATS:-1000}
+    ports:
+      - "127.0.0.1:8737:8737" # reachable only from this computer
+    volumes:
+      - notary-wallet:/data # the wallet survives restarts and rebuilds
+    restart: unless-stopped
+volumes:
+  notary-wallet:
