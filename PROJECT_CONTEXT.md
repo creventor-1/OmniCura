@@ -2,7 +2,7 @@
 
 > **For AI agents and new contributors: read this first.** It describes what exists,
 > how the pieces connect, how to run and verify them, and which documents must be kept.
-> Last updated **14 Nov 2026**, at commit `66a3d0f` on `main` (pushed to GitHub).
+> Last updated **15 Nov 2026**, on `main`.
 > If you change architecture, endpoints, env vars or operations, update this file too.
 
 ---
@@ -485,6 +485,8 @@ viewing key can run
 
 | Commit | What |
 |---|---|
+| `HEAD` | Mobile voice input fix: eliminated `getUserMedia` from `AudioWaveformVisualizer` to resolve mobile OS microphone hardware exclusivity lockouts, animated procedural waveform, auto-restart loop for mobile 4-5s silence timeouts |
+| `ee8693b` | Continuous voice recognition with real-time feedback and auto-send |
 | `66a3d0f` | Survive tunnel hiccups (transient vs failed), longer retries and polling, HTTP/2 tunnel, resume interrupted record anchors, History refresh, single "record anchored" event |
 | `bf266e0` | Async anchoring (start + poll), Cloudflare tunnel service, `notary:tunnel` / `notary:vercel`, memo index + memo check UI, docs |
 | `81cf909` | Cross-device share invitations (Supabase relay + RPC security model), Emergency-Only snapshot scoping, revoke-by-grant fix, 128-bit tokens, dialog overflow fix, `allowedDevOrigins` |

@@ -296,12 +296,16 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
 
   // Voice recognition state
   const [isListening, setIsListening] = React.useState(false);
+  const [hasSpeech, setHasSpeech] = React.useState(false);
   const [voiceNotice, setVoiceNotice] = React.useState<string | null>(null);
   const speechRecognitionRef = React.useRef<SpeechRecognitionLike | null>(null);
+  const isListeningRef = React.useRef(false);
   const silenceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const initialSilenceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const latestTranscriptRef = React.useRef<string>("");
   const isSendingRef = React.useRef<boolean>(false);
+  const baseInputValueRef = React.useRef<string>("");
+  const restartCountRef = React.useRef<number>(0);
 
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -470,6 +474,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
 
   const handleSendMessage = async (textToSend?: string) => {
     // If voice recognition is running when sending, stop it cleanly
+    isListeningRef.current = false;
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
@@ -479,9 +484,16 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
       initialSilenceTimerRef.current = null;
     }
     try {
-      speechRecognitionRef.current?.stop();
+      const rec = speechRecognitionRef.current;
+      if (rec) {
+        rec.onend = null;
+        rec.onerror = null;
+        rec.onresult = null;
+        rec.stop();
+      }
     } catch {}
     setIsListening(false);
+    setHasSpeech(false);
 
     const text = (textToSend || inputValue).trim();
     if (!text || isLoading) return;
@@ -712,6 +724,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
 
   // Stops speech recognition and immediately auto-sends the captured transcript
   const stopAndSend = (explicitText?: string) => {
+    isListeningRef.current = false;
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
@@ -722,9 +735,16 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
     }
 
     try {
-      speechRecognitionRef.current?.stop();
+      const rec = speechRecognitionRef.current;
+      if (rec) {
+        rec.onend = null;
+        rec.onerror = null;
+        rec.onresult = null;
+        rec.stop();
+      }
     } catch {}
     setIsListening(false);
+    setHasSpeech(false);
 
     const textToSend = (explicitText ?? latestTranscriptRef.current).trim();
     if (textToSend && !isSendingRef.current) {
@@ -750,14 +770,20 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
     }
 
     // If currently listening, clicking the button stops and sends immediately
-    if (isListening) {
+    if (isListeningRef.current) {
       stopAndSend();
       return;
     }
 
     // Reset state for new recording session
+    isListeningRef.current = true;
+    setIsListening(true);
+    setHasSpeech(false);
     latestTranscriptRef.current = "";
     isSendingRef.current = false;
+    baseInputValueRef.current = inputValue.trim();
+    restartCountRef.current = 0;
+
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
@@ -767,128 +793,179 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
       initialSilenceTimerRef.current = null;
     }
 
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "en-US";
+    // Timeout if no speech is detected at all within 12 seconds
+    initialSilenceTimerRef.current = setTimeout(() => {
+      if (!latestTranscriptRef.current.trim()) {
+        isListeningRef.current = false;
+        try {
+          const rec = speechRecognitionRef.current;
+          if (rec) {
+            rec.onend = null;
+            rec.onerror = null;
+            rec.onresult = null;
+            rec.stop();
+          }
+        } catch {}
+        setIsListening(false);
+        setHasSpeech(false);
+        setVoiceNotice("No speech detected. Tap the microphone when you are ready to speak.");
+        setTimeout(() => setVoiceNotice(null), 4000);
+      }
+    }, 12000);
 
-      const prefixText = inputValue.trim();
+    const startSession = () => {
+      if (!isListeningRef.current) return;
 
-      recognition.onstart = () => {
-        setIsListening(true);
-        // Timeout if no speech is detected at all within 12 seconds
-        initialSilenceTimerRef.current = setTimeout(() => {
-          if (!latestTranscriptRef.current.trim()) {
-            try {
-              speechRecognitionRef.current?.stop();
-            } catch {}
+      try {
+        if (speechRecognitionRef.current) {
+          try {
+            speechRecognitionRef.current.onend = null;
+            speechRecognitionRef.current.onerror = null;
+            speechRecognitionRef.current.onresult = null;
+            speechRecognitionRef.current.stop();
+          } catch {}
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        const userLang = typeof navigator !== "undefined" && navigator.language ? navigator.language : "en-US";
+        recognition.lang = userLang || "en-US";
+
+        recognition.onstart = () => {
+          if (isListeningRef.current) {
+            setIsListening(true);
+          }
+        };
+
+        recognition.onresult = (event: SpeechRecognitionEventLike) => {
+          if (initialSilenceTimerRef.current) {
+            clearTimeout(initialSilenceTimerRef.current);
+            initialSilenceTimerRef.current = null;
+          }
+
+          let final = "";
+          let interim = "";
+          for (let i = 0; i < event.results.length; i++) {
+            const item = event.results[i];
+            const text = item[0]?.transcript || "";
+            if (item.isFinal) {
+              final += (final ? " " : "") + text;
+            } else {
+              interim += (interim ? " " : "") + text;
+            }
+          }
+
+          const recognizedText = (final + (interim ? " " + interim : "")).trim();
+          const prefixText = baseInputValueRef.current;
+          const fullText = prefixText ? `${prefixText} ${recognizedText}` : recognizedText;
+
+          if (fullText) {
+            latestTranscriptRef.current = fullText;
+            setInputValue(fullText);
+            setHasSpeech(true);
+
+            // Auto-send after 2 seconds of silence
+            if (silenceTimerRef.current) {
+              clearTimeout(silenceTimerRef.current);
+            }
+            silenceTimerRef.current = setTimeout(() => {
+              stopAndSend();
+            }, 2000);
+          }
+        };
+
+        recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
+          if (event.error === "no-speech") {
+            // Normal silence on mobile browsers; ignore and let onend handle restarting if needed
+            return;
+          }
+
+          if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+            isListeningRef.current = false;
             setIsListening(false);
-            setVoiceNotice("No speech detected. Tap the microphone when you are ready to speak.");
-            setTimeout(() => setVoiceNotice(null), 4000);
+            setHasSpeech(false);
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+            if (initialSilenceTimerRef.current) clearTimeout(initialSilenceTimerRef.current);
+            setVoiceNotice("Microphone permission was denied. Please allow microphone access in your browser settings.");
+            setTimeout(() => setVoiceNotice(null), 5000);
+            return;
           }
-        }, 12000);
-      };
 
-      recognition.onresult = (event: SpeechRecognitionEventLike) => {
-        if (initialSilenceTimerRef.current) {
-          clearTimeout(initialSilenceTimerRef.current);
-          initialSilenceTimerRef.current = null;
-        }
-
-        let final = "";
-        let interim = "";
-        for (let i = 0; i < event.results.length; i++) {
-          const item = event.results[i];
-          const text = item[0]?.transcript || "";
-          if (item.isFinal) {
-            final += (final ? " " : "") + text;
-          } else {
-            interim += (interim ? " " : "") + text;
+          if (event.error === "network") {
+            isListeningRef.current = false;
+            setIsListening(false);
+            setHasSpeech(false);
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+            if (initialSilenceTimerRef.current) clearTimeout(initialSilenceTimerRef.current);
+            setVoiceNotice("Voice recognition network error. Please try again or type your symptoms.");
+            setTimeout(() => setVoiceNotice(null), 5000);
+            return;
           }
-        }
 
-        const recognizedText = (final + (interim ? " " + interim : "")).trim();
-        const fullText = prefixText ? `${prefixText} ${recognizedText}` : recognizedText;
-
-        if (fullText) {
-          latestTranscriptRef.current = fullText;
-          setInputValue(fullText);
-
-          // Auto-send after 2 seconds of silence
-          if (silenceTimerRef.current) {
-            clearTimeout(silenceTimerRef.current);
+          if (event.error !== "aborted") {
+            console.warn("Speech recognition error:", event.error);
           }
-          silenceTimerRef.current = setTimeout(() => {
+        };
+
+        recognition.onend = () => {
+          // If the user already stopped or send was dispatched:
+          if (!isListeningRef.current) {
+            setIsListening(false);
+            setHasSpeech(false);
+            return;
+          }
+
+          // If speech was captured and ended naturally, auto-send now
+          const textToSend = latestTranscriptRef.current.trim();
+          if (textToSend && !isSendingRef.current) {
             stopAndSend();
-          }, 2000);
-        }
-      };
+            return;
+          }
 
-      recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
-        if (event.error === "no-speech") {
-          return;
-        }
+          // If no speech was captured yet and user still wants listening,
+          // restart seamlessly to overcome mobile 4-5 second silence timeouts
+          if (isListeningRef.current && restartCountRef.current < 5) {
+            restartCountRef.current += 1;
+            setTimeout(() => {
+              if (isListeningRef.current) {
+                startSession();
+              }
+            }, 200);
+          } else {
+            setIsListening(false);
+            setHasSpeech(false);
+          }
+        };
 
-        if (silenceTimerRef.current) {
-          clearTimeout(silenceTimerRef.current);
-          silenceTimerRef.current = null;
+        speechRecognitionRef.current = recognition;
+        recognition.start();
+      } catch (e) {
+        console.warn("Speech recognition start error:", e);
+        if (!latestTranscriptRef.current.trim()) {
+          setIsListening(false);
+          setHasSpeech(false);
         }
-        if (initialSilenceTimerRef.current) {
-          clearTimeout(initialSilenceTimerRef.current);
-          initialSilenceTimerRef.current = null;
-        }
+      }
+    };
 
-        setIsListening(false);
-
-        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-          setVoiceNotice("Microphone permission was denied. Please allow microphone access in your browser settings.");
-          setTimeout(() => setVoiceNotice(null), 5000);
-        } else if (event.error === "network") {
-          setVoiceNotice("Voice recognition network error. Please try again or type your symptoms.");
-          setTimeout(() => setVoiceNotice(null), 5000);
-        } else if (event.error !== "aborted") {
-          console.warn("Speech recognition error:", event.error);
-        }
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-        if (silenceTimerRef.current) {
-          clearTimeout(silenceTimerRef.current);
-          silenceTimerRef.current = null;
-        }
-        if (initialSilenceTimerRef.current) {
-          clearTimeout(initialSilenceTimerRef.current);
-          initialSilenceTimerRef.current = null;
-        }
-
-        // If speech ended naturally and has not been sent yet, auto-send now
-        const textToSend = latestTranscriptRef.current.trim();
-        if (textToSend && !isSendingRef.current) {
-          isSendingRef.current = true;
-          latestTranscriptRef.current = "";
-          handleSendMessage(textToSend).finally(() => {
-            isSendingRef.current = false;
-          });
-        }
-      };
-
-      speechRecognitionRef.current = recognition;
-      recognition.start();
-    } catch (e) {
-      console.warn("Speech recognition error:", e);
-      setIsListening(false);
-    }
+    startSession();
   };
 
   // Clean up speech recognition timers on component unmount
   React.useEffect(() => {
     return () => {
+      isListeningRef.current = false;
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       if (initialSilenceTimerRef.current) clearTimeout(initialSilenceTimerRef.current);
       try {
-        speechRecognitionRef.current?.stop();
+        const rec = speechRecognitionRef.current;
+        if (rec) {
+          rec.onend = null;
+          rec.onerror = null;
+          rec.onresult = null;
+          rec.stop();
+        }
       } catch {}
     };
   }, []);
@@ -1138,7 +1215,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
 
             {/* Composer */}
             <div className="p-3 sm:p-4">
-              <AudioWaveformVisualizer isListening={isListening} onStop={toggleSpeechRecognition} className="mb-2.5" />
+              <AudioWaveformVisualizer isListening={isListening} hasSpeech={hasSpeech} onStop={() => stopAndSend()} className="mb-2.5" />
               {voiceNotice && (
                 <p role="status" className="mb-2 rounded-lg bg-info-muted px-3 py-2 text-xs text-info">{voiceNotice}</p>
               )}

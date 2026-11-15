@@ -6,19 +6,18 @@ import { Button } from "@/components/ui/button";
 
 interface AudioWaveformVisualizerProps {
   isListening: boolean;
+  hasSpeech?: boolean;
   onStop: () => void;
   className?: string;
 }
 
 export function AudioWaveformVisualizer({
   isListening,
+  hasSpeech = false,
   onStop,
   className = "",
 }: AudioWaveformVisualizerProps) {
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
-  const audioCtxRef = React.useRef<AudioContext | null>(null);
-  const analyserRef = React.useRef<AnalyserNode | null>(null);
-  const streamRef = React.useRef<MediaStream | null>(null);
   const animFrameRef = React.useRef<number | null>(null);
   const themeColorsRef = React.useRef<{ accent: string; muted: string }>({
     accent: "#14A3B3",
@@ -68,14 +67,6 @@ export function AudioWaveformVisualizer({
         cancelAnimationFrame(animFrameRef.current);
         animFrameRef.current = null;
       }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-      if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
-        audioCtxRef.current.close().catch(() => {});
-        audioCtxRef.current = null;
-      }
       return;
     }
 
@@ -84,96 +75,67 @@ export function AudioWaveformVisualizer({
     }
 
     let isSubscribed = true;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    async function initAudio() {
-      try {
-        if (!navigator.mediaDevices?.getUserMedia) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true },
-        });
+    // DPR-aware canvas sizing
+    const dpr = window.devicePixelRatio || 1;
+    const displayWidth = canvas.clientWidth || 240;
+    const displayHeight = canvas.clientHeight || 28;
 
-        if (!isSubscribed) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
+    canvas.width = displayWidth * dpr;
+    canvas.height = displayHeight * dpr;
+    ctx.scale(dpr, dpr);
+
+    const barCount = 20;
+    const barWidth = 3;
+    const totalBarsWidth = barCount * barWidth;
+    const gap = Math.max(2, (displayWidth - totalBarsWidth) / (barCount - 1));
+
+    const renderFrame = () => {
+      if (!isSubscribed) return;
+
+      ctx.clearRect(0, 0, displayWidth, displayHeight);
+
+      const { accent } = themeColorsRef.current;
+      const t = performance.now() * 0.0035;
+      const speechMultiplier = hasSpeech ? 1.35 : 0.8;
+
+      for (let i = 0; i < barCount; i++) {
+        // Natural center-weighted bell curve
+        const normX = i / (barCount - 1);
+        const centerWeight = Math.sin(normX * Math.PI);
+
+        // Fluid organic multi-harmonic waves
+        const wave1 = Math.sin(t * 2.2 + i * 0.45);
+        const wave2 = Math.sin(t * 3.8 - i * 0.65);
+        const wave3 = Math.cos(t * 1.5 + i * 0.85);
+        const rawAmp = Math.abs(wave1 * 0.5 + wave2 * 0.3 + wave3 * 0.2) * speechMultiplier;
+
+        const percent = Math.min(1, Math.max(0.12, rawAmp * (0.35 + 0.65 * centerWeight)));
+        const barHeight = Math.max(3, percent * (displayHeight - 4));
+
+        const x = i * (barWidth + gap);
+        const y = (displayHeight - barHeight) / 2;
+
+        ctx.fillStyle = accent;
+        ctx.globalAlpha = percent > 0.3 ? 1.0 : 0.6;
+        ctx.beginPath();
+        if (typeof ctx.roundRect === "function") {
+          ctx.roundRect(x, y, barWidth, barHeight, 1.5);
+        } else {
+          ctx.rect(x, y, barWidth, barHeight);
         }
-
-        streamRef.current = stream;
-
-        const AudioContextClass =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-
-        const audioCtx = new AudioContextClass();
-        audioCtxRef.current = audioCtx;
-
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 64;
-        analyser.smoothingTimeConstant = 0.8;
-        analyserRef.current = analyser;
-
-        const source = audioCtx.createMediaStreamSource(stream);
-        source.connect(analyser);
-
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-
-        // DPR-aware canvas sizing
-        const dpr = window.devicePixelRatio || 1;
-        const displayWidth = canvas.clientWidth || 240;
-        const displayHeight = canvas.clientHeight || 28;
-
-        canvas.width = displayWidth * dpr;
-        canvas.height = displayHeight * dpr;
-        ctx.scale(dpr, dpr);
-
-        const renderFrame = () => {
-          if (!isSubscribed) return;
-
-          analyser.getByteFrequencyData(dataArray);
-
-          ctx.clearRect(0, 0, displayWidth, displayHeight);
-
-          const barCount = 20;
-          const barWidth = 3;
-          const totalBarsWidth = barCount * barWidth;
-          const gap = Math.max(2, (displayWidth - totalBarsWidth) / (barCount - 1));
-
-          const { accent } = themeColorsRef.current;
-
-          for (let i = 0; i < barCount; i++) {
-            const dataIndex = Math.floor((i / barCount) * (bufferLength / 2));
-            const value = dataArray[dataIndex] || 0;
-
-            const percent = value / 255;
-            const barHeight = Math.max(3, percent * (displayHeight - 4));
-
-            const x = i * (barWidth + gap);
-            const y = (displayHeight - barHeight) / 2;
-
-            ctx.fillStyle = accent;
-            ctx.globalAlpha = percent > 0.3 ? 1.0 : 0.6;
-            ctx.beginPath();
-            ctx.roundRect(x, y, barWidth, barHeight, 1.5);
-            ctx.fill();
-          }
-
-          animFrameRef.current = requestAnimationFrame(renderFrame);
-        };
-
-        renderFrame();
-      } catch (err) {
-        console.warn("[AUDIO_VISUALIZER_NOTICE] Mic unavailable or permission denied:", err);
+        ctx.fill();
       }
-    }
 
-    initAudio();
+      animFrameRef.current = requestAnimationFrame(renderFrame);
+    };
+
+    renderFrame();
 
     return () => {
       isSubscribed = false;
@@ -181,16 +143,8 @@ export function AudioWaveformVisualizer({
         cancelAnimationFrame(animFrameRef.current);
         animFrameRef.current = null;
       }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-      if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
-        audioCtxRef.current.close().catch(() => {});
-        audioCtxRef.current = null;
-      }
     };
-  }, [isListening, prefersReducedMotion]);
+  }, [isListening, hasSpeech, prefersReducedMotion]);
 
   if (!isListening) {
     return null;
