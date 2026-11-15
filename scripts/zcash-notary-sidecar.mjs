@@ -428,6 +428,21 @@ async function initWallet() {
       if (res.ok) {
         state.walletAddresses = Array.from(new Set(res.stdout.match(/\b(?:utest1|u1|ztestsapling|zs|tm|t1)[0-9a-z]{20,}\b/gi) || []));
         state.ownsNotaryAddress = res.stdout.includes(cfg.notaryAddress) ? true : false;
+
+        if (!state.ownsNotaryAddress && cfg.seed && !firstRun) {
+          console.warn(`[notary] Existing wallet does not own ${cfg.notaryAddress}. Re-restoring from ZINGO_SEED…`);
+          for (const file of fs.readdirSync(cfg.dataDir)) {
+            if (!file.startsWith("omnicura-")) {
+              try { fs.rmSync(path.join(cfg.dataDir, file), { recursive: true, force: true }); } catch {}
+            }
+          }
+          const restoreRes = await runZingo(["--waitsync", "addresses"], { withSeed: true, timeoutMs: 30 * 60_000 });
+          if (restoreRes.ok) {
+            state.walletAddresses = Array.from(new Set(restoreRes.stdout.match(/\b(?:utest1|u1|ztestsapling|zs|tm|t1)[0-9a-z]{20,}\b/gi) || []));
+            state.ownsNotaryAddress = restoreRes.stdout.includes(cfg.notaryAddress) ? true : false;
+          }
+        }
+
         state.ready = true;
         state.reason = state.ownsNotaryAddress
           ? "Wallet open and controls the notary address."
