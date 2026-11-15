@@ -32,6 +32,5 @@ ENV ZINGO_CLI_PATH=/usr/local/bin/zingo-cli \
     ZINGO_NYM_PROXY=/usr/local/bin/nym-proxy \
     ZINGO_DATA_DIR=/data \
     ZCASH_NOTARY_SIDECAR_HOST=0.0.0.0
-VOLUME /data
 EXPOSE 8737
 CMD ["node", "scripts/zcash-notary-sidecar.mjs"]
