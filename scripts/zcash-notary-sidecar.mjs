@@ -76,7 +76,7 @@ const cfg = {
   birthday: (process.env.ZCASH_NOTARY_BIRTHDAY || "").trim(),
   amountZats: Number(process.env.ZCASH_ANCHOR_AMOUNT_ZATS || 1000),
   host: (process.env.ZCASH_NOTARY_SIDECAR_HOST || "127.0.0.1").trim(),
-  port: Number(process.env.ZCASH_NOTARY_SIDECAR_PORT || 8737),
+  port: Number(process.env.PORT || process.env.ZCASH_NOTARY_SIDECAR_PORT || 8737),
 };
 
 function fatal(msg) {
