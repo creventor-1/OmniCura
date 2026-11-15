@@ -16,7 +16,10 @@ RUN git clone --depth 1 --branch ${ZINGOLIB_REF} https://github.com/zingolabs/zi
 WORKDIR /src
 # Default features: current zingo-cli only goes online through the Nym mixnet, so
 # nym-proxy must be built and shipped beside it (a --nakednet build is offline-only).
-RUN makers run-cli --build-only && ./target/release/zingo-cli --version && ls -la target/release/nym-proxy
+RUN makers run-cli --build-only \
+ && (test -f target/release/zingo-cli || cp target/release/zingolib-cli target/release/zingo-cli) \
+ && ./target/release/zingo-cli --version \
+ && ls -la target/release/nym-proxy
 
 # ---- Runtime: Node + zingo-cli ----
 FROM node:22-bookworm-slim
@@ -25,7 +28,8 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=build /src/target/release/zingo-cli /usr/local/bin/zingo-cli
 COPY --from=build /src/target/release/nym-proxy /usr/local/bin/nym-proxy
-RUN zingo-cli --version
+RUN ln -sf /usr/local/bin/zingo-cli /usr/local/bin/zingolib-cli \
+ && zingo-cli --version
 WORKDIR /app
 COPY scripts/zcash-notary-sidecar.mjs scripts/zcash-notary-sidecar.mjs
 ENV ZINGO_CLI_PATH=/usr/local/bin/zingo-cli \
