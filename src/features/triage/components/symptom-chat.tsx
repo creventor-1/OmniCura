@@ -51,12 +51,20 @@ function getFormattedTimestamp(): string {
 
 interface SpeechRecognitionAlternative {
   transcript: string;
+  confidence?: number;
 }
 interface SpeechRecognitionResultItem {
   [index: number]: SpeechRecognitionAlternative;
+  isFinal?: boolean;
+  length?: number;
 }
 interface SpeechRecognitionEventLike {
   results: SpeechRecognitionResultItem[];
+  resultIndex?: number;
+}
+interface SpeechRecognitionErrorEventLike {
+  error: string;
+  message?: string;
 }
 interface SpeechRecognitionLike {
   continuous: boolean;
@@ -64,10 +72,11 @@ interface SpeechRecognitionLike {
   lang: string;
   onstart: (() => void) | null;
   onend: (() => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   start: () => void;
   stop: () => void;
+  abort?: () => void;
 }
 
 interface WindowWithSpeech extends Window {
@@ -289,6 +298,10 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
   const [isListening, setIsListening] = React.useState(false);
   const [voiceNotice, setVoiceNotice] = React.useState<string | null>(null);
   const speechRecognitionRef = React.useRef<SpeechRecognitionLike | null>(null);
+  const silenceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const initialSilenceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const latestTranscriptRef = React.useRef<string>("");
+  const isSendingRef = React.useRef<boolean>(false);
 
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -455,50 +468,21 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
     loadActiveProfile();
   }, [user, supabase]);
 
-  // Setup Web Speech API for voice description
-  const toggleSpeechRecognition = () => {
-    if (typeof window === "undefined") return;
-
-    const win = window as unknown as WindowWithSpeech;
-    const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      setVoiceNotice("Voice input isn't supported in this browser. Please type your symptoms instead.");
-      setTimeout(() => setVoiceNotice(null), 4000);
-      return;
-    }
-
-    if (isListening) {
-      speechRecognitionRef.current?.stop();
-      setIsListening(false);
-      return;
-    }
-
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = "en-US";
-
-      recognition.onstart = () => setIsListening(true);
-      recognition.onend = () => setIsListening(false);
-      recognition.onerror = () => setIsListening(false);
-      recognition.onresult = (event: SpeechRecognitionEventLike) => {
-        const transcript = event.results[0]?.[0]?.transcript;
-        if (transcript) {
-          setInputValue((prev) => (prev ? `${prev} ${transcript}` : transcript));
-        }
-      };
-
-      speechRecognitionRef.current = recognition;
-      recognition.start();
-    } catch (e) {
-      console.warn("Speech recognition error:", e);
-      setIsListening(false);
-    }
-  };
-
   const handleSendMessage = async (textToSend?: string) => {
+    // If voice recognition is running when sending, stop it cleanly
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    if (initialSilenceTimerRef.current) {
+      clearTimeout(initialSilenceTimerRef.current);
+      initialSilenceTimerRef.current = null;
+    }
+    try {
+      speechRecognitionRef.current?.stop();
+    } catch {}
+    setIsListening(false);
+
     const text = (textToSend || inputValue).trim();
     if (!text || isLoading) return;
 
@@ -725,6 +709,189 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
       setIsLoading(false);
     }
   };
+
+  // Stops speech recognition and immediately auto-sends the captured transcript
+  const stopAndSend = (explicitText?: string) => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    if (initialSilenceTimerRef.current) {
+      clearTimeout(initialSilenceTimerRef.current);
+      initialSilenceTimerRef.current = null;
+    }
+
+    try {
+      speechRecognitionRef.current?.stop();
+    } catch {}
+    setIsListening(false);
+
+    const textToSend = (explicitText ?? latestTranscriptRef.current).trim();
+    if (textToSend && !isSendingRef.current) {
+      isSendingRef.current = true;
+      latestTranscriptRef.current = "";
+      handleSendMessage(textToSend).finally(() => {
+        isSendingRef.current = false;
+      });
+    }
+  };
+
+  // Setup Web Speech API for voice description with continuous listening, real-time feedback, and auto-send on pause
+  const toggleSpeechRecognition = () => {
+    if (typeof window === "undefined") return;
+
+    const win = window as unknown as WindowWithSpeech;
+    const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setVoiceNotice("Voice input isn't supported in this browser. Please type your symptoms instead.");
+      setTimeout(() => setVoiceNotice(null), 4000);
+      return;
+    }
+
+    // If currently listening, clicking the button stops and sends immediately
+    if (isListening) {
+      stopAndSend();
+      return;
+    }
+
+    // Reset state for new recording session
+    latestTranscriptRef.current = "";
+    isSendingRef.current = false;
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    if (initialSilenceTimerRef.current) {
+      clearTimeout(initialSilenceTimerRef.current);
+      initialSilenceTimerRef.current = null;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      const prefixText = inputValue.trim();
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        // Timeout if no speech is detected at all within 12 seconds
+        initialSilenceTimerRef.current = setTimeout(() => {
+          if (!latestTranscriptRef.current.trim()) {
+            try {
+              speechRecognitionRef.current?.stop();
+            } catch {}
+            setIsListening(false);
+            setVoiceNotice("No speech detected. Tap the microphone when you are ready to speak.");
+            setTimeout(() => setVoiceNotice(null), 4000);
+          }
+        }, 12000);
+      };
+
+      recognition.onresult = (event: SpeechRecognitionEventLike) => {
+        if (initialSilenceTimerRef.current) {
+          clearTimeout(initialSilenceTimerRef.current);
+          initialSilenceTimerRef.current = null;
+        }
+
+        let final = "";
+        let interim = "";
+        for (let i = 0; i < event.results.length; i++) {
+          const item = event.results[i];
+          const text = item[0]?.transcript || "";
+          if (item.isFinal) {
+            final += (final ? " " : "") + text;
+          } else {
+            interim += (interim ? " " : "") + text;
+          }
+        }
+
+        const recognizedText = (final + (interim ? " " + interim : "")).trim();
+        const fullText = prefixText ? `${prefixText} ${recognizedText}` : recognizedText;
+
+        if (fullText) {
+          latestTranscriptRef.current = fullText;
+          setInputValue(fullText);
+
+          // Auto-send after 2 seconds of silence
+          if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+          }
+          silenceTimerRef.current = setTimeout(() => {
+            stopAndSend();
+          }, 2000);
+        }
+      };
+
+      recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
+        if (event.error === "no-speech") {
+          return;
+        }
+
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
+          silenceTimerRef.current = null;
+        }
+        if (initialSilenceTimerRef.current) {
+          clearTimeout(initialSilenceTimerRef.current);
+          initialSilenceTimerRef.current = null;
+        }
+
+        setIsListening(false);
+
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+          setVoiceNotice("Microphone permission was denied. Please allow microphone access in your browser settings.");
+          setTimeout(() => setVoiceNotice(null), 5000);
+        } else if (event.error === "network") {
+          setVoiceNotice("Voice recognition network error. Please try again or type your symptoms.");
+          setTimeout(() => setVoiceNotice(null), 5000);
+        } else if (event.error !== "aborted") {
+          console.warn("Speech recognition error:", event.error);
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
+          silenceTimerRef.current = null;
+        }
+        if (initialSilenceTimerRef.current) {
+          clearTimeout(initialSilenceTimerRef.current);
+          initialSilenceTimerRef.current = null;
+        }
+
+        // If speech ended naturally and has not been sent yet, auto-send now
+        const textToSend = latestTranscriptRef.current.trim();
+        if (textToSend && !isSendingRef.current) {
+          isSendingRef.current = true;
+          latestTranscriptRef.current = "";
+          handleSendMessage(textToSend).finally(() => {
+            isSendingRef.current = false;
+          });
+        }
+      };
+
+      speechRecognitionRef.current = recognition;
+      recognition.start();
+    } catch (e) {
+      console.warn("Speech recognition error:", e);
+      setIsListening(false);
+    }
+  };
+
+  // Clean up speech recognition timers on component unmount
+  React.useEffect(() => {
+    return () => {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      if (initialSilenceTimerRef.current) clearTimeout(initialSilenceTimerRef.current);
+      try {
+        speechRecognitionRef.current?.stop();
+      } catch {}
+    };
+  }, []);
 
   const handleReset = () => {
     if (typeof window !== "undefined") {
@@ -998,7 +1165,7 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
                       handleSendMessage();
                     }
                   }}
-                  placeholder={isListening ? "Listening… speak now" : "Describe symptoms or answer the question…"}
+                  placeholder={isListening ? "Listening… speak naturally (auto-sends on pause)" : "Describe symptoms or answer the question…"}
                   disabled={isLoading}
                   className="block w-full resize-none bg-transparent px-4 pt-3.5 pb-1 text-base sm:text-[15px] leading-relaxed text-foreground placeholder:text-text-tertiary outline-none disabled:opacity-60"
                 />
@@ -1011,8 +1178,8 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
                         "flex size-9 items-center justify-center rounded-xl transition-colors cursor-pointer",
                         isListening ? "bg-danger-muted text-danger" : "text-text-tertiary hover:bg-muted hover:text-foreground"
                       )}
-                      title={isListening ? "Listening… click to stop" : "Speak your symptoms"}
-                      aria-label={isListening ? "Stop voice input" : "Start voice input"}
+                      title={isListening ? "Listening… click to send now" : "Speak your symptoms"}
+                      aria-label={isListening ? "Stop and send voice input" : "Start voice input"}
                       aria-pressed={isListening}
                     >
                       {isListening ? <MicOff className="size-[18px]" /> : <Mic className="size-[18px]" />}

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Mic, Square } from "lucide-react";
+import { Mic, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface AudioWaveformVisualizerProps {
@@ -233,11 +233,11 @@ export function AudioWaveformVisualizer({
         variant="ghost"
         size="sm"
         onClick={onStop}
-        className="text-xs h-7 px-2.5 rounded-lg text-text-secondary hover:text-foreground gap-1 shrink-0"
-        title="Stop dictation"
+        className="text-xs h-7 px-2.5 rounded-lg text-accent hover:text-accent-text hover:bg-brand-muted gap-1.5 shrink-0 font-medium cursor-pointer"
+        title="Stop speaking and send message"
       >
-        <Square className="size-3 fill-current" />
-        <span>Stop</span>
+        <Send className="size-3" />
+        <span>Send</span>
       </Button>
     </div>
   );

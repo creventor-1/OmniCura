@@ -7,3 +7,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Project context (read first)
+
+Before changing anything, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md). It covers the
+architecture, the Zcash notary and Vercel setup, the API and RPC reference, the env var
+names, the runbook, recent history, known issues, and which documents must be kept.
+Never print or commit secrets from `.env.local` or `.env.notary`, and don't delete
+project documents without the owner's explicit approval.
