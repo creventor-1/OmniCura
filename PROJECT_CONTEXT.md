@@ -144,7 +144,7 @@ scripts/
   generate-notary-wallet.mjs   LEGACY transparent keypair generator (unused)
 notary/  Dockerfile (+ .dockerignore), docker-compose.yml (services: notary, tunnel [profile "tunnel"])
 supabase/  schema.sql (base schema) + migrations/20261114_zcash_anchoring.sql, 20261115_share_invitations.sql
-.claude/launch.json   Dev-server config "omnicura-dev" (npm run dev, port 3000) used by the preview tooling
+.vscode/launch.json  Dev-server config "omnicura-dev" (npm run dev, port 3000) used by the preview tooling
 .vercel/project.json  Links this folder to the Vercel project (keep)
 ```
 
@@ -184,11 +184,10 @@ Locally, `npm run dev` talks to the notary directly at `http://127.0.0.1:8737`
 | `ZCASH_NOTARY_SETUP.md` | **Current, canonical ops doc** | Notary setup, Docker, funding, split, DB migrations, memo proof, Vercel hosting, troubleshooting |
 | `OMNICURA_EXPLANATION.txt` | Current, judge-facing | Product and architecture write-up; §6 lists the first 8 real transactions |
 | `README.md` | Partly outdated | Overview and setup. Its "Development Status" list is stale (phases 5–6 unchecked though done) and it doesn't cover Zcash or sharing. Update rather than replace |
-| `PROJECT_SPEC.md` = `Project Specification.md` | Historical spec | Byte-identical copies: the original TriageAI spec |
-| `ARCHITECTURE.md` = `TriageAI-Architecture-Specification.md` | Historical spec | Byte-identical copies: original architecture plan |
-| `DEVELOPMENT_RULES.md` = `TriageAI - Development Rules and Coding Standards.md` | Still relevant | Byte-identical copies: coding standards |
-| `ROADMAP.md` = `TriageAI - Development Roadmap.md` | Historical | Byte-identical copies: original phase plan |
-| `UI-REDESIGN.md`, `OmniCura Redisign.md`, `Production-Grade UIUX Redesign.md`, `ui-ux-review.md` | Historical design briefs | Inputs to the UI redesign (`eb8a56e` and earlier) |
+| `PROJECT_SPEC.md` | Historical spec | Original TriageAI specification |
+| `ARCHITECTURE.md` | Historical spec | Original architecture plan |
+| `DEVELOPMENT_RULES.md` | Still relevant | Coding standards and conventions |
+| `ROADMAP.md` | Historical | Original phase roadmap |
 | `.env.example`, `.env.notary.example` | Current | Env templates (no secrets). Keep in sync when adding vars |
 | `supabase/schema.sql`, `supabase/migrations/*.sql` | Current | DB schema. Migrations must be **run manually** in the Supabase SQL editor; all are idempotent |
 | `notary/*`, `scripts/*` | Current | See §4 |
@@ -440,7 +439,7 @@ The wallet's birthday height is 4,611,710.
 ## 11. Operations runbook
 
 ```bash
-npm run dev               # local app on :3000 (preview tooling: .claude/launch.json "omnicura-dev")
+npm run dev               # local app on :3000 (preview tooling: .vscode/launch.json "omnicura-dev")
 npm run notary:docker     # build + start the notary (keeps the wallet volume; rebuild is quick)
 npm run notary:logs       # follow notary logs
 npm run notary:tunnel     # start the Cloudflare tunnel (opt-in compose profile)

@@ -2,7 +2,7 @@ node_modules/
 .next/
 .git/
 .vercel/
-.claude/
+.vscode/
 *.tsbuildinfo
 .env*
 !notary/
