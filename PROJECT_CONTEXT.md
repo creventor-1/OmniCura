@@ -485,7 +485,8 @@ viewing key can run
 
 | Commit | What |
 |---|---|
-| `HEAD` | Mobile voice input fix: eliminated `getUserMedia` from `AudioWaveformVisualizer` to resolve mobile OS microphone hardware exclusivity lockouts, animated procedural waveform, auto-restart loop for mobile 4-5s silence timeouts |
+| `HEAD` | Speech recognition cumulative transcript de-duplication (fixes Android/iOS 15x repetition); Notary auto-retry and mixnet reconnect resilience (eliminates permanent `indexer_unreachable` / `wallet_not_ready` state) |
+| `7d35b7f` | Mobile voice input fix: eliminated `getUserMedia` from `AudioWaveformVisualizer` to resolve mobile OS microphone hardware exclusivity lockouts, animated procedural waveform, auto-restart loop for mobile 4-5s silence timeouts |
 | `ee8693b` | Continuous voice recognition with real-time feedback and auto-send |
 | `66a3d0f` | Survive tunnel hiccups (transient vs failed), longer retries and polling, HTTP/2 tunnel, resume interrupted record anchors, History refresh, single "record anchored" event |
 | `bf266e0` | Async anchoring (start + poll), Cloudflare tunnel service, `notary:tunnel` / `notary:vercel`, memo index + memo check UI, docs |

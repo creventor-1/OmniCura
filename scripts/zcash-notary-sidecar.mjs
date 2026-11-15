@@ -321,7 +321,7 @@ const CONFIRM_WAIT_MS = 15 * 60_000;
  */
 async function quicksend(sendArgs, label) {
   const deadline = Date.now() + CONFIRM_WAIT_MS;
-  let transientRetries = 2;
+  let transientRetries = 5;
   for (;;) {
     const result = await runZingo(["--waitsync", "quicksend", ...sendArgs]);
     const json = extractJson(result.stdout);
@@ -332,7 +332,7 @@ async function quicksend(sendArgs, label) {
     // The mixnet occasionally can't reach lightwalletd; a fresh session usually can.
     if (code === "indexer_unreachable" && transientRetries > 0) {
       transientRetries -= 1;
-      console.log(`[notary] ${label}: indexer unreachable over the mixnet; retrying in 20 s.`);
+      console.log(`[notary] ${label}: indexer unreachable over the mixnet; retrying in 20 s (retry ${6 - transientRetries}/5).`);
       await sleep(20_000);
       continue;
     }
@@ -400,39 +400,55 @@ function refreshMemoIndex() {
   return memoIndex.refreshing;
 }
 
+let initWalletRunning = false;
 async function initWallet() {
-  const firstRun = !fs.existsSync(cfg.dataDir) || fs.readdirSync(cfg.dataDir).filter((f) => !f.startsWith("omnicura-")).length === 0;
-  if (firstRun && !cfg.seed) {
-    state.reason = `No wallet in ${cfg.dataDir} and ZINGO_SEED is not set. Put the notary seed phrase in .env.notary for the first run.`;
-    console.error(`[notary] ${state.reason}`);
-    return;
-  }
-  fs.mkdirSync(cfg.dataDir, { recursive: true });
-  console.log(`[notary] ${firstRun ? "Restoring wallet from seed" : "Opening wallet"} (${cfg.chain}, ${cfg.server}) …`);
+  if (initWalletRunning || state.ready) return;
+  initWalletRunning = true;
 
-  const res = await runZingo(["--waitsync", "addresses"], { withSeed: firstRun, timeoutMs: 30 * 60_000 });
-  if (res.notFound) {
-    state.reason = `zingo-cli not found at "${cfg.cli}". Set ZINGO_CLI_PATH.`;
-    console.error(`[notary] ${state.reason}`);
-    return;
-  }
-  if (!res.ok) {
-    state.reason = `zingo-cli failed to open the wallet (${classifyError(res.stderr + res.stdout)}).`;
-    console.error(`[notary] ${state.reason}\n${res.stderr.slice(0, 600)}`);
-    return;
-  }
-  state.walletAddresses = Array.from(new Set(res.stdout.match(/\b(?:utest1|u1|ztestsapling|zs|tm|t1)[0-9a-z]{20,}\b/gi) || []));
-  state.ownsNotaryAddress = res.stdout.includes(cfg.notaryAddress) ? true : false;
-  state.ready = true;
-  state.reason = state.ownsNotaryAddress
-    ? "Wallet open and controls the notary address."
-    : "Wallet open, but ZCASH_NOTARY_ADDRESS is not among its listed addresses. Anchors are still sent to that address, but funds must be in THIS wallet.";
-  console.log(`[notary] ${state.reason}`);
+  try {
+    const firstRun = !fs.existsSync(cfg.dataDir) || fs.readdirSync(cfg.dataDir).filter((f) => !f.startsWith("omnicura-")).length === 0;
+    if (firstRun && !cfg.seed) {
+      state.reason = `No wallet in ${cfg.dataDir} and ZINGO_SEED is not set. Put the notary seed phrase in .env.notary for the first run.`;
+      console.error(`[notary] ${state.reason}`);
+      return;
+    }
+    fs.mkdirSync(cfg.dataDir, { recursive: true });
 
-  refreshWalletStatus();
-  setInterval(() => {
-    if (inflightAnchors.size === 0) refreshWalletStatus();
-  }, WALLET_REFRESH_MS).unref();
+    let attempt = 0;
+    while (!state.ready) {
+      attempt += 1;
+      console.log(`[notary] ${firstRun ? "Restoring wallet from seed" : "Opening wallet"} (${cfg.chain}, ${cfg.server}) (attempt ${attempt}) …`);
+
+      const res = await runZingo(["--waitsync", "addresses"], { withSeed: firstRun, timeoutMs: 30 * 60_000 });
+      if (res.notFound) {
+        state.reason = `zingo-cli not found at "${cfg.cli}". Set ZINGO_CLI_PATH.`;
+        console.error(`[notary] ${state.reason}`);
+        return;
+      }
+      if (res.ok) {
+        state.walletAddresses = Array.from(new Set(res.stdout.match(/\b(?:utest1|u1|ztestsapling|zs|tm|t1)[0-9a-z]{20,}\b/gi) || []));
+        state.ownsNotaryAddress = res.stdout.includes(cfg.notaryAddress) ? true : false;
+        state.ready = true;
+        state.reason = state.ownsNotaryAddress
+          ? "Wallet open and controls the notary address."
+          : "Wallet open, but ZCASH_NOTARY_ADDRESS is not among its listed addresses. Anchors are still sent to that address, but funds must be in THIS wallet.";
+        console.log(`[notary] ${state.reason}`);
+
+        refreshWalletStatus();
+        setInterval(() => {
+          if (inflightAnchors.size === 0 && state.ready) refreshWalletStatus();
+        }, WALLET_REFRESH_MS).unref();
+        break;
+      }
+
+      const errClass = classifyError(res.stderr + res.stdout);
+      state.reason = `zingo-cli failed to open the wallet (${errClass}); retrying automatically in 15 s.`;
+      console.warn(`[notary] ${state.reason}\n${res.stderr.slice(0, 400)}`);
+      await sleep(15_000);
+    }
+  } finally {
+    initWalletRunning = false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -486,7 +502,10 @@ const server = http.createServer(async (req, res) => {
 
   try {
     if (req.method === "GET" && url.pathname === "/status") {
-      if (!state.ready) return send(res, 503, { error: "wallet_not_ready", reason: state.reason });
+      if (!state.ready) {
+        void initWallet();
+        return send(res, 503, { error: "wallet_not_ready", reason: state.reason });
+      }
       if (!walletCache.data) {
         refreshWalletStatus();
         return send(res, 503, {
@@ -509,7 +528,10 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && url.pathname === "/anchor") {
-      if (!state.ready) return send(res, 503, { error: "wallet_not_ready", reason: state.reason });
+      if (!state.ready) {
+        void initWallet();
+        return send(res, 503, { error: "wallet_not_ready", reason: state.reason });
+      }
       const body = await readBody(req);
       const recordHash = String(body.recordHash || "");
       const memo = String(body.memo || "");

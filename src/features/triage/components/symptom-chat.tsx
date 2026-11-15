@@ -846,13 +846,31 @@ export function SymptomChat({ onLocateFacilities, onOpenVision }: SymptomChatPro
 
           let final = "";
           let interim = "";
+          let lastFinalChunk = "";
+
           for (let i = 0; i < event.results.length; i++) {
             const item = event.results[i];
-            const text = item[0]?.transcript || "";
+            const text = (item[0]?.transcript || "").trim();
+            if (!text) continue;
+
             if (item.isFinal) {
-              final += (final ? " " : "") + text;
+              // Handle Android Chrome's cumulative transcript bug where each result item contains the entire accumulated sentence
+              if (final && text.toLowerCase().startsWith(final.toLowerCase())) {
+                final = text;
+                lastFinalChunk = text;
+              } else if (text !== lastFinalChunk && !final.toLowerCase().endsWith(text.toLowerCase())) {
+                final += (final ? " " : "") + text;
+                lastFinalChunk = text;
+              }
             } else {
-              interim += (interim ? " " : "") + text;
+              // For interim results, ensure it doesn't duplicate what's already in final
+              let cleanInterim = text;
+              if (final && cleanInterim.toLowerCase().startsWith(final.toLowerCase())) {
+                cleanInterim = cleanInterim.slice(final.length).trim();
+              }
+              if (cleanInterim && !final.toLowerCase().endsWith(cleanInterim.toLowerCase())) {
+                interim = cleanInterim;
+              }
             }
           }
 
